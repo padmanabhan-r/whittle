@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T12:37:00+05:30
+- **Last updated:** 2026-10-10T13:16:00+05:30
 
 ## Evidence
 
@@ -54,7 +54,7 @@ not before-and-after evidence.
   (cache read).
 - **Built with:** Claude Code, claude-opus-5-5.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 9633bfe
 The starting point for the build. The repository holds the hackathon rules
 (`docs/neathack-rules.md`), the working instructions for both teammates and
 their coding agents (`CLAUDE.md`, `AGENTS.md`), Entire's settings and
@@ -79,6 +79,32 @@ no code for the entry yet.
 - **Next:** Install Entire on both machines before the first code commit, so
   commits carry checkpoints. Sign up for cfo.ai. Settle the idea and record it,
   with the stack and run commands, in `CLAUDE.md`.
+
+### 2026-10-10 - working tree
+Brainstormed the idea. `brainstorm/ideas.md` holds 40 candidates with a domain
+and field for each, what each sponsor tool can do, and a ranking. Six models
+proposed ideas independently from one brief (Claude Opus 5.5, Gemini 3.8
+Flash, Kimi K3, DeepSeek V4.1 Flash, GPT-5.6 Luna, MiniMax M3); the teammate's
+CNC idea was added and overlaps were merged. The same six then scored every
+idea from 1 to 10 for impact, how uncrowded it is, and sponsor-stack use.
+
+- **Decision:** Build time is left out of the ranking (user's decision); the
+  build is done with coding agents.
+- **Decision:** No idea is chosen yet. The top of the ranking is an agent that
+  cuts another agent's cost using its neatlogs traces (8.8), then an auditor
+  for fleets of coding agents using Entire sessions (8.6). The CNC idea ranks
+  21st of 40: among the least crowded, low on sponsor-stack use.
+- **Failed:** MiniMax M3 spent its whole token budget on reasoning twice and
+  returned nothing. Fixed by turning its reasoning off.
+- **Measured:** The scores are averages of six model opinions formed from
+  two-sentence descriptions (`brainstorm/ideas.md`). They sort the list; they
+  are not evidence that an idea works.
+- **Tests:** none; no code. No Entire command was run and neither MCP server
+  was connected, so the sponsor features are as their docs describe them.
+- **Built with:** Claude Code, claude-opus-5-5. The council models were called
+  through OpenRouter from a throwaway script kept outside the repository.
+- **Next:** Agree the idea with the teammate. Install Entire before the first
+  code commit.
 
 ## Submission
 

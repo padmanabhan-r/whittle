@@ -1,5 +1,4 @@
 import { Undo } from '../../components/Icons'
-import { usd } from '../../lib/format'
 import type { RunView } from '../../lib/useJob'
 import { statusTag } from './FindingsSection'
 
@@ -41,7 +40,7 @@ export function FixSection({ view, selected, onSelect }: { view: RunView; select
             <thead>
               <tr>
                 <th>#</th><th>Fix</th><th>Patch</th><th className="r">Cost per run</th>
-                <th className="r">Quality</th><th>Check</th><th>Result</th>
+                <th className="r">Quality</th><th>Result</th>
               </tr>
             </thead>
             <tbody>
@@ -57,15 +56,19 @@ export function FixSection({ view, selected, onSelect }: { view: RunView; select
                     <td className="wrap">
                       <span style={{ fontWeight: 600 }}>{finding.title}</span>
                       {patch && <span className="loc">{patch.files.join(', ')}</span>}
+                      {(verify || (live && patch)) && (
+                        <span className="loc" style={{ fontFamily: 'var(--body)', fontSize: 13, color: verify && !verify.passed ? 'var(--red)' : undefined }}>
+                          {verify ? verify.reason : 'Rerunning the tasks…'}
+                        </span>
+                      )}
                     </td>
                     <td>{patch ? <>+{patch.additions} −{patch.deletions}</> : live ? 'writing…' : '–'}</td>
                     <td className="r">
-                      {verify ? <>{usd(verify.cost_per_run_before_usd)} → {usd(verify.cost_per_run_after_usd)}</> : '–'}
+                      {verify ? <>{verify.cost_per_run_before_usd.toFixed(4)} → {verify.cost_per_run_after_usd.toFixed(4)}</> : '–'}
                     </td>
                     <td className="r">
                       {verify ? <>{verify.quality_before.toFixed(2)} → {verify.quality_after.toFixed(2)}</> : '–'}
                     </td>
-                    <td className="wrap" style={{ fontSize: 13 }}>{verify ? verify.reason : live && patch ? 'Rerunning the tasks…' : ''}</td>
                     <td>{statusTag(finding, live)}</td>
                   </tr>
                 )

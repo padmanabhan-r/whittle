@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T20:25:00+05:30
+- **Last updated:** 2026-10-10T20:36:00+05:30
 
 ## Evidence
 
@@ -295,7 +295,7 @@ backend exists. First code in the repository.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - f739c6f
 Designed and built the UI: a landing page and the app, running against the
 mock server. Added `start.sh`.
 
@@ -331,6 +331,41 @@ mock server. Added `start.sh`.
 - **Built with:** Claude Code, claude-opus-5-5, with a design skill for the
   direction and layout choices. Comps and the receipt paper image were
   generated with ElevenLabs (`gpt-image-2`).
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Applied an independent design review to the UI, then three changes the user
+asked for after seeing the landing page on a MacBook Air.
+
+- **Fixed:** The review returned "fix" with eight items; a second pass scored
+  all eight resolved and returned "ship". The receipt paper had a grey box
+  around it (now a true cut-out with a cast shadow). Two app tables were
+  clipped at 1440 px. The result page repeated its figures. The mobile receipt
+  had lost its waste names.
+- **Fixed:** The landing receipt's lines did not add up. They were re-written
+  so the model lines sum to $0.3143 before and $0.1296 after, and the call
+  that was reverted and kept appears in the after list. A call a fix removes
+  is struck; a call that stays and gets cheaper is only named.
+- **Changed:** The first screen now fills the window exactly, so the "How it
+  works" boxes no longer show cut off at the fold, and the receipt hangs clear
+  of the top edge (user's requests). This departs from the approved comp, which
+  let both bleed.
+- **Changed:** "Five kinds of waste it can prove" read as a limit; it is now
+  "The waste it looks for", with "five kinds so far". Credits read "team
+  Attention Heads" (user's requests).
+- **Decision:** Sethuraman takes the backend and the deployment from here;
+  Padmanabhan keeps the UI (`docs/plan.md`, "Who does what").
+- **Verified:** `npm run build` passes. The first screen was captured at
+  1470 by 800 and 1440 by 810: it ends at the fold and nothing is cut.
+- **Not verified:** the design tool's measured check of the landing page
+  against the comp is left open. It fails on the first screen because the user
+  asked for a layout the comp does not have. The reviewer's "ship" was given
+  before the user's three changes, which no reviewer has seen. Nothing has
+  been clicked through by hand, and `DESIGN.md` was being written when this was
+  logged.
+- **Built with:** Claude Code, claude-opus-5-5, with a separate reviewing
+  agent.
 
 Evidence rows still missing: all seven.
 

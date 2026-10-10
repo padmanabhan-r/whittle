@@ -157,7 +157,8 @@ export function JobPage() {
           </div>
         )}
 
-        <Kpis job={job} view={view} />
+        {/* The result page states these figures itself; the strip above it would say everything twice. */}
+        {current !== 'result' && <Kpis job={job} view={view} />}
 
         {current === 'calls' && <CallsSection view={view} />}
         {current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} />}

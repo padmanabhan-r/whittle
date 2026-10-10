@@ -71,6 +71,13 @@ these answer.
 Throughout: small commits through the `commit` skill, `/devlog` after each
 session, a `#neatHack` post at each phase's "done when".
 
+## Who does what
+
+Agreed on 10 October. Padmanabhan owns the UI in `web/`, which is built against
+the mock. Sethuraman owns the backend from here: the proxy, the sandbox, the
+sample agents, the detectors, the agent loop, replacing the mock with the real
+API, and the deployment to EC2.
+
 ## Opening the pull request
 
 Decided 10 October. Reading needs no access: only public repos are accepted and

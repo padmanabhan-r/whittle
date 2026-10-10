@@ -7,9 +7,24 @@
   background: var(--bg);
   overflow-x: clip;
 }
+/* The first screen fills the window exactly, so nothing from the next section shows cut off at the
+   fold. --oy is the spare height above and below the measured layout; the content sits centred in it
+   and the receipt paper grows to keep running off the top edge. */
 .landing .frame {
+  --oy: max(0px, (100svh - 940 * var(--u)) / 2);
   position: relative;
-  height: calc(900 * var(--u));
+  height: max(calc(940 * var(--u)), 100svh);
+  overflow: clip;
+}
+.landing .hero > :not(.receipt):not(h1),
+.landing h1 > span,
+.landing .receipt > .rblock {
+  translate: 0 var(--oy);
+}
+/* The paper hangs clear of the top edge, with its torn top showing. */
+.landing .receipt > .paper {
+  top: calc(var(--oy) + 14 * var(--u));
+  height: calc(906 * var(--u));
 }
 .landing .frame > *,
 .landing .hero > *,
@@ -37,10 +52,10 @@
 .r-lede { left: 3.2%; top: calc(487.4 * var(--u)); width: 22.6%; }
 .r-cta { left: 3.3%; top: calc(638 * var(--u)); width: 17.35%; height: calc(72.7 * var(--u)); }
 .r-cta-link { left: 3.6%; top: calc(738.3 * var(--u)); }
-.r-receipt-paper { left: 34.5%; top: 0; width: 33.3%; height: calc(921.6 * var(--u)); }
+.r-receipt-paper { left: 33.9%; top: 0; width: 35%; height: calc(921.6 * var(--u)); }
 .r-receipt-head { left: 36.1%; top: calc(51.2 * var(--u)); width: 23.4%; }
 .r-receipt-before { left: 36.1%; top: calc(145.4 * var(--u)); width: 30.4%; }
-.r-receipt-after { left: 36.1%; top: calc(585.7 * var(--u)); width: 23.4%; }
+.r-receipt-after { left: 36.1%; top: calc(545 * var(--u)); width: 23.4%; }
 .r-receipt-totals { left: 36.1%; top: calc(808.9 * var(--u)); width: 23.4%; }
 .r-sample-title { left: 70.4%; top: calc(125.9 * var(--u)); }
 .r-card-cost { left: 70.4%; top: calc(173 * var(--u)); width: 26.3%; height: calc(179.3 * var(--u)); }
@@ -118,21 +133,22 @@
 
 /* The receipt: a paper plate with live, selectable type printed on it. */
 .landing .paper {
-  object-fit: cover;
-  object-position: 50% 100%;
+  object-fit: fill;
   user-select: none;
   pointer-events: none;
+  filter: drop-shadow(0 calc(10 * var(--u)) calc(16 * var(--u)) rgba(9, 10, 27, 0.16))
+    drop-shadow(0 calc(1 * var(--u)) calc(2 * var(--u)) rgba(9, 10, 27, 0.1));
 }
 .landing .rblock {
-  font: 400 calc(14 * var(--u)) / calc(20.6 * var(--u)) var(--mono);
+  font: 500 calc(14 * var(--u)) / calc(20.6 * var(--u)) var(--mono);
   font-variant-numeric: tabular-nums;
-  color: #25222e;
-  letter-spacing: 0.01em;
+  color: #1b1924;
+  letter-spacing: -0.01em;
 }
 .landing .rtitle {
   font-size: calc(15 * var(--u));
-  font-weight: 500;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 .landing .rule {
   margin: calc(7 * var(--u)) 0;
@@ -165,9 +181,12 @@
   color: var(--red);
   background: linear-gradient(var(--red), var(--red)) left 52% / var(--strike, 100%) calc(1.5 * var(--u)) no-repeat;
 }
+.landing .rline.noted .cells {
+  color: #1b1924;
+}
 .landing .rline .why {
   position: absolute;
-  left: calc(456 * var(--u));
+  left: calc(448 * var(--u));
   top: 0;
   font: italic 400 calc(13.5 * var(--u)) / calc(20.6 * var(--u)) var(--mono);
   color: var(--red);
@@ -175,7 +194,7 @@
 .landing .totals {
   font-size: calc(17 * var(--u));
   line-height: calc(29 * var(--u));
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
 }
 .landing .totals .rline {
   justify-content: space-between;
@@ -185,10 +204,11 @@
   color: var(--red);
   text-decoration-thickness: calc(1.5 * var(--u));
 }
-.landing .totals mark {
-  padding: 0 calc(10 * var(--u));
-  background: var(--yellow);
-  border-radius: calc(3 * var(--u)) calc(6 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u));
+.landing .totals mark,
+.landing .slip mark {
+  margin: 0 calc(-12 * var(--u));
+  padding: calc(3 * var(--u)) calc(14 * var(--u));
+  background: url('/plates/marker.svg') center / 100% 100% no-repeat;
   font-weight: 700;
   color: var(--ink);
 }
@@ -217,7 +237,7 @@
 @keyframes strike {
   from {
     --strike: 0%;
-    color: #25222e;
+    color: #1b1924;
     background-size: 0% calc(1.5 * var(--u));
   }
 }
@@ -330,7 +350,7 @@
 
 /* How it works */
 .landing .how {
-  padding: calc(16 * var(--u)) 3.4% 0;
+  padding: clamp(56px, 6vw, 104px) 3.4% 0;
 }
 .landing .how-title {
   font: 700 calc(30 * var(--u)) / 1 var(--display);
@@ -388,7 +408,7 @@
 
 /* Below the first screen */
 .landing .steps4 {
-  margin-bottom: calc(96 * var(--u));
+  margin-bottom: 0;
 }
 .landing .lower {
   padding: clamp(56px, 6vw, 104px) 3.4% 0;
@@ -455,13 +475,13 @@
   align-items: center;
 }
 .landing .slip {
-  padding: 26px 28px;
-  background: var(--paper);
-  box-shadow: var(--shadow-paper);
-  font: 400 clamp(12.5px, 0.95vw, 16px) / 2 var(--mono);
+  justify-self: start;
+  padding: 44px 34px 52px 30px;
+  background: url('/plates/receipt-paper.png') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 8px 14px rgba(9, 10, 27, 0.14));
+  font: 500 clamp(12.5px, 0.95vw, 16px) / 2 var(--mono);
   white-space: pre;
-  overflow-x: auto;
-  color: #25222e;
+  color: #1b1924;
 }
 .landing .slip s {
   color: var(--red);
@@ -472,10 +492,8 @@
   white-space: normal;
 }
 .landing .slip mark {
-  background: var(--yellow);
-  color: var(--ink);
-  padding: 2px 6px;
-  margin-left: -6px;
+  margin: 0 -10px;
+  padding: 4px 10px;
 }
 .landing .leave dl {
   display: grid;
@@ -562,9 +580,15 @@
     --u: 0.56px;
   }
   .landing .frame {
+    --oy: 0px;
     height: auto;
     padding: 0 20px 8px;
     container-type: inline-size;
+    overflow: visible;
+  }
+  .landing .receipt > .paper {
+    top: 0;
+    height: 100%;
   }
   .landing .frame > *,
   .landing .hero > *,
@@ -645,8 +669,31 @@
     top: auto;
     width: auto;
   }
+  .landing .rline {
+    flex-direction: column;
+  }
+  .landing .totals .rline {
+    flex-direction: row;
+    width: 100%;
+  }
+  .landing .hero > .receipt {
+    padding-right: calc(30 * var(--u));
+  }
   .landing .rline .why {
-    display: none;
+    position: static;
+    padding-left: calc(38 * var(--u));
+    font-size: calc(13 * var(--u));
+  }
+  .landing .rule,
+  .landing .rline.head .cells {
+    width: 100%;
+  }
+  .landing .rline.head .cells {
+    grid-template-columns: 12% 12% 1fr 18% 24%;
+  }
+  .landing .slip {
+    max-width: 100%;
+    overflow-x: auto;
   }
   .landing .r-receipt-after,
   .landing .r-receipt-totals {

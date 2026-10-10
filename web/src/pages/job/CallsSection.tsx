@@ -73,8 +73,8 @@ export function CallsSection({ view }: { view: RunView }) {
           <table className="ledger">
             <thead>
               <tr>
-                <th>#</th><th>Model</th><th className="r">Input</th><th className="r">Cache read</th>
-                <th className="r">Cache write</th><th className="r">Output</th>
+                <th>#</th><th>Model</th><th className="r">Input</th><th className="r" title="Tokens read from the cache">Cached</th>
+                <th className="r" title="Tokens written to the cache">Written</th><th className="r">Output</th>
                 <th className="r">USD</th><th>Finding</th>
               </tr>
             </thead>

@@ -5,37 +5,37 @@ import '../styles/landing.css'
 
 type Line = [n: string, kind: string, call: string, tokens: string, usd: string, why?: string, why2?: string]
 
+// Sample lines, written to add up: the model lines in each list sum to the total printed below it.
 const BEFORE: Line[] = [
-  ['01', 'model', 'gpt-4o-mini', '1,253', '0.0063'],
-  ['02', 'tool', 'list_files', '0', '0.0005'],
-  ['03', 'model', 'gpt-4o-mini', '2,194', '0.0106'],
-  ['04', 'tool', 'read_file', '5,231', '0.0016'],
-  ['05', 'model', 'gpt-4o-mini', '3,102', '0.0150'],
-  ['06', 'model', 'gpt-4o-mini', '3,102', '0.0150', 'changing cache prefix'],
-  ['07', 'tool', 'read_file', '5,231', '0.0016', 'context bloat'],
-  ['08', 'model', 'gpt-4o-mini', '2,987', '0.0145', 'context bloat'],
-  ['09', 'tool', 'search_docs', '0', '0.0020'],
-  ['10', 'model', 'gpt-4o-mini', '1,102', '0.0053'],
-  ['11', 'tool', 'call_api', '0', '0.0200'],
-  ['12', 'model', 'gpt-4o-mini', '1,102', '0.0053', 'duplicate tool call'],
-  ['13', 'model', 'gpt-4o', '8,742', '0.1315'],
-  ['14', 'model', 'gpt-4o', '8,742', '0.1315', 'oversized model', 'reverted, kept'],
-  ['15', 'tool', 'call_api', '0', '0.0200'],
-  ['16', 'model', 'gpt-4o-mini', '1,102', '0.0053', 'doomed retry'],
-  ['17', 'model', 'gpt-4o-mini', '1,102', '0.0053', 'doomed retry'],
-  ['18', 'model', 'gpt-4o-mini', '512', '0.0025'],
+  ['01', 'model', 'classify', '4,200', '0.0290', 'oversized model', 'reverted, kept'],
+  ['02', 'tool', 'search', '0', '0.0000'],
+  ['03', 'model', 'plan', '6,100', '0.0345', '~changing cache prefix'],
+  ['04', 'tool', 'fetch_page', '0', '0.0000'],
+  ['05', 'model', 'read page', '8,000', '0.0380'],
+  ['06', 'tool', 'search', '0', '0.0000', 'duplicate tool call'],
+  ['07', 'model', 'read results', '9,900', '0.0535', 'duplicate tool call'],
+  ['08', 'tool', 'fetch_page', '0', '0.0000'],
+  ['09', 'model', 'read page', '11,800', '0.0440', '~context bloat'],
+  ['10', 'tool', 'fetch_page', '0', '0.0000', 'doomed retry'],
+  ['11', 'model', 'retry', '7,400', '0.0210', 'doomed retry'],
+  ['12', 'tool', 'fetch_page', '0', '0.0000', 'doomed retry'],
+  ['13', 'model', 'retry', '7,400', '0.0210', 'doomed retry'],
+  ['14', 'tool', 'cite', '0', '0.0000'],
+  ['15', 'model', 'draft', '10,600', '0.0380'],
+  ['16', 'model', 'write answer', '11,200', '0.0353'],
 ]
 
 const AFTER: Line[] = [
-  ['01', 'model', 'gpt-4o-mini', '1,253', '0.0063'],
-  ['02', 'tool', 'list_files', '0', '0.0005'],
-  ['03', 'model', 'gpt-4o-mini', '2,194', '0.0106'],
-  ['04', 'tool', 'read_file', '5,231', '0.0016'],
-  ['05', 'model', 'gpt-4o-mini', '3,102', '0.0150'],
-  ['06', 'tool', 'search_docs', '0', '0.0020'],
-  ['07', 'model', 'gpt-4o-mini', '1,102', '0.0053'],
-  ['08', 'tool', 'call_api', '0', '0.0200'],
-  ['09', 'model', 'gpt-4o-mini', '512', '0.0025'],
+  ['01', 'model', 'classify', '4,200', '0.0290'],
+  ['02', 'tool', 'search', '0', '0.0000'],
+  ['03', 'model', 'plan', '6,100', '0.0118'],
+  ['04', 'tool', 'fetch_page', '0', '0.0000'],
+  ['05', 'model', 'read page', '5,300', '0.0196'],
+  ['06', 'tool', 'fetch_page', '0', '0.0000'],
+  ['07', 'model', 'read page', '6,200', '0.0212'],
+  ['08', 'tool', 'cite', '0', '0.0000'],
+  ['09', 'model', 'draft', '7,000', '0.0236'],
+  ['10', 'model', 'write answer', '7,400', '0.0244'],
 ]
 
 const FINDINGS = ['changing cache prefix', 'context bloat', 'duplicate tool call', 'oversized model', 'doomed retry']
@@ -55,15 +55,16 @@ const KINDS = [
   { name: 'doomed retry', what: 'A request that failed is sent again unchanged, two or three times, before the agent gives up.', proof: 'Identical requests, each ending in the same error.', fix: 'Stop on errors that cannot succeed, or change the request first.' },
 ]
 
+// A waste name with a leading "~" marks a call that stays and gets cheaper: named, not struck.
 function Rows({ lines, offset }: { lines: Line[]; offset: number }) {
   return (
     <>
       {lines.map(([n, kind, call, tokens, usd, why, why2], i) => (
-        <div className={`rline ${why ? 'cut' : ''}`} key={n} style={{ '--i': offset + i } as React.CSSProperties}>
+        <div className={`rline ${why ? (why.startsWith('~') ? 'noted' : 'cut') : ''}`} key={n} style={{ '--i': offset + i } as React.CSSProperties}>
           <span className="cells">
             <span>{n}</span><span>{kind}</span><span>{call}</span><span className="r">{tokens}</span><span className="r">{usd}</span>
           </span>
-          {why && <span className="why">{why}{why2 && <><br />{why2}</>}</span>}
+          {why && <span className="why">{why.replace('~', '')}{why2 && <><br />{why2}</>}</span>}
         </div>
       ))}
     </>
@@ -102,7 +103,7 @@ export function Landing() {
           <Link className="r-cta cta" to="/app">Run a sample agent <ArrowRight /></Link>
           <Link className="r-cta-link cta-link" to="/app">Paste your own repo</Link>
 
-          <div className="receipt" role="img" aria-label="Sample run receipt: 18 calls before, 9 after. Wasted calls are struck through. Total before $0.3143, total after $0.1296.">
+          <div className="receipt" role="img" aria-label="Sample run receipt: 16 calls before, 10 after. Wasted calls are struck through. Total before $0.3143, total after $0.1296.">
             <img className="r-receipt-paper paper" src="/plates/receipt-paper.png" alt="" />
             <div className="r-receipt-head rblock" aria-hidden="true">
               <div className="rtitle">WHITTLE SAMPLE RUN</div>
@@ -116,13 +117,13 @@ export function Landing() {
               <div className="rule" />
             </div>
             <div className="r-receipt-after rblock" aria-hidden="true">
-              <div className="rline label" style={{ '--i': 20 } as React.CSSProperties}>OPTIMIZED RUN (AFTER)</div>
-              <Rows lines={AFTER} offset={21} />
+              <div className="rline label" style={{ '--i': 18 } as React.CSSProperties}>OPTIMIZED RUN (AFTER)</div>
+              <Rows lines={AFTER} offset={19} />
               <div className="rule" />
             </div>
             <div className="r-receipt-totals rblock totals" aria-hidden="true">
-              <div className="rline" style={{ '--i': 31 } as React.CSSProperties}><span>TOTAL BEFORE</span><s>$0.3143</s></div>
-              <div className="rline" style={{ '--i': 32 } as React.CSSProperties}><span>TOTAL AFTER</span><mark>$0.1296</mark></div>
+              <div className="rline" style={{ '--i': 30 } as React.CSSProperties}><span>TOTAL BEFORE</span><s>$0.3143</s></div>
+              <div className="rline" style={{ '--i': 31 } as React.CSSProperties}><span>TOTAL AFTER</span><mark>$0.1296</mark></div>
             </div>
           </div>
 
@@ -168,10 +169,10 @@ export function Landing() {
       </section>
 
       <section className="lower kinds" id="findings">
-        <h2>Five kinds of waste it can prove</h2>
+        <h2>The waste it looks for</h2>
         <p className="intro">
-          Whittle reports only what the traces show. Every finding links to the calls behind it and to the place in
-          your code.
+          Five kinds so far, with more to come. Whittle reports only what the traces show: every finding links to the
+          calls behind it and to the place in your code.
         </p>
         <div className="ktable" role="table" aria-label="Kinds of waste">
           <div className="krow khead" role="row">
@@ -199,10 +200,10 @@ export function Landing() {
           </p>
         </div>
         <div className="slip" aria-hidden="true">
-          <div><s>14  model  gpt-4o      8,742  0.1315</s></div>
+          <div><s>01  model  classify     4,200  0.0290</s></div>
           <div className="note">oversized model: quality 0.92 → 0.71</div>
           <div className="note">below 0.85. reverted, kept.</div>
-          <div><mark>14  model  gpt-4o      8,742  0.1315</mark></div>
+          <div><mark>01  model  classify     4,200  0.0290</mark></div>
         </div>
       </section>
 
@@ -224,7 +225,7 @@ export function Landing() {
 
       <footer className="foot">
         <span className="logo2">Whittle</span>
-        <span>Built for neatHack 2026 by Attention Heads</span>
+        <span>Built for neatHack 2026 by team Attention Heads</span>
         <a href="https://github.com/padmanabhan-r/whittle">GitHub</a>
       </footer>
     </div>

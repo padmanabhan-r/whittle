@@ -17,14 +17,21 @@ before and after neatlogs traces, a diff and an optional pull request.
 
 - Design: `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`
 - Build order, Entire cadence, checks: `docs/plan.md`
-- Stack (only the contract and the mock server exist so far): Python 3.13 and FastAPI in `api/`, SQLite
+- Stack (the contract, the mock server and the UI exist; the real backend
+  does not): Python 3.13 and FastAPI in `api/`, SQLite
   for job state, Docker for the sandbox, the UI in `web/`, one EC2 instance in
   `us-east-1`. Python must be 3.10 to 3.13: on 3.14 pip installs an old
   neatlogs without `wrap` or `trace`.
 - Contract with the UI: `docs/api-contract.md`, defined in code by
   `api/costcutter/contract.py`. Change the models, the document and the mock
   together, then regenerate the schemas.
-- Run commands, all from `api/`:
+- UI: Vite, React and TypeScript in `web/`. Product facts for design work are
+  in `PRODUCT.md`; the design contracts are in `.impeccable/surfaces/`. Types in
+  `web/src/lib/api.ts` mirror `contract.py`.
+- `./start.sh` from the root starts the API (the mock, for now) and the UI:
+  app on http://localhost:5173, API on http://localhost:8787.
+- UI commands, from `web/`: `npm run dev`, `npm run build`, `npm run lint`.
+- Backend commands, all from `api/`:
   - `uv sync` installs the backend.
   - `uv run uvicorn costcutter.mock.server:app --port 8787` starts the mock
     server the UI is built against. Its numbers are invented.

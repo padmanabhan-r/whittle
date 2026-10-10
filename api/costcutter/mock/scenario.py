@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from costcutter.contract import (
+    CallRef,
     CodeLocation,
     Comparison,
     Diff,
@@ -210,6 +211,27 @@ _FINDING_TEXT = {
 }
 
 
+def affected_calls(kind: FindingKind) -> list[CallRef]:
+    """Which baseline calls a finding points at, matching what simulate() changes."""
+    refs = []
+    for task, calls_made in enumerate(BASE_CALLS):
+        for i in range(1, calls_made + 1):
+            effect = None
+            if kind is FindingKind.CACHE_PREFIX and i >= 2:
+                effect = "reduced"
+            elif kind is FindingKind.CONTEXT_BLOAT and i >= 3:
+                effect = "reduced"
+            elif kind is FindingKind.OVERSIZED_MODEL and i == 1:
+                effect = "reduced"
+            elif kind is FindingKind.DUPLICATE_TOOL_CALL and task in DUPLICATE_TASKS and i == 4:
+                effect = "removed"
+            elif kind is FindingKind.DOOMED_RETRY and task == RETRY_TASK and i in (4, 5):
+                effect = "removed"
+            if effect:
+                refs.append(CallRef(task_id=f"task-{task + 1}", call_index=i, effect=effect))
+    return refs
+
+
 def build_findings(language: Language) -> list[Finding]:
     ext = "py" if language is Language.PYTHON else "ts"
     base = cost_per_run(frozenset())
@@ -235,6 +257,7 @@ def build_findings(language: Language) -> list[Finding]:
                         note=note,
                     )
                 ],
+                calls=affected_calls(kind),
                 location=CodeLocation(
                     file=f"agent/{module}.{ext}", line_start=start, line_end=end, symbol=symbol
                 ),

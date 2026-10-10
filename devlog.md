@@ -5,11 +5,11 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Not built yet. Planned: a web app that runs someone's AI agent in a sandbox, shows where each run's tokens and money go, fixes the waste in the code, reruns it and proves the saving with before and after traces (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** building (Phase 1: contract and mock server done; proxy, sandbox and agent not started)
+- **Status:** building (UI, contract and mock server done; proxy, sandbox and agent not started)
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
-- **Stack:** Python 3.13, FastAPI, Pydantic, uv, pytest (`api/pyproject.toml`). Planned: SQLite, Docker, a web UI
+- **Stack:** Python 3.13, FastAPI, Pydantic, uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`). Planned: SQLite, Docker
 - **Hosting:** not deployed
 - **Auth:** none
 - **External services:** none
@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T19:50:00+05:30
+- **Last updated:** 2026-10-10T20:25:00+05:30
 
 ## Evidence
 
@@ -264,7 +264,7 @@ Closed the open spikes from the second machine.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 20f0b5f
 Wrote the API contract and a mock server, so the UI can be built before the
 backend exists. First code in the repository.
 
@@ -292,6 +292,45 @@ backend exists. First code in the repository.
   these events.
 - **Evidence:** Entire checkpoint on this commit (see `git log`).
 - **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Designed and built the UI: a landing page and the app, running against the
+mock server. Added `start.sh`.
+
+- **Decision:** The look is "The Till Roll": a run's cost as an itemised shop
+  receipt, with wasted lines struck through. The user chose it from two hands
+  of four rendered directions, then picked one of three landing compositions
+  and one of three app layouts (a ledger with a side rail and an inspector).
+- **Decision:** Vite, React and TypeScript, a plain single-page app (user's
+  choice). No UI library: plain CSS with a small set of tokens.
+- **Added:** `web/`: the landing page (`/`), the start screen (`/app`) and the
+  job screen (`/app/jobs/:id`) with five sections: calls, findings, fix and
+  verify, result, diff. The job screen follows the live event stream.
+- **Added:** `start.sh`, which starts the API and the UI together, and
+  `PRODUCT.md`, the product facts design work must keep to.
+- **Changed:** The contract gained `Finding.calls`: the baseline calls a
+  finding points at, each marked removed or reduced. The UI needs it to strike
+  the right lines. The mock, the document and the schemas were updated with it.
+- **Decision:** Pull requests will be opened by a bot account that forks the
+  repo, so users grant nothing (`docs/plan.md`, "Opening the pull request").
+- **Fixed:** The cost figure showed negative values while counting; the easing
+  ran on a negative time when the animation frame clock was behind.
+- **Verified:** `npm run build` passes; `uv run pytest`: 6 passed. A sample job
+  was run to completion through the UI's own API calls and each of the five
+  sections was captured at 1440 px, plus the landing page at 1440 and 390 px
+  with no horizontal overflow (scroll width equals client width at both). The
+  landing page's first screen measured 89% against the approved comp.
+- **Not verified:** nothing was clicked through by hand in a browser; the
+  checks were screenshots of loaded pages. The live stream was seen only as its
+  end state. `npm run lint` reports six warnings, none fixed. An independent
+  design review was requested and had not returned when this was written.
+- **Not verified:** the receipt on the landing page is illustrative. Its lines
+  do not add up to its totals, and all figures on it are invented.
+- **Built with:** Claude Code, claude-opus-5-5, with a design skill for the
+  direction and layout choices. Comps and the receipt paper image were
+  generated with ElevenLabs (`gpt-image-2`).
 
 Evidence rows still missing: all seven.
 

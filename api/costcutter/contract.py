@@ -109,6 +109,16 @@ class CodeLocation(Model):
     symbol: str | None = None
 
 
+class CallRef(Model):
+    """A baseline call a finding points at."""
+
+    task_id: str
+    call_index: int
+    effect: Literal["removed", "reduced"] = Field(
+        description="removed: the fix drops this call; reduced: the call stays and costs less"
+    )
+
+
 class Finding(Model):
     id: str
     kind: FindingKind
@@ -118,6 +128,7 @@ class Finding(Model):
     estimated_saving_usd_per_run: float
     estimated_saving_pct: float = Field(description="Share of baseline cost per run, 0 to 100")
     evidence: list[Evidence]
+    calls: list[CallRef] = Field(default_factory=list, description="Baseline calls where this waste shows")
     location: CodeLocation | None = None
     status: FindingStatus = FindingStatus.PROPOSED
     status_reason: str | None = None

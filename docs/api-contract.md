@@ -141,6 +141,7 @@ A GitHub repo needs the run command, the tasks and a model key:
   "evidence": [
     { "trace_id": "...", "span_id": "...", "trace_url": "https://...", "note": "Cache read tokens are 0 on all calls..." }
   ],
+  "calls": [{ "task_id": "task-1", "call_index": 2, "effect": "reduced" }],
   "location": { "file": "agent/prompts.py", "line_start": 12, "line_end": 31, "symbol": "build_system_prompt" },
   "status": "proposed",
   "status_reason": null
@@ -156,6 +157,9 @@ A GitHub repo needs the run command, the tasks and a model key:
 - Estimates are for that fix **alone**. They overlap, so they do not add up to
   the final saving; `Comparison.by_finding` has the real, additive numbers.
 - `status_reason` is set for `skipped` and `reverted`.
+- `calls` lists the baseline calls where the waste shows. `effect` is `removed`
+  (the fix drops that call) or `reduced` (the call stays and costs less). Match
+  them to `llm.call` events by `task_id` and `call_index`. It can be empty.
 - `location` can be `null` when the waste has no single place in the code.
 
 ### Fix

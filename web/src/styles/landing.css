@@ -1,0 +1,716 @@
+/* The first screen is laid out on the approved comp's measured boxes (2048 x 1152).
+   --u is one comp pixel, so every size scales with the viewport. */
+.landing {
+  --u: calc(min(100vw, 2048px) / 2048);
+  max-width: 2048px;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow-x: clip;
+}
+.landing .frame {
+  position: relative;
+  height: calc(900 * var(--u));
+}
+.landing .frame > *,
+.landing .hero > *,
+.landing .nav > *,
+.landing .nav nav > *,
+.landing h1 > span,
+.landing .receipt > * {
+  position: absolute;
+}
+.landing .frame > .nav,
+.landing .frame > .hero,
+.landing .nav > nav,
+.landing .hero > h1,
+.landing .hero > .receipt {
+  position: static;
+}
+
+.r-logo { left: 1.7%; top: calc(20.5 * var(--u)); }
+.r-nav-how { left: 72%; top: calc(30.7 * var(--u)); }
+.r-nav-findings { left: 79.65%; top: calc(30.7 * var(--u)); }
+.r-nav-github { left: 85.35%; top: calc(30.7 * var(--u)); }
+.r-nav-open { left: 90.6%; top: calc(17.4 * var(--u)); width: 7.65%; height: calc(51 * var(--u)); }
+.r-headline-black { left: 3.2%; top: calc(161.7 * var(--u)); width: 24%; }
+.r-headline-blue { left: 3.2%; top: calc(315.4 * var(--u)); width: 21%; }
+.r-lede { left: 3.2%; top: calc(487.4 * var(--u)); width: 22.6%; }
+.r-cta { left: 3.3%; top: calc(638 * var(--u)); width: 17.35%; height: calc(72.7 * var(--u)); }
+.r-cta-link { left: 3.6%; top: calc(738.3 * var(--u)); }
+.r-receipt-paper { left: 34.5%; top: 0; width: 33.3%; height: calc(921.6 * var(--u)); }
+.r-receipt-head { left: 36.1%; top: calc(51.2 * var(--u)); width: 23.4%; }
+.r-receipt-before { left: 36.1%; top: calc(145.4 * var(--u)); width: 30.4%; }
+.r-receipt-after { left: 36.1%; top: calc(585.7 * var(--u)); width: 23.4%; }
+.r-receipt-totals { left: 36.1%; top: calc(808.9 * var(--u)); width: 23.4%; }
+.r-sample-title { left: 70.4%; top: calc(125.9 * var(--u)); }
+.r-card-cost { left: 70.4%; top: calc(173 * var(--u)); width: 26.3%; height: calc(179.3 * var(--u)); }
+.r-card-quality { left: 70.4%; top: calc(370.7 * var(--u)); width: 26.3%; height: calc(157.7 * var(--u)); }
+.r-card-findings { left: 70.4%; top: calc(546.9 * var(--u)); width: 26.3%; height: calc(277.5 * var(--u)); }
+
+.landing .logo {
+  font: 700 calc(41 * var(--u)) / 1 var(--display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.landing .nav nav a {
+  font: 500 calc(19 * var(--u)) / 1.25 var(--body);
+  color: var(--ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.landing .nav nav a:hover {
+  color: var(--blue);
+}
+.landing .open,
+.landing .cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(22 * var(--u));
+  border-radius: calc(7 * var(--u));
+  background: var(--blue);
+  color: #fff;
+  font: 600 calc(19 * var(--u)) / 1 var(--body);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.2s var(--ease);
+}
+.landing .cta {
+  font-size: calc(25 * var(--u));
+  border-radius: calc(8 * var(--u));
+}
+.landing .cta svg {
+  width: calc(24 * var(--u));
+  height: calc(24 * var(--u));
+}
+.landing .open:hover,
+.landing .cta:hover {
+  background: var(--blue-ink);
+}
+.landing .cta:hover svg {
+  transform: translateX(calc(4 * var(--u)));
+}
+.landing .cta svg {
+  transition: transform 0.2s var(--ease);
+}
+.landing h1 {
+  font: 700 calc(72 * var(--u)) / 1.04 var(--display);
+  letter-spacing: -0.028em;
+  color: var(--ink);
+}
+.landing h1 .r-headline-blue {
+  font-size: calc(74 * var(--u));
+  color: var(--blue);
+}
+.landing .lede {
+  font: 400 calc(24 * var(--u)) / 1.36 var(--body);
+  color: var(--ink-2);
+}
+.landing .cta-link {
+  font: 500 calc(26 * var(--u)) / 1.2 var(--body);
+  color: var(--blue);
+  text-decoration: underline dotted;
+  text-underline-offset: calc(6 * var(--u));
+  text-decoration-thickness: calc(2 * var(--u));
+  white-space: nowrap;
+}
+
+/* The receipt: a paper plate with live, selectable type printed on it. */
+.landing .paper {
+  object-fit: cover;
+  object-position: 50% 100%;
+  user-select: none;
+  pointer-events: none;
+}
+.landing .rblock {
+  font: 400 calc(14 * var(--u)) / calc(20.6 * var(--u)) var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: #25222e;
+  letter-spacing: 0.01em;
+}
+.landing .rtitle {
+  font-size: calc(15 * var(--u));
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.landing .rule {
+  margin: calc(7 * var(--u)) 0;
+  border-top: calc(1.5 * var(--u)) dashed #55535c;
+  width: calc(462 * var(--u));
+}
+.landing .rline {
+  position: relative;
+  display: flex;
+  white-space: nowrap;
+}
+.landing .rline .cells {
+  display: grid;
+  grid-template-columns: calc(38 * var(--u)) calc(70 * var(--u)) calc(150 * var(--u)) calc(74 * var(--u)) calc(102 * var(--u));
+  width: calc(434 * var(--u));
+}
+.landing .rline.head .cells {
+  grid-template-columns: calc(58 * var(--u)) calc(50 * var(--u)) calc(150 * var(--u)) calc(84 * var(--u)) calc(120 * var(--u));
+  width: calc(462 * var(--u));
+  font-size: calc(13 * var(--u));
+}
+.landing .rline .r {
+  text-align: right;
+}
+.landing .rline.label {
+  margin-bottom: calc(2 * var(--u));
+  letter-spacing: 0.03em;
+}
+.landing .rline.cut .cells {
+  color: var(--red);
+  background: linear-gradient(var(--red), var(--red)) left 52% / var(--strike, 100%) calc(1.5 * var(--u)) no-repeat;
+}
+.landing .rline .why {
+  position: absolute;
+  left: calc(456 * var(--u));
+  top: 0;
+  font: italic 400 calc(13.5 * var(--u)) / calc(20.6 * var(--u)) var(--mono);
+  color: var(--red);
+}
+.landing .totals {
+  font-size: calc(17 * var(--u));
+  line-height: calc(29 * var(--u));
+  letter-spacing: 0.03em;
+}
+.landing .totals .rline {
+  justify-content: space-between;
+  width: calc(456 * var(--u));
+}
+.landing .totals s {
+  color: var(--red);
+  text-decoration-thickness: calc(1.5 * var(--u));
+}
+.landing .totals mark {
+  padding: 0 calc(10 * var(--u));
+  background: var(--yellow);
+  border-radius: calc(3 * var(--u)) calc(6 * var(--u)) calc(4 * var(--u)) calc(7 * var(--u));
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* The one authored motion: the receipt prints line by line, then the wasted lines are struck. */
+@media (prefers-reduced-motion: no-preference) {
+  .landing.printing .rline[style] {
+    animation: printline 0.28s var(--ease) both;
+    animation-delay: calc(var(--i) * 55ms + 250ms);
+  }
+  .landing.printing .rline.cut .cells {
+    animation: strike 0.5s var(--ease) both;
+    animation-delay: calc(var(--i) * 55ms + 1500ms);
+  }
+  .landing.printing .rline .why {
+    animation: printline 0.4s var(--ease) both;
+    animation-delay: calc(var(--i) * 55ms + 1800ms);
+  }
+}
+@keyframes printline {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-6 * var(--u)));
+  }
+}
+@keyframes strike {
+  from {
+    --strike: 0%;
+    color: #25222e;
+    background-size: 0% calc(1.5 * var(--u));
+  }
+}
+
+.landing .sample-title {
+  font: 700 calc(27 * var(--u)) / 1 var(--display);
+  letter-spacing: -0.01em;
+}
+.landing .card {
+  padding: calc(20 * var(--u)) calc(22 * var(--u));
+  background: var(--paper);
+  border: calc(1.5 * var(--u)) solid #e6e6e8;
+  border-radius: calc(10 * var(--u));
+}
+.landing .card h3 {
+  font: 500 calc(20 * var(--u)) / 1.2 var(--body);
+  color: var(--ink);
+}
+.landing .card h3 span {
+  font-weight: 400;
+}
+.landing .trio {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: calc(34 * var(--u));
+}
+.landing .quality .trio {
+  margin-top: calc(30 * var(--u));
+  padding-right: calc(78 * var(--u));
+}
+.landing .trio .k {
+  display: block;
+  font: 500 calc(15 * var(--u)) / 1 var(--body);
+  letter-spacing: 0.03em;
+  color: var(--ink-2);
+}
+.landing .trio .v {
+  display: block;
+  margin-top: calc(14 * var(--u));
+  font: 600 calc(35 * var(--u)) / 1 var(--body);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.landing .chip {
+  display: grid;
+  justify-items: center;
+  gap: calc(6 * var(--u));
+  padding: calc(12 * var(--u)) calc(16 * var(--u));
+  background: var(--green-wash);
+  border: calc(1.5 * var(--u)) solid #cfe6d9;
+  border-radius: calc(8 * var(--u));
+  color: var(--green);
+  font: 500 calc(15 * var(--u)) / 1 var(--body);
+  letter-spacing: 0.03em;
+}
+.landing .chip .pc {
+  display: flex;
+  align-items: center;
+  gap: calc(6 * var(--u));
+  font: 700 calc(24 * var(--u)) / 1 var(--body);
+  letter-spacing: -0.01em;
+}
+.landing .chip svg,
+.landing .arrow {
+  width: calc(13 * var(--u));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.landing .arrow {
+  width: calc(24 * var(--u));
+  margin-bottom: calc(8 * var(--u));
+  color: var(--mute);
+  stroke-width: 1.5;
+}
+.landing .findings ol {
+  display: grid;
+  gap: calc(19 * var(--u));
+  margin: calc(22 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.landing .findings li {
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  font: 400 calc(20 * var(--u)) / 1.1 var(--body);
+}
+.landing .findings .n {
+  display: grid;
+  place-items: center;
+  width: calc(23 * var(--u));
+  height: calc(23 * var(--u));
+  border-radius: 50%;
+  background: #b63a35;
+  color: #fff;
+  font: 700 calc(13 * var(--u)) / 1 var(--body);
+}
+.landing .findings .rev {
+  padding: calc(4 * var(--u)) calc(10 * var(--u));
+  border: calc(1.5 * var(--u)) solid #dcdce0;
+  border-radius: calc(5 * var(--u));
+  background: #f4f4f5;
+  font-size: calc(16 * var(--u));
+  color: var(--mute);
+}
+
+/* How it works */
+.landing .how {
+  padding: calc(16 * var(--u)) 3.4% 0;
+}
+.landing .how-title {
+  font: 700 calc(30 * var(--u)) / 1 var(--display);
+  letter-spacing: -0.01em;
+}
+.landing .steps4 {
+  display: grid;
+  grid-template-columns: 23.9fr 22.3fr 23fr 23.9fr;
+  gap: calc(19 * var(--u));
+  margin: calc(18 * var(--u)) -0.1% 0;
+  padding: 0;
+  list-style: none;
+}
+.landing .steps4 li {
+  position: relative;
+  display: grid;
+  grid-template-columns: calc(84 * var(--u)) 1fr;
+  gap: calc(28 * var(--u));
+  align-items: start;
+  padding: calc(28 * var(--u)) calc(30 * var(--u)) calc(34 * var(--u)) calc(80 * var(--u));
+  background: var(--paper);
+  border: calc(1.5 * var(--u)) solid #e6e6e8;
+  border-radius: calc(10 * var(--u));
+}
+.landing .steps4 .n {
+  position: absolute;
+  left: calc(22 * var(--u));
+  top: calc(22 * var(--u));
+  display: grid;
+  place-items: center;
+  width: calc(35 * var(--u));
+  height: calc(35 * var(--u));
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font: 700 calc(19 * var(--u)) / 1 var(--body);
+}
+.landing .steps4 .ico {
+  width: calc(78 * var(--u));
+  margin-top: calc(22 * var(--u));
+  fill: none;
+  stroke: #333a4d;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.landing .steps4 h3 {
+  font: 600 calc(22 * var(--u)) / 1.2 var(--body);
+}
+.landing .steps4 p {
+  margin-top: calc(12 * var(--u));
+  font: 400 calc(18.5 * var(--u)) / 1.3 var(--body);
+  color: var(--ink-2);
+}
+
+/* Below the first screen */
+.landing .steps4 {
+  margin-bottom: calc(96 * var(--u));
+}
+.landing .lower {
+  padding: clamp(56px, 6vw, 104px) 3.4% 0;
+}
+.landing .lower h2,
+.landing .closing h2 {
+  font: 700 clamp(30px, 3.3vw, 54px) / 1.05 var(--display);
+  letter-spacing: -0.025em;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+.landing .lower .intro,
+.landing .revert p {
+  margin-top: 16px;
+  max-width: 62ch;
+  font-size: clamp(16px, 1.15vw, 20px);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.landing .ktable {
+  margin-top: clamp(24px, 2.6vw, 40px);
+  border-top: 2px solid var(--ink);
+}
+.landing .krow {
+  display: grid;
+  grid-template-columns: 1.05fr 2fr 1.6fr 1.6fr;
+  gap: 28px;
+  padding: 18px 0;
+  border-bottom: 1px dashed #a9aab3;
+  font-size: clamp(14.5px, 1vw, 17px);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.landing .krow.khead {
+  padding: 10px 0;
+  font: 600 12px/1.3 var(--body);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.landing .kname {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font: 500 clamp(14px, 0.98vw, 16.5px) / 1.45 var(--mono);
+  color: var(--red);
+}
+.landing .kname .n {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #b63a35;
+  color: #fff;
+  font: 700 12px var(--body);
+  transform: translateY(-1px);
+}
+.landing .revert {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 96px);
+  align-items: center;
+}
+.landing .slip {
+  padding: 26px 28px;
+  background: var(--paper);
+  box-shadow: var(--shadow-paper);
+  font: 400 clamp(12.5px, 0.95vw, 16px) / 2 var(--mono);
+  white-space: pre;
+  overflow-x: auto;
+  color: #25222e;
+}
+.landing .slip s {
+  color: var(--red);
+}
+.landing .slip .note {
+  font-style: italic;
+  color: var(--red);
+  white-space: normal;
+}
+.landing .slip mark {
+  background: var(--yellow);
+  color: var(--ink);
+  padding: 2px 6px;
+  margin-left: -6px;
+}
+.landing .leave dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: clamp(24px, 2.6vw, 40px) 0 0;
+  border-top: 2px solid var(--ink);
+}
+.landing .leave dl > div {
+  padding: 20px 28px 0 0;
+}
+.landing .leave dl > div + div {
+  padding-left: 28px;
+  border-left: 1px dashed #a9aab3;
+}
+.landing .leave dt {
+  font: 700 clamp(17px, 1.3vw, 22px) / 1.2 var(--display);
+  letter-spacing: -0.01em;
+}
+.landing .leave dd {
+  margin: 10px 0 0;
+  font-size: clamp(14.5px, 1vw, 17px);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.landing .closing {
+  margin-top: clamp(64px, 7vw, 120px);
+  padding: clamp(48px, 6vw, 96px) 3.4%;
+  background: var(--blue);
+  color: #fff;
+}
+.landing .closing h2 {
+  max-width: 16ch;
+}
+.landing .cta2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+  min-height: 56px;
+  padding: 0 26px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue-ink);
+  font: 600 18px/1 var(--body);
+  text-decoration: none;
+  transition: transform 0.2s var(--ease), background 0.15s;
+}
+.landing .cta2:hover {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.landing .cta2:active {
+  transform: translateY(1px);
+}
+.landing .closing :focus-visible {
+  outline-color: var(--yellow);
+}
+.landing .closing p {
+  margin-top: 22px;
+  max-width: 58ch;
+  font-size: 14.5px;
+  color: var(--blue-rail-text);
+}
+.landing .foot {
+  display: flex;
+  gap: 24px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 26px 3.4% 34px;
+  font-size: 14px;
+  color: var(--mute);
+}
+.landing .foot .logo2 {
+  font: 700 20px/1 var(--display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-right: auto;
+}
+
+/* Narrow screens: the measured frame gives way to one column. */
+@media (max-width: 900px) {
+  .landing {
+    --u: 0.56px;
+  }
+  .landing .frame {
+    height: auto;
+    padding: 0 20px 8px;
+    container-type: inline-size;
+  }
+  .landing .frame > *,
+  .landing .hero > *,
+  .landing .nav > *,
+  .landing .nav nav > *,
+  .landing h1 > span,
+  .landing .receipt > * {
+    position: static;
+    width: auto;
+    height: auto;
+  }
+  .landing .frame > .nav {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 0;
+  }
+  .landing .logo {
+    font-size: 26px;
+    margin-right: auto;
+  }
+  .landing .nav > nav {
+    display: none;
+  }
+  .landing .open {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 14.5px;
+    border-radius: 7px;
+  }
+  .landing h1 {
+    margin-top: 22px;
+    font-size: clamp(38px, 11.4vw, 60px);
+  }
+  .landing h1 .r-headline-blue {
+    font-size: inherit;
+  }
+  .landing .lede {
+    margin-top: 16px;
+    font-size: 18px;
+    line-height: 1.45;
+  }
+  .landing .cta {
+    margin-top: 24px;
+    min-height: 54px;
+    font-size: 18px;
+    gap: 12px;
+    border-radius: 8px;
+  }
+  .landing .cta svg {
+    width: 18px;
+    height: 18px;
+  }
+  .landing .cta-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 0;
+    font-size: 17px;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 5px;
+  }
+  .landing .hero > .receipt {
+    --u: calc(100cqw / 506);
+    position: relative;
+    margin-top: 28px;
+    padding: calc(30 * var(--u)) calc(22 * var(--u)) calc(64 * var(--u));
+  }
+  .landing .receipt > .paper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+  .landing .receipt > .rblock {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: auto;
+  }
+  .landing .rline .why {
+    display: none;
+  }
+  .landing .r-receipt-after,
+  .landing .r-receipt-totals {
+    margin-top: calc(18 * var(--u));
+  }
+  .landing .sample-title {
+    margin-top: 34px;
+    font-size: 22px;
+  }
+  .landing .card {
+    --u: 0.78px;
+    margin-top: 12px;
+  }
+  .landing .quality .trio {
+    padding-right: 0;
+  }
+  .landing .how {
+    --u: 0.8px;
+    padding: 40px 20px 0;
+  }
+  .landing .how-title {
+    font-size: 26px;
+  }
+  .landing .steps4 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 16px 0 0;
+  }
+  .landing .steps4 li {
+    grid-template-columns: 54px 1fr;
+    gap: 16px;
+    padding: 18px 18px 20px 56px;
+  }
+  .landing .steps4 .ico {
+    width: 48px;
+    margin-top: 6px;
+  }
+  .landing .lower {
+    padding: 56px 20px 0;
+  }
+  .landing .krow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .landing .krow.khead {
+    display: none;
+  }
+  .landing .revert {
+    grid-template-columns: 1fr;
+  }
+  .landing .leave dl {
+    grid-template-columns: 1fr;
+  }
+  .landing .leave dl > div + div {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .landing .leave dl > div {
+    padding: 18px 0;
+    border-bottom: 1px dashed #a9aab3;
+  }
+  .landing .closing,
+  .landing .foot {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

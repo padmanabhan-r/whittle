@@ -76,6 +76,36 @@
       "title": "AgentStepEvent",
       "type": "object"
     },
+    "CallRef": {
+      "additionalProperties": false,
+      "description": "A baseline call a finding points at.",
+      "properties": {
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "call_index": {
+          "title": "Call Index",
+          "type": "integer"
+        },
+        "effect": {
+          "description": "removed: the fix drops this call; reduced: the call stays and costs less",
+          "enum": [
+            "removed",
+            "reduced"
+          ],
+          "title": "Effect",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "call_index",
+        "effect"
+      ],
+      "title": "CallRef",
+      "type": "object"
+    },
     "CodeLocation": {
       "additionalProperties": false,
       "properties": {
@@ -183,6 +213,14 @@
             "$ref": "#/$defs/Evidence"
           },
           "title": "Evidence",
+          "type": "array"
+        },
+        "calls": {
+          "description": "Baseline calls where this waste shows",
+          "items": {
+            "$ref": "#/$defs/CallRef"
+          },
+          "title": "Calls",
           "type": "array"
         },
         "location": {

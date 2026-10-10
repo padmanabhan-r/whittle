@@ -71,6 +71,25 @@ these answer.
 Throughout: small commits through the `commit` skill, `/devlog` after each
 session, a `#neatHack` post at each phase's "done when".
 
+## Opening the pull request
+
+Decided 10 October. Reading needs no access: only public repos are accepted and
+the backend clones them over HTTPS.
+
+1. One GitHub account acts as the bot. Its token, with the `public_repo` scope,
+   is `GITHUB_BOT_TOKEN` in `.env.local`.
+2. On "Open pull request" the backend, as the bot, forks the repo, pushes the
+   branch `whittle/cut-agent-cost` to the fork, and opens a pull request from
+   the fork to the default branch.
+3. The description carries the cost per run before and after, the quality
+   score, the fixes kept and reverted, and the trace links.
+
+Limits: public repos only; the button is rate-limited and fires only on a
+click; the description must explain itself, since the owner does not know the
+account. A GitHub App that the user installs is the proper answer for private
+repos and is named in the business plan as the next step, not built now. For
+the demo the pull request is real, against a sample repo we own.
+
 ## Entire cadence during the build
 
 Entire only counts if it runs all the way through, so each step has a fixed

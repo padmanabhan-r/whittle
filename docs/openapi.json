@@ -631,6 +631,36 @@
   },
   "components": {
     "schemas": {
+      "CallRef": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "call_index": {
+            "type": "integer",
+            "title": "Call Index"
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "removed",
+              "reduced"
+            ],
+            "title": "Effect",
+            "description": "removed: the fix drops this call; reduced: the call stays and costs less"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "task_id",
+          "call_index",
+          "effect"
+        ],
+        "title": "CallRef",
+        "description": "A baseline call a finding points at."
+      },
       "CodeLocation": {
         "properties": {
           "file": {
@@ -867,6 +897,14 @@
             },
             "type": "array",
             "title": "Evidence"
+          },
+          "calls": {
+            "items": {
+              "$ref": "#/components/schemas/CallRef"
+            },
+            "type": "array",
+            "title": "Calls",
+            "description": "Baseline calls where this waste shows"
           },
           "location": {
             "anyOf": [

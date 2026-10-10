@@ -38,3 +38,10 @@ email-dump.md
 .claude/skills/impeccable/
 .cursor/agents/impeccable-*.md
 .cursor/skills/impeccable/
+
+# Design working files: comps, measurements and review captures
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/review/
+.impeccable/tmp/
+.impeccable/live/

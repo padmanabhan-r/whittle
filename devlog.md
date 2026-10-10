@@ -1,15 +1,15 @@
 # Devlog
 
-- **Project:** neatHack entry (name not chosen)
+- **Project:** Agent cost cutter (working name)
 - **Event:** neatHack
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
-- **What it does:** Not built yet. The idea under discussion is an agent that turns a part spec into G-code and iterates against a CNC turning simulator until the part is within tolerance (`docs/suggester-planner.md`)
-- **Problem:** A small job shop needs a safe machine program, and proof that it meets size, before trusting it on a lathe (`docs/suggester-planner.md`)
-- **Status:** idea
+- **What it does:** Not built yet. Planned: a web app that runs someone's AI agent in a sandbox, shows where each run's tokens and money go, fixes the waste in the code, reruns it and proves the saving with before and after traces (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
+- **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
+- **Status:** planned
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/neatHack, to be made public before submission)
-- **Stack:** none yet
+- **Stack:** none yet. Planned: Python 3.13, FastAPI, SQLite, Docker, a web UI
 - **Hosting:** not deployed
 - **Auth:** none
 - **External services:** none
@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T13:33:00+05:30
+- **Last updated:** 2026-10-10T15:30:00+05:30
 
 ## Evidence
 
@@ -123,7 +123,7 @@ Added a requirement to the brainstorm and re-read the shortlist against it
 - **Next:** Choose between the cost cutter and the CNC agent with the
   teammate.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 44528a8
 Changed the agent cost cutter's design in `brainstorm/ideas.md` so its user
 does not need a neatlogs account.
 
@@ -136,6 +136,36 @@ does not need a neatlogs account.
   would run other people's code, and a model API key is still needed to run
   their agent. The idea's scores were given for the earlier design.
 - **Built with:** Claude Code, claude-opus-5-5.
+
+### 2026-10-10 - working tree
+Chose the agent cost cutter and wrote its design and build plan. No product
+code yet.
+
+- **Decision:** The entry is the agent cost cutter (team's choice). It scored
+  highest for sponsor-tool use in `brainstorm/ideas.md` and works as a web app.
+- **Decision:** The user's agent reaches its model only through our recording
+  proxy. One piece gives language-neutral measuring (Python and TypeScript),
+  keeps the user's API key out of the container, limits the sandbox's network,
+  caps spend, and records exact request bytes for the waste analysis.
+- **Decision:** Python and TypeScript agents from public repos plus our own
+  samples; Docker on one EC2 instance; the user's model key for their repo and
+  ours for samples; the fix as a diff, a patch and an optional pull request
+  opened by a bot account from a fork (user's answers to four questions).
+- **Decision:** Entire runs on a fixed cadence, set out as a table in
+  `docs/plan.md`, so checkpoints and graph use exist from the first code commit
+  (user's request).
+- **Added:** `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`
+  and `docs/plan.md`; the project recorded in `CLAUDE.md`.
+- **Not verified:** Five things the design depends on are untested and are the
+  first work in the plan: reading traces back with the project key, emitting
+  traces from the proxy with cache tokens and cost, entire-graph on Linux for
+  TypeScript, calling cfo.ai from a server, and creating detections and
+  evaluator runs by API.
+- **Blocked:** The `entire` CLI is still not installed on this machine, so this
+  commit has no checkpoint. The plan allows no product code before it is.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
 
 ## Submission
 

@@ -1,9 +1,26 @@
 # neatHack project
 
 A neatHack entry: an AI agent, or a team of agents, that completes a substantial
-task from start to finish. **The idea is not decided yet.** Full rules are in
+task from start to finish. **The idea is the agent cost cutter** (see "The
+project" below). Full rules are in
 `docs/neathack-rules.md`; the live source is https://neatlogs.com/hackathon. When the
 two disagree, the live site wins: say so and update the rules file.
+
+## The project
+
+**Agent cost cutter.** A web app: the user gives a public GitHub repo holding a
+Python or TypeScript agent and says how to run it. The app runs the agent in a
+Docker sandbox behind a recording model proxy, shows where each run's tokens
+and money go, fixes the waste in the code, reruns, and proves the saving with
+before and after neatlogs traces, a diff and an optional pull request.
+
+- Design: `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`
+- Build order, Entire cadence, checks: `docs/plan.md`
+- Stack (planned, nothing built yet): Python 3.13 and FastAPI in `api/`, SQLite
+  for job state, Docker for the sandbox, the UI in `web/`, one EC2 instance in
+  `us-east-1`. Python must be 3.10 to 3.13: on 3.14 pip installs an old
+  neatlogs without `wrap` or `trace`.
+- Run commands: none yet. Add them here when the first runnable piece lands.
 
 ## Hard rules
 
@@ -105,8 +122,11 @@ be seen recovering from.
 
 ## How to work here
 
-- Until an idea is chosen, do not scaffold an app. Once it is, record the idea,
-  the stack and the run commands in this file.
+- Build in the order of `docs/plan.md`. Phase 0's spikes come before any
+  product code; the UI is built separately against `docs/api-contract.md`.
+- Follow the Entire cadence table in `docs/plan.md`: `entire status` at the
+  start of a session, graph search before grep, a checkpoint trailer on every
+  commit.
 - Keep scope to what one agent loop can prove end to end. A narrow agent that
   finishes beats a broad one that stalls.
 - After each work session run `/devlog`, then commit.

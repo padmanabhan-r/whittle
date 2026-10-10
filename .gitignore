@@ -27,3 +27,6 @@ __pycache__/
 
 # OS junk
 .DS_Store
+
+# Private notes: organiser emails with access links
+email-dump.md

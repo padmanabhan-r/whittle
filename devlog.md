@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T15:30:00+05:30
+- **Last updated:** 2026-10-10T15:45:00+05:30
 
 ## Evidence
 
@@ -137,7 +137,7 @@ does not need a neatlogs account.
   their agent. The idea's scores were given for the earlier design.
 - **Built with:** Claude Code, claude-opus-5-5.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 64cd1d1
 Chose the agent cost cutter and wrote its design and build plan. No product
 code yet.
 
@@ -163,6 +163,15 @@ code yet.
   evaluator runs by API.
 - **Blocked:** The `entire` CLI is still not installed on this machine, so this
   commit has no checkpoint. The plan allows no product code before it is.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Pointed the README at the design and the plan so a teammate can start.
+
+- **Changed:** `README.md` states the chosen idea and has a "Start here" list
+  ending at Phase 0 of `docs/plan.md`.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.

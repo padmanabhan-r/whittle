@@ -8,13 +8,22 @@ team of agents, that completes a substantial task from start to finish.
 
 ## Status
 
-**The idea is not chosen yet, and there is no application code.** The hackathon
-opens at 12:30 PM IST on Saturday 10 October 2026. Everything committed before
-then is planning and repository setup only: the rules, the agent instructions
-and the environment template. All code is written inside the hackathon window.
+**The entry is the agent cost cutter. It is planned, and there is no application
+code yet.** A user gives the web app a public GitHub repository holding a Python
+or TypeScript agent. The app runs that agent in a sandbox, shows where each
+run's tokens and money go, fixes the waste in the code, reruns it, and proves
+the saving with before and after traces, a diff and an optional pull request.
 
-This README will be rewritten once the idea is picked, with what the agent does,
-how to run it, and the evidence for each claim.
+## Start here
+
+1. Read the design: `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`.
+2. Read the build plan: `docs/plan.md`. Work starts at **Phase 0**: set up
+   Entire on your machine, then run the five spikes (S1 to S5) and write each
+   result in `devlog.md`. No product code before Entire is capturing commits.
+3. Follow the "Entire cadence" table in `docs/plan.md` for every session,
+   commit and push.
+4. The UI is built separately against `docs/api-contract.md`, which Phase 1
+   produces. Backend work does not wait for it.
 
 ## Required tools
 
@@ -31,6 +40,9 @@ Each of the three has a role in the project, and each is covered in the demo.
 | Path | What it is |
 |---|---|
 | `docs/neathack-rules.md` | The hackathon rules as read from the live site, with the judging weights and the evidence judges expect |
+| `docs/superpowers/specs/` | The design of the agent cost cutter |
+| `docs/plan.md` | The build plan: phases, the Entire cadence, checks |
+| `brainstorm/ideas.md` | The 40 rated ideas the entry was chosen from |
 | `CLAUDE.md` | Working instructions for the coding agent: hard rules, tool roles, devlog format |
 | `AGENTS.md` | The same rules for any other coding agent, with how to commit and how to update the devlog |
 | `devlog.md` | The public build log: what was decided, what broke, and the evidence table |

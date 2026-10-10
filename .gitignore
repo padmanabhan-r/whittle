@@ -10,6 +10,7 @@ dist/
 build/
 .next/
 .venv/
+.venv-spike/
 __pycache__/
 *.pyc
 *.tsbuildinfo
@@ -18,6 +19,7 @@ __pycache__/
 .claude/settings.local.json
 .entire/settings.local.json
 .remember/
+.cursor/mcp.json
 
 # Demo video working files: raw recordings can show personal accounts
 /recordings/

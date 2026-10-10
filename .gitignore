@@ -1,0 +1,29 @@
+# Secrets. This repository is public; only the example file is tracked.
+.env
+.env.*
+!.env.example
+*.local
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.next/
+.venv/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+
+# Local Claude Code and Entire overrides, and session memory
+.claude/settings.local.json
+.entire/settings.local.json
+.remember/
+
+# Demo video working files: raw recordings can show personal accounts
+/recordings/
+/video/
+*.mp4
+*.mov
+
+# OS junk
+.DS_Store

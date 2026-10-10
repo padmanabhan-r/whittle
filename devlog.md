@@ -1,6 +1,6 @@
 # Devlog
 
-- **Project:** Agent cost cutter (working name)
+- **Project:** Whittle
 - **Event:** neatHack
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Not built yet. Planned: a web app that runs someone's AI agent in a sandbox, shows where each run's tokens and money go, fixes the waste in the code, reruns it and proves the saving with before and after traces (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
@@ -8,7 +8,7 @@
 - **Status:** building (Phase 0 spikes; no product code)
 - **Live app:** not deployed
 - **Demo:** not recorded
-- **Repo:** private (https://github.com/padmanabhan-r/neatHack, to be made public before submission)
+- **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
 - **Stack:** none yet. Planned: Python 3.13, FastAPI, SQLite, Docker, a web UI
 - **Hosting:** not deployed
 - **Auth:** none
@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T19:10:00+05:30
+- **Last updated:** 2026-10-10T19:12:00+05:30
 
 ## Evidence
 
@@ -210,7 +210,7 @@ from `spikes/ongoing.md`; none was re-run on the second machine.
 Evidence rows still missing: all seven. The spike traces and graph output are
 on Sethuraman's machine and are not linked here yet.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - dc71e76
 Installed Entire on the second machine (macOS) and enabled it for Claude Code.
 
 - **Added:** Entire CLI 0.11.4 and the entire-graph plugin 0.4.0; `entire
@@ -221,6 +221,23 @@ Installed Entire on the second machine (macOS) and enabled it for Claude Code.
   both S3 fixtures (`callModel` in TypeScript, `call_model` in Python).
 - **Not verified:** whether a commit made in a session that began before the
   hooks were installed gets a checkpoint. Check the trailer on this commit.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Named the project Whittle and renamed the repository to match.
+
+- **Decision:** The name is Whittle, with the tagline "Cut what your agent
+  wastes. Prove what you saved." (user's choice). The name is not unique: an
+  unrelated GitHub project, `firstops-dev/whittle`, trims agent tool outputs,
+  and `whittle` is taken on npm and PyPI. Accepted for a hackathon entry.
+- **Changed:** The GitHub repository is now `padmanabhan-r/whittle`.
+  `README.md` opens with a banner, the tagline, link buttons and badges.
+- **Added:** `assets/banner.jpg`. The background was generated with
+  ElevenLabs (`gpt-image-2`); the name and tagline were set in HTML and
+  rendered with headless Chrome.
+- **Not verified:** how the README renders on GitHub; it was not viewed there.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.

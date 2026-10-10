@@ -1,14 +1,15 @@
-# neatHack project
+# Whittle (neatHack project)
 
 A neatHack entry: an AI agent, or a team of agents, that completes a substantial
-task from start to finish. **The idea is the agent cost cutter** (see "The
-project" below). Full rules are in
+task from start to finish. **The project is Whittle, an agent cost cutter**
+(see "The project" below). Full rules are in
 `docs/neathack-rules.md`; the live source is https://neatlogs.com/hackathon. When the
 two disagree, the live site wins: say so and update the rules file.
 
 ## The project
 
-**Agent cost cutter.** A web app: the user gives a public GitHub repo holding a
+**Whittle** ("Cut what your agent wastes. Prove what you saved."), an agent
+cost cutter. The GitHub repository is `padmanabhan-r/whittle`. A web app: the user gives a public GitHub repo holding a
 Python or TypeScript agent and says how to run it. The app runs the agent in a
 Docker sandbox behind a recording model proxy, shows where each run's tokens
 and money go, fixes the waste in the code, reruns, and proves the saving with

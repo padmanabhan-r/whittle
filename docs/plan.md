@@ -3,19 +3,19 @@
 The design this plan builds is in
 `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`. Read it first.
 
-## Where things stand (Saturday 10 October, 8:40 PM IST)
+## Where things stand (Saturday 10 October, ~11 PM IST)
 
-Read this section first. It is the handover for whoever builds next.
+Read **`docs/handover.md`** first for commands, env vars and gaps. This table is the summary.
 
 | Piece | State | Where |
 |---|---|---|
 | Phase 0 spikes | Done, except cfo.ai from a server (blocked on signup) | `spikes/ongoing.md`, `devlog.md` |
 | API contract | Done | `docs/api-contract.md`, `api/costcutter/contract.py` |
-| Mock server | Done, 6 tests pass | `api/costcutter/mock/` |
+| Mock server | Done, 6 mock tests pass | `api/costcutter/mock/` |
 | Web UI | Done against the mock | `web/` |
-| Recording proxy | **Not started. Next.** | `api/costcutter/proxy/` |
-| Sandbox runner | Not started | `api/costcutter/sandbox/`, `sandbox/*.Dockerfile` |
-| Sample agents | Not started | `samples/` |
+| Recording proxy | **Built; live trace link pending** | `api/costcutter/proxy/`, `api/scripts/proxy_smoke.py` |
+| Sandbox runner | **Partial** (Python image + runner; install/run script TBD) | `api/costcutter/sandbox/`, `sandbox/python.Dockerfile` |
+| Sample agents | **Python scaffold** (W1–W5 in code; baselines not batched) | `samples/research-agent-py/` |
 | Detectors | Not started | `api/costcutter/analyzers/` |
 | Agent loop | Not started | `api/costcutter/agent/` |
 | Real API server | Not started | `api/costcutter/server.py` |

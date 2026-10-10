@@ -102,7 +102,8 @@ testable alone.
 
 ## The agent loop
 
-Model `claude-sonnet-5-5` for every call. System prompt and tool list cached
+The provider and model are set in the environment (changed 10 October; the
+first version fixed `claude-sonnet-5-5`). On Anthropic: System prompt and tool list cached
 with a `cache_control` breakpoint; nothing variable in the prefix; fixed tool
 order; `COSTCUTTER_CACHE=off` switch; `usage` logged on every call;
 `stop_reason` checked for `refusal` before reading content; tools use

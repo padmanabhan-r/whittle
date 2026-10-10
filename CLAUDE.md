@@ -98,16 +98,25 @@ All three must have a clear role, and all three must be explained in the demo.
 
 ## Model calls
 
-Decided before the build; applies to every call the agent makes to Claude.
+Changed on 10 October 2026: the provider and model are each developer's
+choice. The earlier rule fixed `claude-sonnet-5-5` for everyone.
 
-- **The model is `claude-sonnet-5-5`, for every API call the agent makes.** Not
-  Opus: the user's decision on 9 October 2026. Do not switch models, or add a
-  second one, without asking. Three things differ from older Sonnet code:
+- **The agent's provider and model are configurable, not hardcoded.** Read them
+  from the environment (`WHITTLE_PROVIDER`, `WHITTLE_MODEL`) and support both
+  the Anthropic API and OpenAI-compatible APIs such as Groq. Sethuraman builds
+  and tests on his own key and model; Padmanabhan uses `claude-sonnet-5-5`.
+- **Record which model made each run** in the trace and in the devlog. Runs
+  that are compared as evidence must use the same provider and model on both
+  sides, or the comparison means nothing.
+- **The rest of this section applies when the provider is Anthropic.** With
+  `claude-sonnet-5-5`, three things differ from older Sonnet code:
   `thinking: {type: "disabled"}` returns a 400 (lower `output_config.effort`
   instead), forced `tool_choice` of `any` or `tool` returns a 400 (use `auto`
   with `strict: true` on the tool), and safety refusals arrive as HTTP 200 with
   `stop_reason: "refusal"`, so check `stop_reason` before reading `content`.
-- **Prompt caching is on from the first agent loop.** Put a `cache_control`
+- **Prompt caching is on from the first agent loop, where the provider offers
+  it.** On another provider, find out how it caches and reports cached tokens
+  before relying on it; this has not been checked for Groq. Put a `cache_control`
   breakpoint on the last block that stays identical across requests: the system
   prompt and tool list. Use top-level automatic caching for the growing
   conversation. Verified on this key on 9 October 2026 with `claude-sonnet-5-5`:

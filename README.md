@@ -18,7 +18,6 @@
 ![React](https://img.shields.io/badge/React-19-149eca?style=flat-square&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-sandbox-2496ED?style=flat-square&logo=docker&logoColor=white)
-![Claude](https://img.shields.io/badge/Claude-Sonnet_5.5-D97757?style=flat-square&logo=anthropic&logoColor=white)
 
 [![neatlogs](https://img.shields.io/badge/traced_with-neatlogs-090a1b?style=flat-square)](https://neatlogs.com)
 [![Entire](https://img.shields.io/badge/checkpoints_by-Entire-090a1b?style=flat-square)](https://entire.io)

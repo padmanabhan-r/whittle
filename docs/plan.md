@@ -45,8 +45,10 @@ one above it passes its check.
    **Keep the trace links: they are the first evidence.**
 4. **Detectors W1 to W5** with unit tests on recorded traces.
    *Done when:* both samples yield the expected findings.
-5. **Agent loop**: diagnose, plan, fix, verify, revert. `claude-sonnet-5-5`,
-   caching on with an off switch, one `WORKFLOW` root per job.
+5. **Agent loop**: diagnose, plan, fix, verify, revert. Provider and model
+   come from the environment (Anthropic or OpenAI-compatible; see `CLAUDE.md`,
+   "Model calls"). Caching on with an off switch where the provider has it; one
+   `WORKFLOW` root per job.
    *Done when:* one sample goes from baseline to a verified saving unaided, and
    the smaller-model fix is reverted on a real run.
 6. **Real API server** that emits the contract's events. The UI then works
@@ -70,6 +72,13 @@ one above it passes its check.
 - **Never return the user's model key** in any response or event.
 - A change to the contract means changing `contract.py`, the document, the
   mock and `web/src/lib/api.ts` together, then regenerating the schemas.
+
+### One consequence of letting each developer pick a model
+
+The "changing cache prefix" finding and its fix rest on a provider that
+reports cached tokens and lets the prompt mark a cache point. Anthropic does.
+Whether Groq does has not been checked. At least one sample agent, and the runs
+used as evidence, should use a provider where that finding can be shown.
 
 ### Open items that are not code
 

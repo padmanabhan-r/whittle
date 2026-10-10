@@ -13,14 +13,14 @@
 - **Hosting:** not deployed
 - **Auth:** none
 - **External services:** none
-- **AI models (product):** none in code. `claude-sonnet-5-5` is chosen for every agent call (`CLAUDE.md`, "Model calls"); nothing calls it yet
+- **AI models (product):** none in code yet. The agent's provider and model will be set in the environment; each developer picks their own (`CLAUDE.md`, "Model calls")
 - **AI models (build):** Claude Code with claude-opus-5-5
 - **neatlogs:** not wired in. There is no agent to instrument yet
 - **Entire:** configured, not yet producing checkpoints. `.entire/settings.json` has `enabled: true` and `commit_linking: always`, and entire-graph's instructions are checked in with their managed blocks in `CLAUDE.md` and `AGENTS.md`. `.cursor/hooks.json` calls Entire through `cmd.exe`, so it works on Windows only, and the `entire` CLI is not installed on the second machine
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T20:45:00+05:30
+- **Last updated:** 2026-10-10T20:48:00+05:30
 
 ## Evidence
 
@@ -368,7 +368,7 @@ asked for after seeing the landing page on a MacBook Air.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - f7b1865
 Rewrote the README around the built UI and added a handover to the plan.
 
 - **Changed:** `README.md`: a new banner in the app's own look, a status
@@ -386,6 +386,21 @@ Rewrote the README around the built UI and added a handover to the plan.
 - **Verified:** `npm run build` passes after these changes.
 - **Not verified:** the README was not viewed on GitHub. The screenshots show
   invented figures and are labelled as the mock run.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Dropped the rule that fixed one model for the agent.
+
+- **Decision:** The agent's provider and model are each developer's choice,
+  read from the environment (user's decision). Sethuraman builds on his Groq
+  key; Padmanabhan uses `claude-sonnet-5-5`. This replaces the 9 October rule.
+- **Changed:** `CLAUDE.md` "Model calls", the plan, the design and
+  `.env.example` (`WHITTLE_PROVIDER`, `WHITTLE_MODEL`).
+- **Not verified:** how Groq caches prompts and reports cached tokens. The
+  largest finding in the demo depends on that, so at least one sample and the
+  evidence runs need a provider where it can be shown.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.

@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T13:16:00+05:30
+- **Last updated:** 2026-10-10T13:30:00+05:30
 
 ## Evidence
 
@@ -105,6 +105,23 @@ idea from 1 to 10 for impact, how uncrowded it is, and sponsor-stack use.
   through OpenRouter from a throwaway script kept outside the repository.
 - **Next:** Agree the idea with the teammate. Install Entire before the first
   code commit.
+
+### 2026-10-10 - working tree
+Added a requirement to the brainstorm and re-read the shortlist against it
+(`brainstorm/ideas.md`, "Web app requirement").
+
+- **Decision:** The entry must be a web app that someone can use without a
+  terminal and that shows well in a three-minute demo; a skill or a
+  command-line tool is out (user's decision).
+- **Decision:** No idea is chosen yet. Under the new requirement the agent cost
+  cutter still leads if it is built as a web app first, the CNC idea rises the
+  most because it is visual and needs no code to use, and the regression
+  bisector and release captain drop out. This reading is from one model; the
+  six-model scores predate the requirement.
+- **Tests:** none; no code.
+- **Built with:** Claude Code, claude-opus-5-5.
+- **Next:** Choose between the cost cutter and the CNC agent with the
+  teammate.
 
 ## Submission
 

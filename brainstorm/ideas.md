@@ -120,6 +120,37 @@ Higher is better on every axis. A high "Uncrowded" score means few other teams a
 3. **Outage-to-resilience agent**, if we want something outside developer
    tooling for agents.
 
+## Web app requirement
+
+Added after the ranking, so the scores above do not reflect it. The entry must
+be a web app that someone can use without a terminal, and it must look
+impressive in a three-minute demo. A skill or a command-line tool is out.
+
+This is Opus's reading alone; the other models were not asked.
+
+| Idea | Rank above | What the user sees in the browser | Who can use it | The demo moment | Concern |
+|---|---|---|---|---|---|
+| Agent cost cutter | 1 | Paste a repo link and a neatlogs key. A breakdown shows where each run's tokens and money go, with a list of waste findings. Press "Fix" and watch the agent work step by step, then see before and after side by side | Anyone running an AI agent | A cost-per-run meter falling live, with the two traces and the pull request as proof | The user is still a developer, and a dashboard has to be designed well to look like more than a dashboard |
+| CNC program gate agent | 21 | Upload a part spec. A viewer shows the target profile, the toolpath and the part being cut, with each failed attempt and the final pass | A machinist or shop owner, no code needed | The part taking shape on screen, a crash caught by the validator, then a pass within tolerance | Sponsor tools stay behind the scenes unless the agent also uses its past traces as memory |
+| Technical due diligence agent | 4 | Paste a repo link and upload a pitch deck. A report lists every claim as verified, contradicted or unsupported, with the evidence one click away | An investor or acquirer, no code needed | A confident claim in the deck turning red against the code | The Entire features that read agent history need a repo that already has checkpoints |
+| Accessibility repair loop | 22 | Paste a site address. Before and after screenshots with each defect marked, and the fix it shipped | A site owner or agency | A page fixing itself between two screenshots | Fixing needs access to the site's code, not only its address |
+| Fleet auditor for coding agents | 2 | A leaderboard of a team's coding agents by cost, waste and outcome, with one agent's prompt rewritten and re-scored | An engineering manager | One agent's score rising after the rewrite | Needs a team's worth of Entire session data to show |
+| Outage-to-resilience agent | 3 | An incident timeline rebuilt from traces, the fix, and the failure replayed as a test | An on-call engineer | The same failure replayed and survived | We would have to build the failing service as well |
+
+### What changes
+
+- **The agent cost cutter still leads**, provided it is built as a web app
+  first and not as a tool with a page added on. Its users are developers, but
+  they would use it entirely in the browser.
+- **Sethu's CNC agent rises the most.** It is the only idea that is visual by
+  nature and usable by someone who has never written code. Its weakness is
+  unchanged: the sponsor tools are not part of what the agent does.
+- **The regression bisector and the release captain drop out.** Both are
+  command-line tools by nature.
+- **One way to lift the CNC idea's sponsor use:** let the agent search its own
+  earlier runs through the neatlogs MCP server before each attempt, so traces of
+  past failures become its memory. That makes neatlogs an input, not a recorder.
+
 ## The ideas in detail
 
 In rank order.

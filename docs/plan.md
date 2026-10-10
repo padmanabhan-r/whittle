@@ -76,7 +76,7 @@ session, a `#neatHack` post at each phase's "done when".
 Agreed on 10 October. Padmanabhan owns the UI in `web/`, which is built against
 the mock. Sethuraman owns the backend from here: the proxy, the sandbox, the
 sample agents, the detectors, the agent loop, replacing the mock with the real
-API, and the deployment to EC2.
+API, the deployment to EC2, and the GitHub bot account for pull requests.
 
 ## Opening the pull request
 
@@ -90,6 +90,20 @@ the backend clones them over HTTPS.
    the fork to the default branch.
 3. The description carries the cost per run before and after, the quality
    score, the fixes kept and reverted, and the trace links.
+
+Setting up the bot (Sethuraman):
+
+1. Sign out of GitHub, or use a private window, and create a new account at
+   https://github.com/signup with a separate email address. Name it for the
+   project, for example `whittle-bot`. GitHub allows one machine account per
+   person next to a personal one.
+2. In that account: Settings, Developer settings, Personal access tokens,
+   Tokens (classic), Generate new token. Tick `public_repo` only and set the
+   expiry to 30 days.
+3. Put the token in `.env.local` as `GITHUB_BOT_TOKEN`. Never commit it, and do
+   not paste it into chat or a trace.
+4. Check it with `gh api user -H "Authorization: token $GITHUB_BOT_TOKEN"`,
+   which should print the bot's login.
 
 Limits: public repos only; the button is rate-limited and fires only on a
 click; the description must explain itself, since the owner does not know the

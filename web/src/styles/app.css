@@ -328,8 +328,9 @@ table.ledger td.why {
   color: var(--red);
   font-style: italic;
 }
-table.ledger tr.reduced td.why {
-  color: var(--ink-2);
+/* A fix that was reverted or not chosen changed nothing, so its name is not a mark of waste removed. */
+table.ledger tr.off td.why {
+  color: var(--mute);
 }
 table.ledger tr.total td {
   padding: 10px 12px;

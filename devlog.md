@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T20:36:00+05:30
+- **Last updated:** 2026-10-10T20:45:00+05:30
 
 ## Evidence
 
@@ -308,8 +308,7 @@ mock server. Added `start.sh`.
 - **Added:** `web/`: the landing page (`/`), the start screen (`/app`) and the
   job screen (`/app/jobs/:id`) with five sections: calls, findings, fix and
   verify, result, diff. The job screen follows the live event stream.
-- **Added:** `start.sh`, which starts the API and the UI together, and
-  `PRODUCT.md`, the product facts design work must keep to.
+- **Added:** `start.sh`, which starts the API and the UI together.
 - **Changed:** The contract gained `Finding.calls`: the baseline calls a
   finding points at, each marked removed or reduced. The UI needs it to strike
   the right lines. The mock, the document and the schemas were updated with it.
@@ -334,7 +333,7 @@ mock server. Added `start.sh`.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - c0a2aef
 Applied an independent design review to the UI, then three changes the user
 asked for after seeing the landing page on a MacBook Air.
 
@@ -366,6 +365,28 @@ asked for after seeing the landing page on a MacBook Air.
   logged.
 - **Built with:** Claude Code, claude-opus-5-5, with a separate reviewing
   agent.
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Rewrote the README around the built UI and added a handover to the plan.
+
+- **Changed:** `README.md`: a new banner in the app's own look, a status
+  table, run steps, four screenshots of the mock run, and how the product
+  works. The old banner was a different colour scheme from the UI.
+- **Added:** `docs/plan.md`, "Where things stand": what exists, the seven next
+  steps in order with a check for each, and what the backend must emit for the
+  UI to work unchanged.
+- **Decision:** Sethuraman also sets up the GitHub bot account; the steps are
+  in the plan.
+- **Changed:** Design working files are kept local and are no longer tracked.
+- **Fixed:** In the calls table, a finding that was reverted or not selected
+  was styled like one that had made a call cheaper; it is now greyed. Three
+  lines of landing copy were rewritten in plain words.
+- **Verified:** `npm run build` passes after these changes.
+- **Not verified:** the README was not viewed on GitHub. The screenshots show
+  invented figures and are labelled as the mock run.
+- **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.
 

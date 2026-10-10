@@ -83,7 +83,7 @@ export function CallsSection({ view }: { view: RunView }) {
                 const mark = phase === 'baseline' ? marks.get(`${call.task_id}:${call.call_index}`) : undefined
                 const first = i === 0 || shown[i - 1].task_id !== call.task_id
                 const done = view.completed[phase].find((r) => r.task_id === call.task_id)
-                const row = [mark?.struck ? 'struck' : mark ? 'reduced' : '', call.seq === newest && !view.done ? 'fresh' : '']
+                const row = [mark?.struck ? 'struck' : mark?.live ? 'reduced' : mark ? 'off' : '', call.seq === newest && !view.done ? 'fresh' : '']
                 return (
                   <Fragment key={call.seq}>
                     {first && (

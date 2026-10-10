@@ -1,7 +1,85 @@
-# Agent cost cutter: build plan
+# Whittle: build plan
 
 The design this plan builds is in
 `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`. Read it first.
+
+## Where things stand (Saturday 10 October, 8:40 PM IST)
+
+Read this section first. It is the handover for whoever builds next.
+
+| Piece | State | Where |
+|---|---|---|
+| Phase 0 spikes | Done, except cfo.ai from a server (blocked on signup) | `spikes/ongoing.md`, `devlog.md` |
+| API contract | Done | `docs/api-contract.md`, `api/costcutter/contract.py` |
+| Mock server | Done, 6 tests pass | `api/costcutter/mock/` |
+| Web UI | Done against the mock | `web/` |
+| Recording proxy | **Not started. Next.** | `api/costcutter/proxy/` |
+| Sandbox runner | Not started | `api/costcutter/sandbox/`, `sandbox/*.Dockerfile` |
+| Sample agents | Not started | `samples/` |
+| Detectors | Not started | `api/costcutter/analyzers/` |
+| Agent loop | Not started | `api/costcutter/agent/` |
+| Real API server | Not started | `api/costcutter/server.py` |
+| Pull request, deployment | Not started | see below |
+
+Run everything that exists with `./start.sh` from the root.
+
+### What to build next, in order
+
+Each step has a check that says it is finished. Do not start a step before the
+one above it passes its check.
+
+1. **Recording proxy.** Forward Anthropic and OpenAI-compatible calls, swap the
+   dummy key for the real one, record request and response, enforce a spend
+   cap, and emit one neatlogs trace per run (spike S2 shows how).
+   *Done when:* a script pointed at the proxy with `ANTHROPIC_BASE_URL` gets a
+   normal answer, and the call appears in neatlogs with tokens, cache tokens
+   and cost.
+2. **Sandbox runner.** Install step with the package registry only; run step
+   with the proxy only. Limits as in the design.
+   *Done when:* a container that tries to reach the internet or read the key
+   fails at both, and a normal agent run completes.
+3. **Two sample agents** with the five kinds of waste built in honestly, five
+   tasks each, and a check of each answer. Decide whether each lives in its own
+   public repo, so the demo's pull request is real.
+   *Done when:* each runs in the sandbox and its baseline trace is in neatlogs.
+   **Keep the trace links: they are the first evidence.**
+4. **Detectors W1 to W5** with unit tests on recorded traces.
+   *Done when:* both samples yield the expected findings.
+5. **Agent loop**: diagnose, plan, fix, verify, revert. `claude-sonnet-5-5`,
+   caching on with an off switch, one `WORKFLOW` root per job.
+   *Done when:* one sample goes from baseline to a verified saving unaided, and
+   the smaller-model fix is reverted on a real run.
+6. **Real API server** that emits the contract's events. The UI then works
+   unchanged: point `start.sh` at it instead of the mock.
+   *Done when:* `./start.sh` runs a real job end to end in the browser.
+7. **Pull request delivery**, then **deployment**, then evidence and the video.
+
+### What the backend must match, because the UI depends on it
+
+- **Emit exactly the events in `docs/api-contract.md`.** The UI's job screen is
+  driven only by the stream. Validate against `docs/event-schema.json`.
+- **Fill `Finding.calls`.** Each finding lists the baseline calls it points at,
+  with `effect` set to `removed` (the fix drops the call) or `reduced` (the
+  call stays and costs less). The UI strikes removed calls and names reduced
+  ones. An empty list is allowed but the table then shows no marks.
+- **`llm.call.running_cost_usd`** is the total for that phase so far. The cost
+  figure counts from it.
+- **Send `finding` again on every status change**, with the whole object.
+- **Stop at `awaiting_selection`** until `POST /fix` arrives.
+- **Set `mock: false`** on real jobs. The UI shows a "mock data" tag otherwise.
+- **Never return the user's model key** in any response or event.
+- A change to the contract means changing `contract.py`, the document, the
+  mock and `web/src/lib/api.ts` together, then regenerating the schemas.
+
+### Open items that are not code
+
+- cfo.ai signup and the business plan in `business/` (Padmanabhan, by Monday
+  morning).
+- AWS credentials into `.env.local` before the access link expires.
+- The GitHub bot account (Sethuraman; steps below).
+- `#neatHack` posts: none yet. Building in public is 15% of the score.
+- All seven evidence rows in `devlog.md` are still missing.
+- The repository must be public before submission.
 
 ## Phases
 

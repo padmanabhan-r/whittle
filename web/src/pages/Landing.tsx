@@ -42,9 +42,9 @@ const FINDINGS = ['changing cache prefix', 'context bloat', 'duplicate tool call
 
 const STEPS = [
   { title: 'Baseline', text: 'We run your agent in a clean sandbox and capture a full trace of every model and tool call.', icon: <><path d="M4 22a12 12 0 1 1 24 0" /><path d="M16 22l5-8" /><circle cx="16" cy="22" r="1.6" /><path d="M4 27h24" /></> },
-  { title: 'Findings', text: 'Whittle analyzes the trace to find waste and ranks the top opportunities by impact and confidence.', icon: <><circle cx="14" cy="14" r="9" /><path d="M21 21l7 7" /></> },
-  { title: 'Fix and verify', text: 'We apply precise code changes, rerun the agent, and re-measure to confirm the improvement.', icon: <><rect x="3" y="6" width="26" height="20" rx="2" /><path d="M12 12l-4 4 4 4M20 12l4 4-4 4M17 11l-2 10" /></> },
-  { title: 'Proof', text: 'You get side-by-side traces and metrics that prove what was saved—without losing quality.', icon: <><path d="M3 28h26M7 28V16h4v12M14 28V8h4v20M21 28V13h4v15" /></> },
+  { title: 'Findings', text: 'Whittle reads the trace, finds the waste and ranks it by how much each fix would save.', icon: <><circle cx="14" cy="14" r="9" /><path d="M21 21l7 7" /></> },
+  { title: 'Fix and verify', text: 'We patch the code, rerun the same tasks and score the answers. A fix that fails is reverted.', icon: <><rect x="3" y="6" width="26" height="20" rx="2" /><path d="M12 12l-4 4 4 4M20 12l4 4-4 4M17 11l-2 10" /></> },
+  { title: 'Proof', text: 'You get before and after traces, the diff and the numbers that prove what was saved, at the same answer quality.', icon: <><path d="M3 28h26M7 28V16h4v12M14 28V8h4v20M21 28V13h4v15" /></> },
 ]
 
 const KINDS = [

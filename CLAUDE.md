@@ -25,9 +25,9 @@ before and after neatlogs traces, a diff and an optional pull request.
 - Contract with the UI: `docs/api-contract.md`, defined in code by
   `api/costcutter/contract.py`. Change the models, the document and the mock
   together, then regenerate the schemas.
-- UI: Vite, React and TypeScript in `web/`. Product facts for design work are
-  in `PRODUCT.md`; the design contracts are in `.impeccable/surfaces/`. Types in
-  `web/src/lib/api.ts` mirror `contract.py`.
+- UI: Vite, React and TypeScript in `web/`. Types in `web/src/lib/api.ts`
+  mirror `contract.py`. Design tokens are at the top of
+  `web/src/styles/base.css`; keep to them.
 - `./start.sh` from the root starts the API (the mock, for now) and the UI:
   app on http://localhost:5173, API on http://localhost:8787.
 - UI commands, from `web/`: `npm run dev`, `npm run build`, `npm run lint`.

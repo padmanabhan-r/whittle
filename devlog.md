@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T13:30:00+05:30
+- **Last updated:** 2026-10-10T13:33:00+05:30
 
 ## Evidence
 
@@ -106,7 +106,7 @@ idea from 1 to 10 for impact, how uncrowded it is, and sponsor-stack use.
 - **Next:** Agree the idea with the teammate. Install Entire before the first
   code commit.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 0f1aea7
 Added a requirement to the brainstorm and re-read the shortlist against it
 (`brainstorm/ideas.md`, "Web app requirement").
 
@@ -122,6 +122,20 @@ Added a requirement to the brainstorm and re-read the shortlist against it
 - **Built with:** Claude Code, claude-opus-5-5.
 - **Next:** Choose between the cost cutter and the CNC agent with the
   teammate.
+
+### 2026-10-10 - working tree
+Changed the agent cost cutter's design in `brainstorm/ideas.md` so its user
+does not need a neatlogs account.
+
+- **Decision:** The cost cutter runs the user's agent in a sandbox with our own
+  neatlogs tracing and reads those traces as its baseline. Asking a stranger
+  for an observability key limits the audience to existing neatlogs users and
+  asks for trust too early (user's objection). Connecting their own project
+  stays an optional extra.
+- **Decision:** Still an idea, not a choice. The design brings two costs: we
+  would run other people's code, and a model API key is still needed to run
+  their agent. The idea's scores were given for the earlier design.
+- **Built with:** Claude Code, claude-opus-5-5.
 
 ## Submission
 

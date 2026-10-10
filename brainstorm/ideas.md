@@ -130,7 +130,7 @@ This is Opus's reading alone; the other models were not asked.
 
 | Idea | Rank above | What the user sees in the browser | Who can use it | The demo moment | Concern |
 |---|---|---|---|---|---|
-| Agent cost cutter | 1 | Paste a repo link and a neatlogs key. A breakdown shows where each run's tokens and money go, with a list of waste findings. Press "Fix" and watch the agent work step by step, then see before and after side by side | Anyone running an AI agent | A cost-per-run meter falling live, with the two traces and the pull request as proof | The user is still a developer, and a dashboard has to be designed well to look like more than a dashboard |
+| Agent cost cutter | 1 | Paste a repo link and say how to run the agent; no neatlogs account needed. We run it in a sandbox with our own tracing, then a breakdown shows where each run's tokens and money go, with a list of waste findings. Press "Fix" and watch the agent work step by step, then see before and after side by side | Anyone running an AI agent | A cost-per-run meter falling live, with the two traces and the pull request as proof | The user is still a developer; we run strangers' code, so the sandbox must be real; and a model API key is still needed to run their agent |
 | CNC program gate agent | 21 | Upload a part spec. A viewer shows the target profile, the toolpath and the part being cut, with each failed attempt and the final pass | A machinist or shop owner, no code needed | The part taking shape on screen, a crash caught by the validator, then a pass within tolerance | Sponsor tools stay behind the scenes unless the agent also uses its past traces as memory |
 | Technical due diligence agent | 4 | Paste a repo link and upload a pitch deck. A report lists every claim as verified, contradicted or unsupported, with the evidence one click away | An investor or acquirer, no code needed | A confident claim in the deck turning red against the code | The Entire features that read agent history need a repo that already has checkpoints |
 | Accessibility repair loop | 22 | Paste a site address. Before and after screenshots with each defect marked, and the fix it shipped | A site owner or agency | A page fixing itself between two screenshots | Fixing needs access to the site's code, not only its address |
@@ -159,9 +159,10 @@ In rank order.
 
 - **Domain:** Developer tool for AI agents
 - **Field:** AI engineering, cost optimisation
-- **What it does:** Point it at an agent's repo and its neatlogs project. It reads recent traces, finds waste (cache prefix that changes each call, repeated tool calls, oversized context, doomed retries, a model tier that is too big), patches the code, reruns and proves the saving with two traces, holding quality steady with an eval.
-- **Sponsor stack:** neatlogs MCP is the input (search_traces, get_trace_context) and the proof; evals guard quality. entire graph search and impact find and safely change the call sites. Cost per run before and after becomes two cfo.ai scenarios showing the margin gained.
-- **Scores:** impact 9.3, uncrowded 7.2, stack 10.0, overall 8.8
+- **What it does:** Point it at an agent's repo and say how to run it. It runs the agent in a sandbox with neatlogs tracing added, into our own neatlogs project, so the user needs no neatlogs key. It reads those baseline traces, finds waste (cache prefix that changes each call, repeated tool calls, oversized context, doomed retries, a model tier that is too big), patches the code, reruns and proves the saving with two traces, holding quality steady with an eval.
+- **Sponsor stack:** neatlogs is our plumbing, not the user's homework: the SDK traces the sandboxed runs, and the MCP server is the agent's input (search_traces, get_trace_context) and the proof; evals guard quality. entire graph search and impact find and safely change the call sites. Cost per run before and after becomes two cfo.ai scenarios showing the margin gained.
+- **Keys:** the user's own neatlogs project is an optional extra, for analysing real production traces. Running their agent still needs a model API key from someone: theirs, or ours if we pay for the runs. The demo uses a sample agent and our key.
+- **Scores:** impact 9.3, uncrowded 7.2, stack 10.0, overall 8.8 (given for the earlier design, where the user supplied a neatlogs key)
 - **From:** Opus; Gemini (DynamicAgentPricer)
 
 ### 2. Fleet auditor for coding agents

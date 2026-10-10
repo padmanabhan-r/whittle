@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T19:12:00+05:30
+- **Last updated:** 2026-10-10T19:36:00+05:30
 
 ## Evidence
 
@@ -225,7 +225,7 @@ Installed Entire on the second machine (macOS) and enabled it for Claude Code.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - f4d5dcb
 Named the project Whittle and renamed the repository to match.
 
 - **Decision:** The name is Whittle, with the tagline "Cut what your agent
@@ -242,12 +242,34 @@ Named the project Whittle and renamed the repository to match.
 
 Evidence rows still missing: all seven.
 
+### 2026-10-10 - working tree
+Closed the open spikes from the second machine.
+
+- **Verified:** S3 on Linux. In a `debian:bookworm-slim` container on
+  `linux/amd64`, Entire CLI 0.11.4 with entire-graph 0.4.0 found the model call
+  sites in the Python and TypeScript fixtures, and `entire graph impact` on
+  `callModel` listed its one caller. Only `spikes/` was mounted.
+- **Fixed:** `spikes/s3_docker_inner.sh` passed `-y` to `entire plugin install
+  graph` and hid the error, so the plugin was never installed and the script
+  stopped at the first graph command.
+- **Verified:** S1 over the Public API. With a service-account token, reading
+  the project, listing traces and the cost, waste and KPI analytics all return
+  200.
+- **Failed:** listing detections with that token returns 403. Detections stay
+  on the MCP path, which works with the project key.
+- **Not verified:** any write with the token (creating an evaluator, starting a
+  run). cfo.ai is not started.
+- **Added:** `spikes/s3_capabilities_linux.json`.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
+
 ## Submission
 
 | Item | Status |
 |---|---|
 | Team | done: Attention Heads (Padmanabhan and Sethuraman) |
-| Project name | outstanding |
+| Project name | done: Whittle |
 | Public repo link | outstanding (repository exists but is private) |
 | Demo link | outstanding |
 | Video under three minutes covering neatlogs, Entire and cfo.ai | outstanding |

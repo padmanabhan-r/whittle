@@ -6,7 +6,7 @@ apt-get install -y -qq git curl ca-certificates >/dev/null
 curl -fsSL https://entire.io/install.sh | bash
 export PATH="${HOME}/.local/bin:${PATH}"
 entire version
-entire plugin install graph -y 2>/dev/null || true
+entire plugin install graph
 
 entire graph capabilities --json > /work/spikes/s3_capabilities_linux.json
 echo "Wrote /work/spikes/s3_capabilities_linux.json"

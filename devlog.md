@@ -5,7 +5,7 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Not built yet. Planned: a web app that runs someone's AI agent in a sandbox, shows where each run's tokens and money go, fixes the waste in the code, reruns it and proves the saving with before and after traces (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** planned
+- **Status:** building (Phase 0 spikes; no product code)
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/neatHack, to be made public before submission)
@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T15:45:00+05:30
+- **Last updated:** 2026-10-10T19:05:00+05:30
 
 ## Evidence
 
@@ -167,7 +167,7 @@ code yet.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 4858a1c
 Pointed the README at the design and the plan so a teammate can start.
 
 - **Changed:** `README.md` states the chosen idea and has a "Start here" list
@@ -175,6 +175,40 @@ Pointed the README at the design and the plan so a teammate can start.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.
+
+### 2026-10-10 - 9ab56c3
+Sethuraman ran the five Phase 0 spikes on his Windows machine. Results are his,
+from `spikes/ongoing.md`; none was re-run on the second machine.
+
+- **Verified:** S1, reading traces back. The neatlogs MCP server works with the
+  project key (`whoami`, `search_traces`, `get_trace_context`).
+- **Failed:** S1 and S5 over the Public API. `GET /api/v1/public/traces` and
+  `POST /detections` return 401 with the project key; they need a
+  service-account token from an organisation admin.
+- **Verified:** S2, traces emitted from outside the agent's process. One
+  `WORKFLOW` with two manual `LLM` spans carrying cache-write and cache-read
+  tokens was ingested and read back with a non-zero cost. The recording proxy
+  can report to neatlogs this way.
+- **Verified:** S3 on Windows only. `entire graph` search and impact found the
+  model call sites in a small Python and a small TypeScript fixture.
+- **Not verified:** S3 on Linux in Docker, which is what the sandbox will use.
+  The first run failed on CRLF line endings in the shell script; fixed with
+  `.gitattributes`, not re-run.
+- **Blocked:** S4, cfo.ai from a server. The MCP server signs in through a
+  browser only and the neatHack signup is for the team leader. The fallback in
+  the design stands: export the scenario inputs and load them by hand.
+- **Verified:** S5 in part. A detection was created through MCP
+  (`create_detection`). The evaluator run was not tried: it needs the
+  service-account token.
+- **Decision:** The agent's read path is the MCP server, since it works with
+  the key we already have. The Public API is used only where MCP has no tool
+  (evaluators, analytics), once a service-account token exists.
+- **Added:** `spikes/` with the scripts, fixtures and notes; `.gitattributes`.
+- **Built with:** Cursor (Sethuraman's machine); merge and this entry with
+  Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven. The spike traces and graph output are
+on Sethuraman's machine and are not linked here yet.
 
 ## Submission
 

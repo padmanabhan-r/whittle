@@ -32,3 +32,9 @@ __pycache__/
 
 # Private notes: organiser emails with access links
 email-dump.md
+
+# Local design-tool installs, one per machine
+.claude/agents/impeccable-*.md
+.claude/skills/impeccable/
+.cursor/agents/impeccable-*.md
+.cursor/skills/impeccable/

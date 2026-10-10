@@ -56,6 +56,36 @@ one above it passes its check.
    *Done when:* `./start.sh` runs a real job end to end in the browser.
 7. **Pull request delivery**, then **deployment**, then evidence and the video.
 
+### Tonight's shift and the morning handover
+
+Sethuraman builds through Saturday night and hands over on Sunday morning.
+Padmanabhan then tests it end to end, polishes it and carries on from there.
+
+**Aim for tonight:** steps 1 to 4 above (proxy, sandbox, sample agents,
+detectors). **The least that makes the handover useful:** steps 1 to 3, so a
+real sample run produces a real trace. Go deep on one Python sample before
+starting the TypeScript one.
+
+**Before stopping, leave these, or the morning is spent guessing:**
+
+1. Everything committed and pushed on one branch from `main`. No work left
+   only on the laptop.
+2. `docs/handover.md`, short and factual:
+   - what works, and the exact command that shows it working;
+   - what is half-done, and the file and function where it stops;
+   - what was tried and failed, so it is not tried again;
+   - every environment variable the code now needs;
+   - the neatlogs trace links for the runs that worked.
+3. Tests for whatever is claimed to work, passing with `uv run pytest`.
+4. `./start.sh` still runs. If the real server is not ready, the mock stays
+   the default.
+5. A devlog entry (`/devlog`), with the trace links under **Evidence:**.
+
+**Rules that save the morning:** commit small and often with the
+`Entire-Checkpoint` trailer; change the contract only together with the mock,
+the document and `web/src/lib/api.ts`; if something in the plan turns out
+wrong, write down what and why instead of working around it silently.
+
 ### What the backend must match, because the UI depends on it
 
 - **Emit exactly the events in `docs/api-contract.md`.** The UI's job screen is

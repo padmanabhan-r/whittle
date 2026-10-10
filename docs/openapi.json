@@ -1,0 +1,1694 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Whittle API (mock)",
+    "description": "Serves docs/api-contract.md with scripted data. Every number is invented.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/samples": {
+      "get": {
+        "summary": "List Samples",
+        "operationId": "list_samples_api_samples_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs": {
+      "post": {
+        "summary": "Create Job",
+        "operationId": "create_job_api_jobs_post",
+        "parameters": [
+          {
+            "name": "speed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Mock only: playback speed; 0 means no delays",
+              "default": 1.0,
+              "title": "Speed"
+            },
+            "description": "Mock only: playback speed; 0 means no delays"
+          },
+          {
+            "name": "scenario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "default",
+                "no_calls"
+              ],
+              "type": "string",
+              "description": "Mock only: 'no_calls' ends in a failed job",
+              "default": "default",
+              "title": "Scenario"
+            },
+            "description": "Mock only: 'no_calls' ends in a failed job"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}": {
+      "get": {
+        "summary": "Read Job",
+        "operationId": "read_job_api_jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/events": {
+      "get": {
+        "summary": "Stream Events",
+        "operationId": "stream_events_api_jobs__job_id__events_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Same as Last-Event-ID, for clients that cannot set headers",
+              "title": "After"
+            },
+            "description": "Same as Last-Event-ID, for clients that cannot set headers"
+          },
+          {
+            "name": "last-event-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/findings": {
+      "get": {
+        "summary": "List Findings",
+        "operationId": "list_findings_api_jobs__job_id__findings_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindingList"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/fix": {
+      "post": {
+        "summary": "Start Fix",
+        "operationId": "start_fix_api_jobs__job_id__fix_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/comparison": {
+      "get": {
+        "summary": "Read Comparison",
+        "operationId": "read_comparison_api_jobs__job_id__comparison_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comparison"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/diff": {
+      "get": {
+        "summary": "Read Diff",
+        "operationId": "read_diff_api_jobs__job_id__diff_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diff"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/patch": {
+      "get": {
+        "summary": "Download Patch",
+        "operationId": "download_patch_api_jobs__job_id__patch_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/pr": {
+      "post": {
+        "summary": "Open Pull Request",
+        "operationId": "open_pull_request_api_jobs__job_id__pr_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PullRequest"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CodeLocation": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          },
+          "line_start": {
+            "type": "integer",
+            "title": "Line Start"
+          },
+          "line_end": {
+            "type": "integer",
+            "title": "Line End"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Symbol"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "file",
+          "line_start",
+          "line_end"
+        ],
+        "title": "CodeLocation"
+      },
+      "Comparison": {
+        "properties": {
+          "baseline": {
+            "$ref": "#/components/schemas/RunTotals"
+          },
+          "after": {
+            "$ref": "#/components/schemas/RunTotals"
+          },
+          "saving_pct": {
+            "type": "number",
+            "title": "Saving Pct"
+          },
+          "saving_usd_per_run": {
+            "type": "number",
+            "title": "Saving Usd Per Run"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/Quality"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskComparison"
+            },
+            "type": "array",
+            "title": "Tasks"
+          },
+          "by_finding": {
+            "items": {
+              "$ref": "#/components/schemas/FindingResult"
+            },
+            "type": "array",
+            "title": "By Finding"
+          },
+          "projection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Projection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "baseline",
+          "after",
+          "saving_pct",
+          "saving_usd_per_run",
+          "quality",
+          "tasks",
+          "by_finding"
+        ],
+        "title": "Comparison"
+      },
+      "Diff": {
+        "properties": {
+          "base_commit": {
+            "type": "string",
+            "title": "Base Commit"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileDiff"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "unified": {
+            "type": "string",
+            "title": "Unified"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "base_commit",
+          "branch",
+          "files",
+          "unified"
+        ],
+        "title": "Diff"
+      },
+      "ErrorBody": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/JobError"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorBody"
+      },
+      "Evidence": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "span_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span Id"
+          },
+          "trace_url": {
+            "type": "string",
+            "title": "Trace Url"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "trace_url",
+          "note"
+        ],
+        "title": "Evidence"
+      },
+      "FileDiff": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "additions": {
+            "type": "integer",
+            "title": "Additions"
+          },
+          "deletions": {
+            "type": "integer",
+            "title": "Deletions"
+          },
+          "patch": {
+            "type": "string",
+            "title": "Patch"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "path",
+          "additions",
+          "deletions",
+          "patch"
+        ],
+        "title": "FileDiff"
+      },
+      "Finding": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FindingKind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "estimated_saving_usd_per_run": {
+            "type": "number",
+            "title": "Estimated Saving Usd Per Run"
+          },
+          "estimated_saving_pct": {
+            "type": "number",
+            "title": "Estimated Saving Pct",
+            "description": "Share of baseline cost per run, 0 to 100"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodeLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus",
+            "default": "proposed"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "summary",
+          "severity",
+          "estimated_saving_usd_per_run",
+          "estimated_saving_pct",
+          "evidence"
+        ],
+        "title": "Finding"
+      },
+      "FindingKind": {
+        "type": "string",
+        "enum": [
+          "cache_prefix",
+          "duplicate_tool_call",
+          "context_bloat",
+          "oversized_model",
+          "doomed_retry"
+        ],
+        "title": "FindingKind"
+      },
+      "FindingList": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "findings"
+        ],
+        "title": "FindingList"
+      },
+      "FindingResult": {
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "title": "Finding Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus"
+          },
+          "saving_usd_per_run": {
+            "type": "number",
+            "title": "Saving Usd Per Run"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "finding_id",
+          "status",
+          "saving_usd_per_run"
+        ],
+        "title": "FindingResult"
+      },
+      "FindingStatus": {
+        "type": "string",
+        "enum": [
+          "proposed",
+          "selected",
+          "applied",
+          "reverted",
+          "skipped"
+        ],
+        "title": "FindingStatus"
+      },
+      "FixRequest": {
+        "properties": {
+          "finding_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Finding Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "finding_ids"
+        ],
+        "title": "FixRequest"
+      },
+      "GithubSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "github",
+            "title": "Type"
+          },
+          "repo_url": {
+            "type": "string",
+            "title": "Repo Url"
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref",
+            "description": "Branch, tag or commit; default branch if omitted"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "repo_url"
+        ],
+        "title": "GithubSource"
+      },
+      "Job": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobState"
+          },
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SampleSource"
+              },
+              {
+                "$ref": "#/components/schemas/GithubSource"
+              }
+            ],
+            "title": "Source",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "github": "#/components/schemas/GithubSource",
+                "sample": "#/components/schemas/SampleSource"
+              }
+            }
+          },
+          "language": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Language"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "base_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Commit"
+          },
+          "monthly_runs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Runs"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/JobSummary"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_event_seq": {
+            "type": "integer",
+            "title": "Last Event Seq",
+            "default": 0
+          },
+          "mock": {
+            "type": "boolean",
+            "title": "Mock",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "source",
+          "created_at",
+          "updated_at",
+          "summary"
+        ],
+        "title": "Job"
+      },
+      "JobCreate": {
+        "properties": {
+          "source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SampleSource"
+              },
+              {
+                "$ref": "#/components/schemas/GithubSource"
+              }
+            ],
+            "title": "Source",
+            "discriminator": {
+              "propertyName": "type",
+              "mapping": {
+                "github": "#/components/schemas/GithubSource",
+                "sample": "#/components/schemas/SampleSource"
+              }
+            }
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required for github sources; samples carry their own"
+          },
+          "model_key": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelKey"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required for github sources"
+          },
+          "monthly_runs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Runs",
+            "description": "For the monthly projection"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "title": "JobCreate"
+      },
+      "JobError": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "JobError"
+      },
+      "JobState": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "cloning",
+          "installing",
+          "baseline",
+          "diagnosing",
+          "awaiting_selection",
+          "fixing",
+          "verifying",
+          "reporting",
+          "done",
+          "failed"
+        ],
+        "title": "JobState"
+      },
+      "JobSummary": {
+        "properties": {
+          "baseline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunTotals"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunTotals"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "saving_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saving Pct"
+          },
+          "findings_total": {
+            "type": "integer",
+            "title": "Findings Total",
+            "default": 0
+          },
+          "findings_applied": {
+            "type": "integer",
+            "title": "Findings Applied",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "JobSummary"
+      },
+      "Language": {
+        "type": "string",
+        "enum": [
+          "python",
+          "typescript"
+        ],
+        "title": "Language"
+      },
+      "ModelKey": {
+        "properties": {
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider",
+          "key"
+        ],
+        "title": "ModelKey",
+        "description": "Held in memory for the job only. Never stored, logged, traced or sent back."
+      },
+      "Outcome": {
+        "type": "string",
+        "enum": [
+          "saved",
+          "nothing_to_fix",
+          "no_saving"
+        ],
+        "title": "Outcome"
+      },
+      "Projection": {
+        "properties": {
+          "monthly_runs": {
+            "type": "integer",
+            "title": "Monthly Runs"
+          },
+          "baseline_monthly_usd": {
+            "type": "number",
+            "title": "Baseline Monthly Usd"
+          },
+          "after_monthly_usd": {
+            "type": "number",
+            "title": "After Monthly Usd"
+          },
+          "saving_monthly_usd": {
+            "type": "number",
+            "title": "Saving Monthly Usd"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "monthly_runs",
+          "baseline_monthly_usd",
+          "after_monthly_usd",
+          "saving_monthly_usd"
+        ],
+        "title": "Projection"
+      },
+      "Provider": {
+        "type": "string",
+        "enum": [
+          "anthropic",
+          "openai"
+        ],
+        "title": "Provider"
+      },
+      "PullRequest": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "number",
+          "title"
+        ],
+        "title": "PullRequest"
+      },
+      "Quality": {
+        "properties": {
+          "evaluator": {
+            "type": "string",
+            "title": "Evaluator"
+          },
+          "baseline_score": {
+            "type": "number",
+            "title": "Baseline Score",
+            "description": "0 to 1"
+          },
+          "after_score": {
+            "type": "number",
+            "title": "After Score",
+            "description": "0 to 1"
+          },
+          "threshold": {
+            "type": "number",
+            "title": "Threshold"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evaluator",
+          "baseline_score",
+          "after_score",
+          "threshold",
+          "passed"
+        ],
+        "title": "Quality"
+      },
+      "RunSpec": {
+        "properties": {
+          "command": {
+            "type": "string",
+            "title": "Command",
+            "description": "How to run the agent once; {input} is replaced by the task input"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Tasks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "command",
+          "tasks"
+        ],
+        "title": "RunSpec"
+      },
+      "RunTotals": {
+        "properties": {
+          "runs": {
+            "type": "integer",
+            "title": "Runs"
+          },
+          "llm_calls": {
+            "type": "integer",
+            "title": "Llm Calls"
+          },
+          "tool_calls": {
+            "type": "integer",
+            "title": "Tool Calls"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "cache_read_tokens": {
+            "type": "integer",
+            "title": "Cache Read Tokens"
+          },
+          "cache_write_tokens": {
+            "type": "integer",
+            "title": "Cache Write Tokens"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "cost_per_run_usd": {
+            "type": "number",
+            "title": "Cost Per Run Usd"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "runs",
+          "llm_calls",
+          "tool_calls",
+          "input_tokens",
+          "output_tokens",
+          "cache_read_tokens",
+          "cache_write_tokens",
+          "cost_usd",
+          "cost_per_run_usd",
+          "duration_ms"
+        ],
+        "title": "RunTotals",
+        "description": "Totals over every task run in one phase."
+      },
+      "Sample": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "language": {
+            "$ref": "#/components/schemas/Language"
+          },
+          "repo_url": {
+            "type": "string",
+            "title": "Repo Url"
+          },
+          "task_count": {
+            "type": "integer",
+            "title": "Task Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "language",
+          "repo_url",
+          "task_count"
+        ],
+        "title": "Sample"
+      },
+      "SampleList": {
+        "properties": {
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/Sample"
+            },
+            "type": "array",
+            "title": "Samples"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "samples"
+        ],
+        "title": "SampleList"
+      },
+      "SampleSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "sample",
+            "title": "Type"
+          },
+          "sample_id": {
+            "type": "string",
+            "title": "Sample Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "sample_id"
+        ],
+        "title": "SampleSource"
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "Severity"
+      },
+      "Task": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "input": {
+            "type": "string",
+            "title": "Input"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "input"
+        ],
+        "title": "Task"
+      },
+      "TaskComparison": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "input_preview": {
+            "type": "string",
+            "title": "Input Preview"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/TaskRun"
+          },
+          "after": {
+            "$ref": "#/components/schemas/TaskRun"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "task_id",
+          "input_preview",
+          "baseline",
+          "after"
+        ],
+        "title": "TaskComparison"
+      },
+      "TaskRun": {
+        "properties": {
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens"
+          },
+          "llm_calls": {
+            "type": "integer",
+            "title": "Llm Calls"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "trace_url": {
+            "type": "string",
+            "title": "Trace Url"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cost_usd",
+          "total_tokens",
+          "llm_calls",
+          "duration_ms",
+          "passed",
+          "trace_id",
+          "trace_url"
+        ],
+        "title": "TaskRun"
+      }
+    }
+  }
+}

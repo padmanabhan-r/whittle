@@ -17,11 +17,20 @@ before and after neatlogs traces, a diff and an optional pull request.
 
 - Design: `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`
 - Build order, Entire cadence, checks: `docs/plan.md`
-- Stack (planned, nothing built yet): Python 3.13 and FastAPI in `api/`, SQLite
+- Stack (only the contract and the mock server exist so far): Python 3.13 and FastAPI in `api/`, SQLite
   for job state, Docker for the sandbox, the UI in `web/`, one EC2 instance in
   `us-east-1`. Python must be 3.10 to 3.13: on 3.14 pip installs an old
   neatlogs without `wrap` or `trace`.
-- Run commands: none yet. Add them here when the first runnable piece lands.
+- Contract with the UI: `docs/api-contract.md`, defined in code by
+  `api/costcutter/contract.py`. Change the models, the document and the mock
+  together, then regenerate the schemas.
+- Run commands, all from `api/`:
+  - `uv sync` installs the backend.
+  - `uv run uvicorn costcutter.mock.server:app --port 8787` starts the mock
+    server the UI is built against. Its numbers are invented.
+  - `uv run pytest` runs the tests.
+  - `uv run python -m costcutter.export_schema` rewrites `docs/openapi.json`
+    and `docs/event-schema.json`.
 
 ## Hard rules
 

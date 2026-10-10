@@ -1,0 +1,1004 @@
+{
+  "$defs": {
+    "AgentStepEvent": {
+      "additionalProperties": false,
+      "description": "One step of our own agent: a thought, a tool call or a tool result.",
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "agent.step",
+          "default": "agent.step",
+          "title": "Type",
+          "type": "string"
+        },
+        "step_index": {
+          "title": "Step Index",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "thought",
+            "tool_call",
+            "tool_result"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool"
+        },
+        "finding_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finding Id"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "step_index",
+        "kind",
+        "text"
+      ],
+      "title": "AgentStepEvent",
+      "type": "object"
+    },
+    "CodeLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line_start": {
+          "title": "Line Start",
+          "type": "integer"
+        },
+        "line_end": {
+          "title": "Line End",
+          "type": "integer"
+        },
+        "symbol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symbol"
+        }
+      },
+      "required": [
+        "file",
+        "line_start",
+        "line_end"
+      ],
+      "title": "CodeLocation",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "trace_id": {
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "span_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Span Id"
+        },
+        "trace_url": {
+          "title": "Trace Url",
+          "type": "string"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "trace_id",
+        "trace_url",
+        "note"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/FindingKind"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "estimated_saving_usd_per_run": {
+          "title": "Estimated Saving Usd Per Run",
+          "type": "number"
+        },
+        "estimated_saving_pct": {
+          "description": "Share of baseline cost per run, 0 to 100",
+          "title": "Estimated Saving Pct",
+          "type": "number"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "$ref": "#/$defs/FindingStatus",
+          "default": "proposed"
+        },
+        "status_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status Reason"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "summary",
+        "severity",
+        "estimated_saving_usd_per_run",
+        "estimated_saving_pct",
+        "evidence"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "FindingEvent": {
+      "additionalProperties": false,
+      "description": "Sent when a finding is first reported and again whenever its status changes.",
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "finding",
+          "default": "finding",
+          "title": "Type",
+          "type": "string"
+        },
+        "finding": {
+          "$ref": "#/$defs/Finding"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "finding"
+      ],
+      "title": "FindingEvent",
+      "type": "object"
+    },
+    "FindingKind": {
+      "enum": [
+        "cache_prefix",
+        "duplicate_tool_call",
+        "context_bloat",
+        "oversized_model",
+        "doomed_retry"
+      ],
+      "title": "FindingKind",
+      "type": "string"
+    },
+    "FindingStatus": {
+      "enum": [
+        "proposed",
+        "selected",
+        "applied",
+        "reverted",
+        "skipped"
+      ],
+      "title": "FindingStatus",
+      "type": "string"
+    },
+    "JobDoneEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "job.done",
+          "default": "job.done",
+          "title": "Type",
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Outcome"
+        },
+        "summary": {
+          "$ref": "#/$defs/JobSummary"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "outcome",
+        "summary"
+      ],
+      "title": "JobDoneEvent",
+      "type": "object"
+    },
+    "JobErrorEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "job.error",
+          "default": "job.error",
+          "title": "Type",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "code",
+        "message"
+      ],
+      "title": "JobErrorEvent",
+      "type": "object"
+    },
+    "JobState": {
+      "enum": [
+        "queued",
+        "cloning",
+        "installing",
+        "baseline",
+        "diagnosing",
+        "awaiting_selection",
+        "fixing",
+        "verifying",
+        "reporting",
+        "done",
+        "failed"
+      ],
+      "title": "JobState",
+      "type": "string"
+    },
+    "JobStateEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "job.state",
+          "default": "job.state",
+          "title": "Type",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/JobState"
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JobState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "state",
+        "previous"
+      ],
+      "title": "JobStateEvent",
+      "type": "object"
+    },
+    "JobSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunTotals"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "after": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunTotals"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "saving_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Saving Pct"
+        },
+        "findings_total": {
+          "default": 0,
+          "title": "Findings Total",
+          "type": "integer"
+        },
+        "findings_applied": {
+          "default": 0,
+          "title": "Findings Applied",
+          "type": "integer"
+        }
+      },
+      "title": "JobSummary",
+      "type": "object"
+    },
+    "LlmCallEvent": {
+      "additionalProperties": false,
+      "description": "One model call made by the user's agent, as seen by the proxy.",
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "llm.call",
+          "default": "llm.call",
+          "title": "Type",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "call_index": {
+          "title": "Call Index",
+          "type": "integer"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "input_tokens": {
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "cache_read_tokens": {
+          "title": "Cache Read Tokens",
+          "type": "integer"
+        },
+        "cache_write_tokens": {
+          "title": "Cache Write Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "running_cost_usd": {
+          "description": "Total for this phase so far; drives the meter",
+          "title": "Running Cost Usd",
+          "type": "number"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "phase",
+        "task_id",
+        "call_index",
+        "model",
+        "input_tokens",
+        "output_tokens",
+        "cache_read_tokens",
+        "cache_write_tokens",
+        "cost_usd",
+        "running_cost_usd",
+        "duration_ms"
+      ],
+      "title": "LlmCallEvent",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "saved",
+        "nothing_to_fix",
+        "no_saving"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "PatchAppliedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "patch.applied",
+          "default": "patch.applied",
+          "title": "Type",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "additions": {
+          "title": "Additions",
+          "type": "integer"
+        },
+        "deletions": {
+          "title": "Deletions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "finding_id",
+        "files",
+        "additions",
+        "deletions"
+      ],
+      "title": "PatchAppliedEvent",
+      "type": "object"
+    },
+    "Phase": {
+      "enum": [
+        "baseline",
+        "after"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "RecoveryEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "recovery",
+          "default": "recovery",
+          "title": "Type",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "reverted",
+            "retried",
+            "skipped"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "finding_id",
+        "action",
+        "reason"
+      ],
+      "title": "RecoveryEvent",
+      "type": "object"
+    },
+    "RunCompletedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.completed",
+          "default": "run.completed",
+          "title": "Type",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "cost_usd": {
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "trace_id": {
+          "title": "Trace Id",
+          "type": "string"
+        },
+        "trace_url": {
+          "title": "Trace Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "phase",
+        "task_id",
+        "cost_usd",
+        "passed",
+        "trace_id",
+        "trace_url"
+      ],
+      "title": "RunCompletedEvent",
+      "type": "object"
+    },
+    "RunTotals": {
+      "additionalProperties": false,
+      "description": "Totals over every task run in one phase.",
+      "properties": {
+        "runs": {
+          "title": "Runs",
+          "type": "integer"
+        },
+        "llm_calls": {
+          "title": "Llm Calls",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "title": "Tool Calls",
+          "type": "integer"
+        },
+        "input_tokens": {
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "cache_read_tokens": {
+          "title": "Cache Read Tokens",
+          "type": "integer"
+        },
+        "cache_write_tokens": {
+          "title": "Cache Write Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "cost_per_run_usd": {
+          "title": "Cost Per Run Usd",
+          "type": "number"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "runs",
+        "llm_calls",
+        "tool_calls",
+        "input_tokens",
+        "output_tokens",
+        "cache_read_tokens",
+        "cache_write_tokens",
+        "cost_usd",
+        "cost_per_run_usd",
+        "duration_ms"
+      ],
+      "title": "RunTotals",
+      "type": "object"
+    },
+    "SandboxLogEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "sandbox.log",
+          "default": "sandbox.log",
+          "title": "Type",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "install",
+            "baseline",
+            "after"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "stream": {
+          "enum": [
+            "stdout",
+            "stderr"
+          ],
+          "title": "Stream",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "string"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task Id"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "phase",
+        "stream",
+        "line"
+      ],
+      "title": "SandboxLogEvent",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "VerifyResultEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "verify.result",
+          "default": "verify.result",
+          "title": "Type",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "cost_per_run_before_usd": {
+          "title": "Cost Per Run Before Usd",
+          "type": "number"
+        },
+        "cost_per_run_after_usd": {
+          "title": "Cost Per Run After Usd",
+          "type": "number"
+        },
+        "quality_before": {
+          "title": "Quality Before",
+          "type": "number"
+        },
+        "quality_after": {
+          "title": "Quality After",
+          "type": "number"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "finding_id",
+        "passed",
+        "cost_per_run_before_usd",
+        "cost_per_run_after_usd",
+        "quality_before",
+        "quality_after",
+        "reason"
+      ],
+      "title": "VerifyResultEvent",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "agent.step": "#/$defs/AgentStepEvent",
+      "finding": "#/$defs/FindingEvent",
+      "job.done": "#/$defs/JobDoneEvent",
+      "job.error": "#/$defs/JobErrorEvent",
+      "job.state": "#/$defs/JobStateEvent",
+      "llm.call": "#/$defs/LlmCallEvent",
+      "patch.applied": "#/$defs/PatchAppliedEvent",
+      "recovery": "#/$defs/RecoveryEvent",
+      "run.completed": "#/$defs/RunCompletedEvent",
+      "sandbox.log": "#/$defs/SandboxLogEvent",
+      "verify.result": "#/$defs/VerifyResultEvent"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/JobStateEvent"
+    },
+    {
+      "$ref": "#/$defs/SandboxLogEvent"
+    },
+    {
+      "$ref": "#/$defs/LlmCallEvent"
+    },
+    {
+      "$ref": "#/$defs/RunCompletedEvent"
+    },
+    {
+      "$ref": "#/$defs/FindingEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentStepEvent"
+    },
+    {
+      "$ref": "#/$defs/PatchAppliedEvent"
+    },
+    {
+      "$ref": "#/$defs/VerifyResultEvent"
+    },
+    {
+      "$ref": "#/$defs/RecoveryEvent"
+    },
+    {
+      "$ref": "#/$defs/JobDoneEvent"
+    },
+    {
+      "$ref": "#/$defs/JobErrorEvent"
+    }
+  ]
+}

@@ -5,11 +5,11 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Not built yet. Planned: a web app that runs someone's AI agent in a sandbox, shows where each run's tokens and money go, fixes the waste in the code, reruns it and proves the saving with before and after traces (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** building (Phase 0 spikes; no product code)
+- **Status:** building (Phase 1: contract and mock server done; proxy, sandbox and agent not started)
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
-- **Stack:** none yet. Planned: Python 3.13, FastAPI, SQLite, Docker, a web UI
+- **Stack:** Python 3.13, FastAPI, Pydantic, uv, pytest (`api/pyproject.toml`). Planned: SQLite, Docker, a web UI
 - **Hosting:** not deployed
 - **Auth:** none
 - **External services:** none
@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T19:36:00+05:30
+- **Last updated:** 2026-10-10T19:50:00+05:30
 
 ## Evidence
 
@@ -242,7 +242,7 @@ Named the project Whittle and renamed the repository to match.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - 89f11c7
 Closed the open spikes from the second machine.
 
 - **Verified:** S3 on Linux. In a `debian:bookworm-slim` container on
@@ -260,6 +260,37 @@ Closed the open spikes from the second machine.
 - **Not verified:** any write with the token (creating an evaluator, starting a
   run). cfo.ai is not started.
 - **Added:** `spikes/s3_capabilities_linux.json`.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree
+Wrote the API contract and a mock server, so the UI can be built before the
+backend exists. First code in the repository.
+
+- **Added:** `api/costcutter/contract.py`: every request, response and stream
+  event as a Pydantic model. `docs/api-contract.md` is the prose version;
+  `docs/openapi.json` and `docs/event-schema.json` are generated from the code.
+- **Added:** `api/costcutter/mock/`: a FastAPI server that keeps jobs in memory
+  and plays one scripted run over Server-Sent Events, pausing at
+  `awaiting_selection` until findings are chosen. It has a playback speed and a
+  failing scenario.
+- **Decision:** The contract lives in code that both the mock and the real
+  server import, so the two cannot drift apart without a test failing.
+- **Decision:** The mock's numbers come from a small per-call simulation, not a
+  fixed file, so the cost meter, the findings and the comparison agree. They
+  are invented, the document says so, and every job carries `mock: true`.
+- **Decision:** In the script, the fix that moves a step to a smaller model
+  fails its quality check and is reverted. The UI gets the recovery event to
+  design for before the real agent can produce one.
+- **Verified:** `uv run pytest`: 6 passed. Over real HTTP: a job was created,
+  60 events streamed to `awaiting_selection`, the fix was posted, the stream
+  resumed from `Last-Event-ID` with events 61 to 149 ending in `job.done`, and
+  the comparison, diff and a CORS preflight returned as documented.
+- **Not verified:** the stream in a browser `EventSource`; no UI has called it.
+  The contract has not been reviewed by Sethuraman, whose proxy must emit
+  these events.
+- **Evidence:** Entire checkpoint on this commit (see `git log`).
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.

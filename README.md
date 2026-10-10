@@ -36,8 +36,9 @@ team of agents, that completes a substantial task from start to finish.
 
 ## Status
 
-**Whittle is in Phase 0 of its build plan: the spikes are done and there is no
-application code yet.** A user gives the web app a public GitHub repository holding a Python
+**Whittle is early in its build: the spikes are done, the API contract is
+written and a mock server plays it back. The real backend and the UI are not
+built yet.** A user gives the web app a public GitHub repository holding a Python
 or TypeScript agent. The app runs that agent in a sandbox, shows where each
 run's tokens and money go, fixes the waste in the code, reruns it, and proves
 the saving with before and after traces, a diff and an optional pull request.
@@ -50,8 +51,16 @@ the saving with before and after traces, a diff and an optional pull request.
    result in `devlog.md`. No product code before Entire is capturing commits.
 3. Follow the "Entire cadence" table in `docs/plan.md` for every session,
    commit and push.
-4. The UI is built separately against `docs/api-contract.md`, which Phase 1
-   produces. Backend work does not wait for it.
+4. The UI is built against `docs/api-contract.md` and the mock server:
+
+   ```bash
+   cd api && uv sync
+   uv run uvicorn costcutter.mock.server:app --port 8787
+   ```
+
+   The mock's numbers are invented. The real backend imports the same models
+   from `api/costcutter/contract.py`, so it replaces the mock without the UI
+   changing.
 
 ## Required tools
 
@@ -69,6 +78,8 @@ Each of the three has a role in the project, and each is covered in the demo.
 |---|---|
 | `docs/neathack-rules.md` | The hackathon rules as read from the live site, with the judging weights and the evidence judges expect |
 | `docs/superpowers/specs/` | The design of Whittle |
+| `api/` | The backend. So far: the contract models and the mock server |
+| `docs/api-contract.md` | What the UI and the backend agree on, with `openapi.json` and `event-schema.json` |
 | `spikes/` | Phase 0 spike scripts and their results (`spikes/ongoing.md`) |
 | `assets/` | The README banner |
 | `docs/plan.md` | The build plan: phases, the Entire cadence, checks |

@@ -20,7 +20,7 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T19:05:00+05:30
+- **Last updated:** 2026-10-10T19:10:00+05:30
 
 ## Evidence
 
@@ -209,6 +209,21 @@ from `spikes/ongoing.md`; none was re-run on the second machine.
 
 Evidence rows still missing: all seven. The spike traces and graph output are
 on Sethuraman's machine and are not linked here yet.
+
+### 2026-10-10 - working tree
+Installed Entire on the second machine (macOS) and enabled it for Claude Code.
+
+- **Added:** Entire CLI 0.11.4 and the entire-graph plugin 0.4.0; `entire
+  enable --agent claude-code` wrote nine hooks into `.claude/settings.json`
+  and installed the git hooks.
+- **Verified:** `entire status` reports enabled on `main` for Claude Code and
+  Cursor. `entire graph search` on this repo returned the model call sites in
+  both S3 fixtures (`callModel` in TypeScript, `call_model` in Python).
+- **Not verified:** whether a commit made in a session that began before the
+  hooks were installed gets a checkpoint. Check the trailer on this commit.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: all seven.
 
 ## Submission
 

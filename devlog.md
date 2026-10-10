@@ -80,7 +80,7 @@ no code for the entry yet.
   commits carry checkpoints. Sign up for cfo.ai. Settle the idea and record it,
   with the stack and run commands, in `CLAUDE.md`.
 
-### 2026-10-10 - working tree
+### 2026-10-10 - f5ee64e
 Brainstormed the idea. `brainstorm/ideas.md` holds 40 candidates with a domain
 and field for each, what each sponsor tool can do, and a ranking. Six models
 proposed ideas independently from one brief (Claude Opus 5.5, Gemini 3.8

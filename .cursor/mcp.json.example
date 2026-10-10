@@ -1,0 +1,15 @@
+{
+    "mcpServers": {
+      "neatlogs": {
+        "type": "http",
+        "url": "https://ingest.neatlogs.com/mcp",
+        "headers": {
+          "Authorization": "Bearer your token"
+        }
+      },
+      "cfoai": {
+        "type": "http",
+        "url": "https://api.cfo.ai/mcp"
+      }
+    }
+  }

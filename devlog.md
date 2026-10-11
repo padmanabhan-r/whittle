@@ -460,9 +460,12 @@ real job ran end to end.
   3 calls, 10,945 uncached input tokens, $0.0440; caching on: 8 uncached,
   6,697 cache-read, 4,405 cache-write tokens, $0.0359. Same finding, same
   change, 18% cheaper; longer fixes gain more because the write is paid once.
+- **Added:** the sandbox run step now joins an internal Docker network
+  whose only other member is a relay (`socat`) to the proxy on the host. A
+  test opens the relay and fails to reach example.com; a second real job ran
+  its baseline through it (30 proxied calls, 5 findings).
 - **Not verified:** trace links (no write key yet); the pull request path;
-  the sandbox run step's network is still open; the UI was not clicked by
-  hand, only screenshotted against the real server.
+  the UI was not clicked by hand, only screenshotted against the real server.
 - **Built with:** Claude Code, claude-opus-5-5 until 6:55 AM, then
   claude-fable-5-1.
 

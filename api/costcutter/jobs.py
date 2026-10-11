@@ -197,15 +197,23 @@ class JobContext:
 class JobRunner:
     """Creates jobs and drives them. One job runs at a time; the sandbox is shared."""
 
-    def __init__(self, *, open_session: Callable, close_session: Callable, proxy_url_for_sandbox: str, fixer=None, judge=None):
+    def __init__(self, *, open_session: Callable, close_session: Callable, proxy_url_for_sandbox: str | None = None, fixer=None, judge=None):
         self.jobs: dict[str, JobContext] = {}
         self.open_session = open_session
         self.close_session = close_session
-        self.proxy_url = proxy_url_for_sandbox
         self.sandbox = SandboxRunner()
+        self._proxy_url = proxy_url_for_sandbox
         self.fixer = fixer
         self.judge = judge
         self.semaphore = asyncio.Semaphore(1)
+
+    @property
+    def proxy_url(self) -> str:
+        """Where the sandbox reaches the proxy: through the relay on the internal network unless configured."""
+        if self._proxy_url:
+            return self._proxy_url
+        port = int(os.environ.get("WHITTLE_API_PORT", "8787"))
+        return self.sandbox.proxy_url_for_container(port, "/proxy")
 
     # --- samples ----------------------------------------------------------
 

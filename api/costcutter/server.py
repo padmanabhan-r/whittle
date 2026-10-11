@@ -61,7 +61,7 @@ def create_app() -> FastAPI:
     runner = JobRunner(
         open_session=open_for_job,
         close_session=sessions.close,
-        proxy_url_for_sandbox=os.environ.get("WHITTLE_SANDBOX_PROXY_URL", f"http://host.docker.internal:{PORT}/proxy"),
+        proxy_url_for_sandbox=os.environ.get("WHITTLE_SANDBOX_PROXY_URL") or None,
         fixer=lambda ctx, finding: fix_finding(ctx, finding, ctx.step),
     )
 

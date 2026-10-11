@@ -49,3 +49,22 @@ def test_no_network_cannot_reach_the_internet(runner, tmp_path):
     (tmp_path / "main.py").write_text("import urllib.request; urllib.request.urlopen('http://example.com', timeout=3)\n")
     result = runner._run(tmp_path, ["python", "main.py"], network="none", extra_env={}, timeout_s=60)
     assert result.exit_code != 0
+
+
+def test_run_step_reaches_only_the_relay(runner, tmp_path, monkeypatch):
+    """On the internal network the agent can open the relay and nothing on the internet."""
+    monkeypatch.delenv("WHITTLE_SANDBOX_RUN_NETWORK", raising=False)
+    base = runner.proxy_url_for_container(1)  # a port nothing listens on: the relay accepts, the host refuses
+    (tmp_path / "main.py").write_text(
+        "import socket, sys\n"
+        "ok = socket.create_connection(('whittle-relay', 8787), timeout=5)\n"
+        "ok.close()\n"
+        "try:\n"
+        "    socket.create_connection(('example.com', 80), timeout=3)\n"
+        "except OSError:\n"
+        "    print('internet blocked'); sys.exit(0)\n"
+        "print('internet reachable'); sys.exit(1)\n"
+    )
+    result = runner.run_agent(tmp_path, ["python", "main.py"], job_id="test-net", proxy_base_url=base, dummy_api_key="whittle-x")
+    assert result.exit_code == 0, result.stderr + result.stdout
+    assert "internet blocked" in result.stdout

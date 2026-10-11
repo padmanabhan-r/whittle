@@ -46,8 +46,9 @@ Run everything with `./start.sh` (Docker running, keys in `.env.local`).
 3. **Click through the UI by hand** on a real job; fix what jars.
 4. **Pull request delivery** once the bot token exists: a sample repo of its
    own on GitHub, so the demo's pull request is real.
-5. **Sandbox network:** the run step still has full network. For the demo
-   claim, run the API in Docker on an internal network, or document the gap.
+5. **Sandbox network:** done. The run step joins an internal Docker network
+   whose only other member is a relay to the proxy; a test proves the internet
+   is unreachable from it.
 6. **Deployment** to the EC2 instance (Sethuraman).
 7. **Evidence, business plan, video, submission** on Monday morning.
 

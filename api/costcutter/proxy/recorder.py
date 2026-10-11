@@ -3,32 +3,19 @@
 from __future__ import annotations
 
 import json
-
-import threading
 from typing import Any
 
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 from opentelemetry.trace import StatusCode
 
+from costcutter.tracing import ensure_neatlogs
+
 DASHBOARD = "https://app.neatlogs.com"
 
-_neatlogs_init_lock = threading.Lock()
-_neatlogs_ready = False
-
-
 def _ensure_neatlogs(api_key: str, endpoint: str, workflow_name: str) -> None:
-    """Initialise the SDK once per process."""
-    global _neatlogs_ready
-    if _neatlogs_ready or not api_key:
-        return
-    with _neatlogs_init_lock:
-        if _neatlogs_ready:
-            return
-        import neatlogs
-
-        neatlogs.init(api_key=api_key, endpoint=endpoint, workflow_name=workflow_name, debug=False)
-        _neatlogs_ready = True
+    if api_key:
+        ensure_neatlogs(api_key, endpoint, workflow_name)
 
 
 def trace_url(trace_id: str) -> str:

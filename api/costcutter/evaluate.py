@@ -51,3 +51,23 @@ def score_run(task_id: str, answer: str, exit_code: int, expect: list[str] | Non
 
 def phase_score(scores: list[TaskScore]) -> float:
     return round(sum(s.score for s in scores) / len(scores), 3) if scores else 0.0
+
+
+JUDGE_SYSTEM = """You compare two answers an AI agent gave to the same task: the answer before a code change, and the answer after. Decide whether the new answer is still as good for the person who asked.
+
+Score from 0 to 1. 1.0 means it carries the same facts and conclusions, even if worded differently or shorter. 0.5 means some facts or steps are missing or changed. 0 means it is wrong, empty, an error message, or answers something else. Do not reward length. Reply with the score alone, as a number."""
+
+
+def model_judge(baseline_answer: str, answer: str) -> float:
+    """Score a new answer against the baseline answer with Whittle's own model. Used when a task has no expected words."""
+    import re
+
+    from costcutter.agent.llm import LLM
+
+    llm = LLM()
+    prompt = f"Answer before the change:\n<before>\n{baseline_answer[:6000]}\n</before>\n\nAnswer after the change:\n<after>\n{answer[:6000]}\n</after>"
+    turn = llm.turn(JUDGE_SYSTEM, [], [{"role": "user", "content": prompt}], max_tokens=600)
+    found = re.search(r"(?<![\d.])(1(?:\.0+)?|0(?:\.\d+)?)(?![\d.])", turn.text)
+    if not found:
+        raise ValueError(f"the judge did not return a score: {turn.text[:120]!r}")
+    return float(found.group(1))

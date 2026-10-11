@@ -56,7 +56,7 @@ by **team Attention Heads** (Padmanabhan and Sethuraman).
 
 ## Two ways in
 
-**Scan.** Paste a public GitHub link. Whittle reads the code, in any language,
+**Scan.** Paste a public GitHub link, or upload a zip. Whittle reads the code, in any language,
 finds every place it calls a model, and reports where the spend goes: what is
 wasteful, what the code already does well, and the change to make, each pinned
 to its lines. Nothing is run, so it needs no key and no run command. Scanning
@@ -277,7 +277,9 @@ taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 | Job state that survives a restart | Built and tested |
 | neatlogs traces of every run | Built; see the note on pending traces above |
 | Pull request delivery | Written, not yet run against a real repository |
-| Measuring repositories that are not Python | Not built: the scan reads them, the sandbox does not run them yet |
+| Measured runs in Python, JavaScript and TypeScript | Built; run end to end on a Python and a TypeScript sample agent |
+| Zip upload for code that is not on GitHub | Built and tested |
+| Measured runs in other languages | Not built: the scan reads them, the sandbox does not run them |
 | Deployment | In progress |
 
 Limits worth knowing: an agent that hardcodes its provider's address bypasses
@@ -295,7 +297,9 @@ repositories are accepted. One job runs at a time.
 | `api/costcutter/analyzers/` | The five detectors and the code locator |
 | `api/costcutter/agent/` | The fixing agent |
 | `api/costcutter/jobs.py`, `server.py` | The job runner and the API |
-| `samples/research-agent-py/` | The sample agent, with five kinds of waste built in |
+| `samples/research-agent-py/` | A Python sample agent, with five kinds of waste built in |
+| `samples/support-agent-ts/` | A TypeScript sample agent, with three |
+| `sandbox/` | The Docker images the code runs in: Python and Node |
 | `business/plan.md` | The business plan from cfo.ai |
 | `start.sh` | Starts the API and the UI together |
 | `docs/plan.md` | What is done, what is next, who owns it |

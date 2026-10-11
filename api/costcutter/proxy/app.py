@@ -146,6 +146,16 @@ def create_app(settings: ProxySettings | None = None, on_call: OnCall | None = N
     async def openai_chat(request: Request) -> Response:
         return await _forward(request, "openai", f"{settings.openai_upstream}/chat/completions", resolve_session)
 
+    @app.post("/v1/responses")
+    @app.post("/responses")
+    async def openai_responses(request: Request) -> Response:
+        return await _forward(request, "openai", f"{settings.openai_upstream}/responses", resolve_session)
+
+    @app.post("/v1/embeddings")
+    @app.post("/embeddings")
+    async def openai_embeddings(request: Request) -> Response:
+        return await _forward(request, "openai", f"{settings.openai_upstream}/embeddings", resolve_session)
+
     return app
 
 
@@ -183,7 +193,9 @@ def _finish(provider: str, data: dict[str, Any]) -> str | None:
     if provider == "anthropic":
         return data.get("stop_reason")
     choices = data.get("choices") or []
-    return choices[0].get("finish_reason") if choices else None
+    if choices:
+        return choices[0].get("finish_reason")
+    return data.get("status")  # the Responses API: completed, incomplete, failed
 
 
 def _record(
@@ -365,6 +377,10 @@ async def _stream(provider, url, headers, body, session, model, payload, started
                         else:
                             if event.get("usage"):
                                 openai_usage.update(openai_usage_from_body(event))
+                            elif isinstance(event.get("response"), dict) and event["response"].get("usage"):
+                                openai_usage.update(openai_usage_from_body(event["response"]))  # Responses API: response.completed
+                            if event.get("type") == "response.output_text.delta" and event.get("delta"):
+                                openai_text.append(str(event["delta"]))
                             for choice in event.get("choices") or []:
                                 piece = (choice.get("delta") or {}).get("content")
                                 if piece:

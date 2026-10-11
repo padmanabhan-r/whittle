@@ -75,7 +75,7 @@ export function JobPage() {
   }
 
   const scan = job?.mode === 'scan'
-  const name = job?.source.type === 'sample' ? job.source.sample_id : job?.source.type === 'github' ? job.source.repo_url.replace('https://github.com/', '') : ''
+  const name = job?.source.type === 'sample' ? job.source.sample_id : job?.source.type === 'github' ? job.source.repo_url.replace('https://github.com/', '') : job?.source.type === 'upload' ? (job.source.name ?? 'uploaded code') : ''
   const done = view.state === 'done'
   const failed = view.state === 'failed'
   const applied = view.findings.filter((f) => f.status === 'applied').length

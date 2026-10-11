@@ -1,0 +1,17 @@
+{
+  "name": "support-agent-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A small support agent in TypeScript: a sample for Whittle AI, wasteful on purpose",
+  "scripts": {
+    "agent": "tsx src/run.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  }
+}

@@ -91,7 +91,11 @@ def detect_cache_prefix(runs: Runs) -> Draft | None:
                 if len(evidence) < 2:
                     i = len(shared)
                     evidence.append(_ev(record, f"{task}: the system prompts of calls {previous.seq} and {record.seq} are the same length but differ from character {i}: {b[max(0, i-12):i+24]!r}."))
-            stable_tokens = est_tokens(canonical(record.request.get("tools") or []) + a[: len(shared)])
+            # What could be cached once the varying part is moved out: the text both prompts share,
+            # before it and after it. A timestamp on the first line leaves almost the whole prompt stable.
+            rest_a, rest_b = a[len(shared):], b[len(shared):]
+            tail = os.path.commonprefix([rest_a[::-1], rest_b[::-1]])
+            stable_tokens = est_tokens(canonical(record.request.get("tools") or []) + a[: len(shared)] + tail)
             if stable_tokens >= 1024:
                 cacheable_tokens += stable_tokens
                 saving += stable_tokens * 0.9 * _price_in(record.model)

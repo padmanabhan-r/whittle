@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Warn } from '../components/Icons'
@@ -22,6 +22,7 @@ export function Start() {
   const [tasks, setTasks] = useState('')
   const [provider, setProvider] = useState<'anthropic' | 'openai'>('anthropic')
   const [key, setKey] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     api
@@ -51,6 +52,22 @@ export function Start() {
   function submitScan(event: FormEvent) {
     event.preventDefault()
     start({ mode: 'scan', source: { type: 'github', repo_url: repo.trim(), ref: ref.trim() || null } }, 'scan')
+  }
+
+  async function scanZip(file: File | undefined) {
+    if (!file) return
+    if (!/\.zip$/i.test(file.name)) return setError('Choose a .zip file of the code.')
+    setBusy('zip')
+    setError(null)
+    try {
+      const up = await api.upload(file)
+      await start({ mode: 'scan', source: { type: 'upload', upload_id: up.upload_id, name: up.name } }, 'zip')
+    } catch (e) {
+      setError((e as ApiError).message)
+      setBusy(null)
+    } finally {
+      if (fileInput.current) fileInput.current.value = ''
+    }
   }
 
   function submitRepo(event: FormEvent) {
@@ -97,11 +114,16 @@ export function Start() {
           <button className="btn primary" type="submit" disabled={busy !== null || mock}>
             {busy === 'scan' ? 'Starting…' : <>Scan the code <ArrowRight /></>}
           </button>
+          <span className="or">or</span>
+          <input ref={fileInput} type="file" accept=".zip,application/zip" hidden onChange={(e) => scanZip(e.target.files?.[0])} />
+          <button className="btn" type="button" disabled={busy !== null || mock} onClick={() => fileInput.current?.click()}>
+            {busy === 'zip' ? 'Uploading…' : 'Upload a .zip'}
+          </button>
         </form>
         <p className="lede small" style={{ marginTop: 10 }}>
           {mock
             ? 'The mock server cannot scan. Start the real backend with ./start.sh.'
-            : 'No key and no run command. Any language: Whittle finds every place the code calls a model and reads what feeds it. Nothing is run.'}
+            : 'No key and no run command. Any language: Whittle finds every place the code calls a model and reads what feeds it. Nothing is run. A zip of up to 60 MB works for code that is not on GitHub.'}
         </p>
 
         <h2 className="section-title">Try a sample agent</h2>

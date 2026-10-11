@@ -47,13 +47,13 @@ export interface Finding {
 
 export type JobMode = 'measure' | 'scan'
 export interface CallSite { file: string; line: number; provider: string; via: string; model: string | null; snippet: string }
-export interface ProposedRun { command: string; reason: string; needs: string[] }
+export interface ProposedRun { command: string; workdir?: string | null; reason: string; needs: string[] }
 
 export interface Sample {
   id: string
   name: string
   description: string
-  language: 'python' | 'typescript'
+  language: 'python' | 'typescript' | 'javascript' | 'other'
   repo_url: string
   task_count: number
 }
@@ -61,11 +61,14 @@ export interface Sample {
 export type Source =
   | { type: 'sample'; sample_id: string }
   | { type: 'github'; repo_url: string; ref?: string | null }
+  | { type: 'upload'; upload_id: string; name?: string | null }
+
+export interface Upload { upload_id: string; name: string; files: number; bytes: number }
 
 export interface JobCreate {
   source: Source
   mode?: JobMode
-  run?: { command: string; tasks: { input: string }[] }
+  run?: { command: string; tasks: { input: string }[]; workdir?: string | null; env?: Record<string, string> }
   model_key?: { provider: 'anthropic' | 'openai'; key: string }
   monthly_runs?: number
 }
@@ -206,6 +209,22 @@ export const api = {
     if (mock?.scenario) query.set('scenario', mock.scenario)
     const suffix = query.size ? `?${query}` : ''
     return request<Job>(`/api/jobs${suffix}`, { method: 'POST', body: JSON.stringify(body) })
+  },
+  /** Upload a zip of the code. The body is the file itself. */
+  upload: async (file: File): Promise<Upload> => {
+    let response: Response
+    try {
+      response = await fetch(`${API_URL}/api/uploads?name=${encodeURIComponent(file.name)}`, {
+        method: 'PUT', body: file, headers: { 'Content-Type': 'application/zip' },
+      })
+    } catch {
+      throw new ApiError(0, 'unreachable', `Cannot reach the Whittle API at ${API_URL}.`)
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => null)
+      throw new ApiError(response.status, body?.error?.code ?? 'http_error', body?.error?.message ?? `The API answered ${response.status}.`)
+    }
+    return response.json() as Promise<Upload>
   },
   job: (id: string) => request<Job>(`/api/jobs/${id}`),
   fix: (id: string, findingIds: string[]) =>

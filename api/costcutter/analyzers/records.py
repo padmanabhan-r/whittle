@@ -22,6 +22,8 @@ def canonical(value: Any) -> str:
 
 def system_text(request: dict[str, Any]) -> str:
     system = request.get("system")
+    if system is None and isinstance(request.get("instructions"), str):
+        return request["instructions"]  # OpenAI Responses API
     if system is None:
         # OpenAI style: the first system message.
         for message in request.get("messages") or []:
@@ -64,8 +66,13 @@ def _content_text(content: Any) -> str:
 def message_texts(request: dict[str, Any]) -> list[tuple[str, str]]:
     """(role, text) for each message, tool results included."""
     out = []
-    for message in request.get("messages") or []:
-        out.append((message.get("role", ""), _content_text(message.get("content"))))
+    messages = request.get("messages")
+    if messages is None:  # OpenAI Responses API: `input` is a string or a list of items
+        given = request.get("input")
+        messages = [{"role": "user", "content": given}] if isinstance(given, str) else [m for m in (given or []) if isinstance(m, dict)]
+    for message in messages:
+        content = message.get("content") if "content" in message else message.get("output")
+        out.append((message.get("role") or message.get("type", ""), _content_text(content)))
     return out
 
 

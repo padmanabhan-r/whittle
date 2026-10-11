@@ -1124,6 +1124,9 @@
               },
               {
                 "$ref": "#/components/schemas/GithubSource"
+              },
+              {
+                "$ref": "#/components/schemas/UploadSource"
               }
             ],
             "title": "Source",
@@ -1131,7 +1134,8 @@
               "propertyName": "type",
               "mapping": {
                 "github": "#/components/schemas/GithubSource",
-                "sample": "#/components/schemas/SampleSource"
+                "sample": "#/components/schemas/SampleSource",
+                "upload": "#/components/schemas/UploadSource"
               }
             }
           },
@@ -1261,6 +1265,9 @@
               },
               {
                 "$ref": "#/components/schemas/GithubSource"
+              },
+              {
+                "$ref": "#/components/schemas/UploadSource"
               }
             ],
             "title": "Source",
@@ -1268,7 +1275,8 @@
               "propertyName": "type",
               "mapping": {
                 "github": "#/components/schemas/GithubSource",
-                "sample": "#/components/schemas/SampleSource"
+                "sample": "#/components/schemas/SampleSource",
+                "upload": "#/components/schemas/UploadSource"
               }
             }
           },
@@ -1511,6 +1519,18 @@
             "title": "Command",
             "description": "With {input} where a task input goes, if the entry point takes one"
           },
+          "workdir": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workdir",
+            "description": "Folder to run from, when it is not the repository root"
+          },
           "reason": {
             "type": "string",
             "title": "Reason"
@@ -1616,6 +1636,26 @@
             "maxItems": 10,
             "minItems": 1,
             "title": "Tasks"
+          },
+          "workdir": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workdir",
+            "description": "Folder inside the repository to install and run from; the root if omitted"
+          },
+          "env": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Env",
+            "description": "Other environment variables the code needs. Held in memory for the job only, like the key"
           }
         },
         "additionalProperties": false,
@@ -1871,6 +1911,39 @@
           "trace_url"
         ],
         "title": "TaskRun"
+      },
+      "UploadSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "upload",
+            "title": "Type"
+          },
+          "upload_id": {
+            "type": "string",
+            "title": "Upload Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The uploaded file's name, for display"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "upload_id"
+        ],
+        "title": "UploadSource",
+        "description": "A zip the user uploaded with PUT /api/uploads."
       }
     }
   }

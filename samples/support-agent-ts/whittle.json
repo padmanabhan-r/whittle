@@ -1,0 +1,14 @@
+{
+  "id": "support-agent-ts",
+  "name": "Support agent",
+  "description": "Answers a customer's support ticket from a help centre and an order lookup. TypeScript.",
+  "language": "typescript",
+  "provider": "anthropic",
+  "run": { "command": "tsx src/run.ts \"{input}\"" },
+  "tasks": [
+    { "id": "task-1", "input": "I bought the annual Business plan on order A-1042 three weeks ago and want my money back. Can I get a full refund?", "expect": ["30 days", "full"] },
+    { "id": "task-2", "input": "We removed four seats yesterday. Do we get a credit for the rest of this billing cycle?", "expect": ["next renewal", "no credit"] },
+    { "id": "task-3", "input": "How do I export all of our workspace data, and how long is the download link valid?", "expect": ["7 days", "export"] },
+    { "id": "task-4", "input": "Which identity providers work with single sign-on, and which plan do we need?", "expect": ["okta", "business"] }
+  ]
+}

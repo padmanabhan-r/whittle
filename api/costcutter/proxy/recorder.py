@@ -224,11 +224,13 @@ def anthropic_usage_from_body(body: dict[str, Any]) -> dict[str, int]:
 
 def openai_usage_from_body(body: dict[str, Any]) -> dict[str, int]:
     usage = body.get("usage") or {}
-    details = usage.get("prompt_tokens_details") or {}
+    # Chat Completions says prompt_tokens and completion_tokens; the Responses API says input_tokens and output_tokens.
+    details = usage.get("prompt_tokens_details") or usage.get("input_tokens_details") or {}
     cached = int(details.get("cached_tokens") or 0)
+    total_in = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
     return {
-        "input_tokens": int(usage.get("prompt_tokens") or 0) - cached,
-        "output_tokens": int(usage.get("completion_tokens") or 0),
+        "input_tokens": max(0, total_in - cached),
+        "output_tokens": int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
         "cache_read_tokens": cached,
         "cache_write_tokens": 0,
     }

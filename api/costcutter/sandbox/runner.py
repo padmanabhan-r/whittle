@@ -17,6 +17,9 @@ from typing import Sequence
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PYTHON_IMAGE = "whittle-sandbox-python:local"
 DOCKERFILE = REPO_ROOT / "sandbox" / "python.Dockerfile"
+NODE_IMAGE = "whittle-sandbox-node:local"
+NODE_DOCKERFILE = REPO_ROOT / "sandbox" / "node.Dockerfile"
+IMAGES = {"python": (PYTHON_IMAGE, DOCKERFILE), "node": (NODE_IMAGE, NODE_DOCKERFILE)}
 INTERNAL_NETWORK = "whittle-internal"
 RELAY = "whittle-relay"
 RELAY_IMAGE = "alpine/socat:1.8.0.0"
@@ -38,6 +41,7 @@ class SandboxRunner:
         self._docker = docker_bin
 
     def ensure_python_image(self) -> None:
+        """Kept for the tests; ensure_image("python") is the general form."""
         if not DOCKERFILE.is_file():
             raise FileNotFoundError(f"missing Dockerfile at {DOCKERFILE}")
         subprocess.run(
@@ -46,6 +50,14 @@ class SandboxRunner:
             capture_output=True,
             text=True,
         )
+
+    def ensure_image(self, kind: str) -> str:
+        """Build the sandbox image for a kind of project if it is not there yet. Returns its tag."""
+        image, dockerfile = IMAGES[kind]
+        have = subprocess.run([self._docker, "image", "inspect", image], capture_output=True)
+        if have.returncode != 0:
+            subprocess.run([self._docker, "build", "-q", "-t", image, "-f", str(dockerfile), str(dockerfile.parent)], check=True, capture_output=True, text=True, timeout=900)
+        return image
 
     def ensure_internal_network(self) -> None:
         networks = subprocess.run([self._docker, "network", "ls", "--format", "{{.Name}}"], capture_output=True, text=True).stdout.split()
@@ -75,20 +87,60 @@ class SandboxRunner:
     def deps_volume(job_id: str) -> str:
         return f"whittle-deps-{job_id}"
 
-    def install(self, workdir: Path, job_id: str, *, timeout_s: int = 600) -> SandboxRunResult:
-        """Install the agent's requirements.txt into the job's dependency volume. Network: registries only."""
-        req = workdir / "requirements.txt"
-        if not req.is_file():
-            return SandboxRunResult(0, "no requirements.txt; nothing to install\n", "", "")
-        return self._run(
-            workdir,
-            ["pip", "install", "--quiet", "--target", "/deps", "-r", "requirements.txt"],
-            network="bridge",
-            extra_env={},
-            timeout_s=timeout_s,
-            deps_volume=self.deps_volume(job_id),
-            deps_writable=True,
-        )
+    @staticmethod
+    def python_requirements(project: Path) -> tuple[list[str], str]:
+        """The pip arguments that install a Python project's dependencies, and where they came from."""
+        if (project / "requirements.txt").is_file():
+            return ["-r", "requirements.txt"], "requirements.txt"
+        pyproject = project / "pyproject.toml"
+        if pyproject.is_file():
+            import tomllib
+
+            try:
+                data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+            except (ValueError, OSError):
+                data = {}
+            deps = list((data.get("project") or {}).get("dependencies") or [])
+            poetry = ((data.get("tool") or {}).get("poetry") or {}).get("dependencies") or {}
+            for name, spec in poetry.items():
+                if name.lower() != "python":
+                    deps.append(name if not isinstance(spec, str) or spec in ("*", "") else f"{name}{spec if spec[0] in '<>=!~' else '==' + spec.lstrip('^~')}")
+            if deps:
+                return deps, "pyproject.toml"
+        return [], ""
+
+    @staticmethod
+    def node_install_command(project: Path) -> tuple[list[str], str]:
+        """The command that installs a JavaScript project's dependencies, by its lockfile."""
+        common = ["--ignore-scripts"]  # a stranger's install scripts do not run
+        if (project / "pnpm-lock.yaml").is_file():
+            return ["pnpm", "install", "--frozen-lockfile", "--prod=false", "--store-dir", "node_modules/.pnpm-store", *common], "pnpm-lock.yaml"
+        if (project / "yarn.lock").is_file():
+            return ["yarn", "install", "--frozen-lockfile", "--production=false", "--cache-folder", "node_modules/.yarn-cache", *common], "yarn.lock"
+        if (project / "package-lock.json").is_file():
+            return ["npm", "ci", "--include=dev", "--cache", "node_modules/.npm-cache", *common], "package-lock.json"
+        return ["npm", "install", "--include=dev", "--no-package-lock", "--cache", "node_modules/.npm-cache", *common], "package.json"
+
+    def install(self, workdir: Path, job_id: str, *, kind: str = "python", subdir: str = "", timeout_s: int = 900) -> SandboxRunResult:
+        """Install the project's dependencies into the job's dependency volume. This step has network; the run step does not."""
+        project = (workdir / subdir).resolve()
+        if kind == "node":
+            if not (project / "package.json").is_file():
+                return SandboxRunResult(0, "no package.json here; nothing to install\n", "", "")
+            command, source = self.node_install_command(project)
+            (project / "node_modules").mkdir(exist_ok=True)  # the mount point for the dependency volume
+            # A new volume belongs to root; the sandbox user must be able to write the install into it.
+            subprocess.run([self._docker, "run", "--rm", "--user", "0", "--network", "none", "-v", f"{self.deps_volume(job_id)}:/v", self.ensure_image(kind), "chown", "10001:10001", "/v"],
+                           check=True, capture_output=True, text=True, timeout=120)
+            result = self._run(workdir, command, network="bridge", extra_env={}, timeout_s=timeout_s, kind=kind, subdir=subdir,
+                               deps_volume=self.deps_volume(job_id), deps_writable=True, pids=1024, tmp="1g")
+            return SandboxRunResult(result.exit_code, f"installed from {source}\n" + result.stdout[-2000:], result.stderr, result.container_id)
+        args, source = self.python_requirements(project)
+        if not args:
+            return SandboxRunResult(0, "no requirements.txt or pyproject.toml dependencies; nothing to install\n", "", "")
+        result = self._run(workdir, ["pip", "install", "--quiet", "--target", "/deps", *args], network="bridge", extra_env={}, timeout_s=timeout_s,
+                           kind=kind, subdir=subdir, deps_volume=self.deps_volume(job_id), deps_writable=True)
+        return SandboxRunResult(result.exit_code, f"installed from {source}\n" + result.stdout[-2000:], result.stderr, result.container_id)
 
     def run_agent(
         self,
@@ -101,13 +153,17 @@ class SandboxRunner:
         provider: str = "anthropic",
         extra_env: dict[str, str] | None = None,
         timeout_s: int = 900,
+        kind: str = "python",
+        subdir: str = "",
     ) -> SandboxRunResult:
         """Run step: the agent sees a dummy key and a base URL that lead to the proxy."""
         base = proxy_base_url.rstrip("/")
-        env = {"ANTHROPIC_BASE_URL": base, "ANTHROPIC_API_KEY": dummy_api_key}
+        # The owner's own variables go in first, so a key or address of theirs can never replace the proxy's.
+        env = dict(extra_env or {})
         if provider == "openai":
-            env = {"OPENAI_BASE_URL": base + "/v1", "OPENAI_API_KEY": dummy_api_key}
-        env.update(extra_env or {})
+            env.update({"OPENAI_BASE_URL": base + "/v1", "OPENAI_API_BASE": base + "/v1", "OPENAI_API_KEY": dummy_api_key})
+        else:
+            env.update({"ANTHROPIC_BASE_URL": base, "ANTHROPIC_API_KEY": dummy_api_key})
         # "internal" (the default) lets the agent reach the proxy and nothing else.
         run_network = os.environ.get("WHITTLE_SANDBOX_RUN_NETWORK", "internal")
         if run_network == "internal":
@@ -120,6 +176,8 @@ class SandboxRunner:
             extra_env=env,
             timeout_s=timeout_s,
             allow_host_gateway=run_network != INTERNAL_NETWORK,
+            kind=kind,
+            subdir=subdir,
             deps_volume=self.deps_volume(job_id),
         )
 
@@ -137,32 +195,43 @@ class SandboxRunner:
         allow_host_gateway: bool = False,
         deps_volume: str | None = None,
         deps_writable: bool = False,
+        kind: str = "python",
+        subdir: str = "",
+        pids: int = 256,
+        tmp: str = "256m",
     ) -> SandboxRunResult:
         workdir = workdir.resolve()
         if not workdir.is_dir():
             raise FileNotFoundError(workdir)
+        project = (workdir / subdir).resolve()
+        if project != workdir and workdir not in project.parents:
+            raise ValueError("the working folder is outside the repository")
+        inside = "/work" + ("/" + str(project.relative_to(workdir)) if project != workdir else "")
+        image = self.ensure_image(kind)
+        # Python dependencies live beside the code at /deps; JavaScript ones must be the project's node_modules.
+        deps_at = f"{inside}/node_modules" if kind == "node" else "/deps"
 
         name = f"whittle-{uuid.uuid4().hex[:12]}"
         args = [
             self._docker, "run", "--rm", "--name", name,
             "--network", network,
             "--read-only",
-            "--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
+            "--tmpfs", f"/tmp:rw,nosuid,size={tmp}",
             "--user", "10001:10001",
             "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges",
             "--memory", "2g",
-            "--pids-limit", "128",
+            "--pids-limit", str(pids),
             "-v", f"{workdir}:/work:ro",
-            "-w", "/work",
+            "-w", inside,
         ]
         if deps_volume:
-            args.extend(["-v", f"{deps_volume}:/deps" + ("" if deps_writable else ":ro")])
+            args.extend(["-v", f"{deps_volume}:{deps_at}" + ("" if deps_writable else ":ro")])
         if allow_host_gateway:
             args.extend(["--add-host", "host.docker.internal:host-gateway"])
         for key, value in extra_env.items():
             args.extend(["-e", f"{key}={value}"])
-        args.append(PYTHON_IMAGE)
+        args.append(image)
         args.extend(command)
 
         try:

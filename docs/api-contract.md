@@ -63,11 +63,22 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
   will not start without). The UI uses `proposed_run` to prefill a measured job.
 - **`measure`** (the default) is the flow below: run, measure, fix, verify.
 
+A `source` is one of `{type: "sample", sample_id}`, `{type: "github", repo_url, ref}`
+or `{type: "upload", upload_id, name}`. To measure your own code, `run` gives the
+`command`, the `tasks`, an optional `workdir` (a folder inside the repository to
+install and run from) and optional `env` (other variables the code needs), and
+`model_key` gives the provider and key. `env` and the key are held in memory for
+the job and never stored. The sandbox runs Python, JavaScript and TypeScript:
+dependencies come from `requirements.txt` or `pyproject.toml`, or from the
+lockfile beside `package.json` (pnpm, yarn or npm), and install scripts do not
+run.
+
 ## Endpoints
 
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | GET | `/api/samples` | `SampleList` | Sample agents that need no key |
+| PUT | `/api/uploads?name=` | `201` `Upload` | The body is a zip of the code, up to 60 MB. Returns `upload_id` for an `upload` source |
 | POST | `/api/jobs` | `201` `Job` | Starts a job |
 | GET | `/api/jobs/{id}` | `Job` | Current state and summary |
 | GET | `/api/jobs/{id}/events` | SSE stream | See "The event stream" |

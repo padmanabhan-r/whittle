@@ -54,3 +54,18 @@ def test_each_kind_is_found():
     assert by_kind["oversized_model"].calls[0].call_index == 1
     assert all(f.evidence and f.estimated_saving_usd_per_run > 0 for f in findings)
     assert [f.id for f in findings] == [f"f{i}" for i in range(1, 6)]
+
+
+def test_a_timestamp_on_the_first_line_still_counts_the_rest_as_cacheable():
+    """The volatile part is at the very start, so the shared prefix is a few characters; the rest is what a fix would cache."""
+    from costcutter.analyzers.detectors import detect_cache_prefix
+    from costcutter.proxy.store import CallRecord
+
+    guide = "Refund policy and seat rules. " * 400
+
+    def call(seq, stamp):
+        return CallRecord(seq=seq, ts=0, job_id="j", phase="baseline", task_id="task-1", provider="anthropic", model="claude-sonnet-5-5", streaming=False, status=200,
+                          duration_ms=5, cost_usd=0.01, usage={"input_tokens": 3000, "output_tokens": 50}, request={"system": f"Request {stamp}.\n\n{guide}", "messages": []}, response={"content": []})
+
+    draft = detect_cache_prefix({"task-1": [call(1, "a1 at 10:00:01"), call(2, "b2 at 10:00:02"), call(3, "c3 at 10:00:03")]})
+    assert draft is not None and draft.saving_usd > 0

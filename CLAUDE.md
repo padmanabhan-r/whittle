@@ -24,7 +24,9 @@ before and after neatlogs traces, a diff and an optional pull request.
   neatlogs without `wrap` or `trace`.
 - Backend map, all under `api/costcutter/`: `proxy/` (recording proxy:
   sessions named by the dummy key, call records under `data/jobs/`, neatlogs
-  spans), `sandbox/` (Docker install and run steps), `analyzers/` (the five
+  spans), `sandbox/` (Docker install and run steps, for Python and for
+  JavaScript and TypeScript), `uploads.py` (zip uploads, unpacked safely),
+  `neatlogs_client.py` (reads traces back from neatlogs), `analyzers/` (the five
   detectors and the code locator), `agent/` (the fixing agent), `scan.py` (scan mode: call sites in any
   language and the agent that reads them; runs nothing), `jobs.py` (the
   job runner and event log), `server.py` (the contract's endpoints),

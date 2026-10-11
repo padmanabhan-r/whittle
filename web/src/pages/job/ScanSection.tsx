@@ -152,29 +152,37 @@ function MeasureNext({ job }: { job: Job }) {
   const navigate = useNavigate()
   const proposed = job.proposed_run
   const [command, setCommand] = useState(proposed?.command ?? '')
+  const [workdir, setWorkdir] = useState(proposed?.workdir ?? '')
+  const [envText, setEnvText] = useState((proposed?.needs ?? []).filter((n) => !/API_KEY$|_BASE_URL$/.test(n)).map((n) => `${n}=`).join('\n'))
   const [tasks, setTasks] = useState('')
   const [provider, setProvider] = useState<'anthropic' | 'openai'>('openai')
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const python = job.language === 'python'
+  const runnable = job.language === 'python' || job.language === 'typescript' || job.language === 'javascript'
   const takesInput = command.includes('{input}')
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     const list = tasks.split('\n').map((t) => t.trim()).filter(Boolean)
     if (takesInput && list.length === 0) return setError('Add at least one task: an input the code should be run with.')
+    const env: Record<string, string> = {}
+    for (const line of envText.split('\n')) {
+      const at = line.indexOf('=')
+      if (at > 0 && line.slice(at + 1).trim()) env[line.slice(0, at).trim()] = line.slice(at + 1).trim()
+    }
     setBusy(true)
     setError(null)
     try {
       const created = await api.createJob({
         source: job.source,
         mode: 'measure',
-        run: { command: command.trim(), tasks: (list.length ? list : ['run']).slice(0, 10).map((input) => ({ input })) },
+        run: { command: command.trim(), tasks: (list.length ? list : ['run']).slice(0, 10).map((input) => ({ input })), workdir: workdir.trim() || null, env },
         model_key: { provider, key },
         monthly_runs: job.monthly_runs ?? undefined,
       })
       setKey('')
+      setEnvText('')
       navigate(`/app/jobs/${created.id}`)
     } catch (e) {
       setError((e as ApiError).message)
@@ -189,13 +197,12 @@ function MeasureNext({ job }: { job: Job }) {
         The scan shows where the spend goes. To put a dollar figure on it, Whittle runs the code in a locked sandbox with
         your model key, records every call, and can then fix the waste and prove the saving.
       </p>
-      {!python && (
+      {!runnable && (
         <div className="notice" role="status">
           <Warn />
           <div>
-            <strong>Measured runs work for Python today</strong>
-            This repository is mostly {job.language === 'other' ? 'another language' : job.language}. The scan above is
-            complete; running it in the sandbox is not supported yet.
+            <strong>The sandbox runs Python, JavaScript and TypeScript</strong>
+            This code is mostly another language. The scan above is complete; running it is not supported yet.
           </div>
         </div>
       )}
@@ -210,10 +217,18 @@ function MeasureNext({ job }: { job: Job }) {
           </small>
           <input className="field mono" required value={command} onChange={(e) => setCommand(e.target.value)} placeholder='python -m agent "{input}"' />
         </label>
+        <label>
+          Folder to run from <small>Inside the repository. Leave empty for the root.</small>
+          <input className="field mono" value={workdir} onChange={(e) => setWorkdir(e.target.value)} placeholder="services/agent" />
+        </label>
+        <label>
+          Other environment variables <small>One NAME=value per line. Held in memory for the run only.</small>
+          <textarea className="field mono" rows={2} value={envText} onChange={(e) => setEnvText(e.target.value)} placeholder="FEATURE_FLAG=on" />
+        </label>
         {proposed && proposed.needs.length > 0 && (
           <p className="wide needs">
-            The code will not start without these environment variables, which the sandbox does not have:{' '}
-            {proposed.needs.map((n) => <code key={n}>{n}</code>)}
+            The scan found that the code reads these: {proposed.needs.map((n) => <code key={n}>{n}</code>)}
+            The sandbox has no internet access, so a variable that points at a database or another service will not reach it.
           </p>
         )}
         <label className="wide">
@@ -232,7 +247,7 @@ function MeasureNext({ job }: { job: Job }) {
           <input className="field mono" type="password" required autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
         </label>
         <div className="actions">
-          <button className="btn primary" type="submit" disabled={busy || !python}>
+          <button className="btn primary" type="submit" disabled={busy || !runnable}>
             {busy ? 'Starting…' : <>Run and measure <ArrowRight /></>}
           </button>
           <span className="note" style={{ color: 'var(--mute)', fontSize: 13 }}>

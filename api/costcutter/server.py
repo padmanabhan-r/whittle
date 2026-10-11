@@ -32,7 +32,10 @@ from costcutter.contract import (
     PullRequest,
     Sample,
     SampleList,
+    Upload,
 )
+from costcutter import uploads as uploads_module
+from costcutter.evaluate import model_judge
 from costcutter.jobs import JobContext, JobRunner
 from costcutter.proxy.app import CreateSessionBody, create_app as create_proxy
 from costcutter.proxy.settings import ProxySettings
@@ -66,6 +69,7 @@ def create_app() -> FastAPI:
         close_session=sessions.close,
         proxy_url_for_sandbox=os.environ.get("WHITTLE_SANDBOX_PROXY_URL") or None,
         fixer=lambda ctx, finding: fix_finding(ctx, finding, ctx.step),
+        judge=model_judge,
     )
 
     restored = runner.load_saved()
@@ -100,12 +104,29 @@ def create_app() -> FastAPI:
     async def list_samples() -> SampleList:
         return SampleList(samples=[Sample(id=s["id"], name=s["name"], description=s["description"], language=s["language"], repo_url=f"https://github.com/padmanabhan-r/whittle/tree/main/samples/{s['id']}", task_count=len(s["tasks"])) for s in runner.samples()])
 
+    @app.put("/api/uploads", response_model=Upload, status_code=201, responses=ERRORS)
+    async def upload_zip(request: Request, name: str = Query("code.zip", max_length=200)) -> Upload:
+        """The body is the zip itself. Returns an id to use as an `upload` source."""
+        from costcutter import uploads
+
+        declared = int(request.headers.get("content-length") or 0)
+        if declared > uploads.MAX_ZIP_BYTES:
+            raise ApiError(413, "upload_too_large", f"The zip is larger than {uploads.MAX_ZIP_BYTES // (1024 * 1024)} MB.")
+        data = await request.body()
+        try:
+            upload_id, files, size = await asyncio.to_thread(uploads.save, data, name)
+        except uploads.UploadError as exc:
+            raise ApiError(422, "bad_upload", str(exc))
+        return Upload(upload_id=upload_id, name=name, files=files, bytes=size)
+
     @app.post("/api/jobs", response_model=Job, status_code=201, responses=ERRORS)
     async def create_job(body: JobCreate) -> Job:
         try:
             return runner.create(body)
         except KeyError as exc:
             raise ApiError(404, "sample_not_found", f"No sample with id {exc.args[0]}.")
+        except uploads_module.UploadError as exc:
+            raise ApiError(404, "upload_not_found", str(exc))
         except ValueError as exc:
             raise ApiError(422, "invalid_request", str(exc))
 

@@ -86,8 +86,8 @@ class LLM:
             system_blocks[-1]["cache_control"] = {"type": "ephemeral"}
             kwargs["cache_control"] = {"type": "ephemeral"}
         response = self._client.messages.create(
-            model=self.model, max_tokens=max_tokens, system=system_blocks, tools=tool_defs, messages=messages,
-            output_config={"effort": "medium"}, **kwargs,
+            model=self.model, max_tokens=max_tokens, system=system_blocks, messages=messages,
+            output_config={"effort": "medium"}, **({"tools": tool_defs} if tool_defs else {}), **kwargs,
         )
         u = response.usage
         usage = Usage(u.input_tokens, u.output_tokens, getattr(u, "cache_read_input_tokens", 0) or 0, getattr(u, "cache_creation_input_tokens", 0) or 0, 1)
@@ -101,7 +101,7 @@ class LLM:
     def _openai_turn(self, system: str, tools: list[dict[str, Any]], messages: list[Any], max_tokens: int) -> Turn:
         oa_tools = [{"type": "function", "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]}} for t in tools]
         response = self._client.chat.completions.create(
-            model=self.model, max_tokens=max_tokens, tools=oa_tools,
+            model=self.model, max_tokens=max_tokens, **({"tools": oa_tools} if oa_tools else {}),
             messages=[{"role": "system", "content": system}, *messages],
         )
         choice = response.choices[0]

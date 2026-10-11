@@ -14,7 +14,7 @@ def open_pull_request(ctx, comparison: Comparison) -> PullRequest:
         raise RuntimeError("No GitHub bot token is configured (GITHUB_BOT_TOKEN), so Whittle cannot open a pull request. Download the patch instead.")
     source = ctx.job.source
     if not isinstance(source, GithubSource):
-        raise RuntimeError("Sample agents live in Whittle's own repository; download the patch instead.")
+        raise RuntimeError("A pull request needs a GitHub repository. For a sample or an upload, download the patch instead.")
     repo = source.repo_url.rstrip("/").removesuffix(".git").split("github.com/")[-1]
     env = {**os.environ, "GH_TOKEN": token}
     bot = subprocess.run(["gh", "api", "user", "--jq", ".login"], env=env, capture_output=True, text=True, check=True).stdout.strip()

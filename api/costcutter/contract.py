@@ -174,6 +174,7 @@ class ProposedRun(Model):
     """How Whittle thinks the code can be run once, worked out from the repository during a scan."""
 
     command: str = Field(description="With {input} where a task input goes, if the entry point takes one")
+    workdir: str | None = Field(default=None, description="Folder to run from, when it is not the repository root")
     reason: str
     needs: list[str] = Field(default_factory=list, description="Environment variables the code will not start without, by name")
 
@@ -208,13 +209,28 @@ class SampleSource(Model):
     sample_id: str
 
 
+class UploadSource(Model):
+    """A zip the user uploaded with PUT /api/uploads."""
+
+    type: Literal["upload"]
+    upload_id: str
+    name: str | None = Field(default=None, description="The uploaded file's name, for display")
+
+
+class Upload(Model):
+    upload_id: str
+    name: str
+    files: int
+    bytes: int
+
+
 class GithubSource(Model):
     type: Literal["github"]
     repo_url: str
     ref: str | None = Field(default=None, description="Branch, tag or commit; default branch if omitted")
 
 
-Source = Annotated[SampleSource | GithubSource, Field(discriminator="type")]
+Source = Annotated[SampleSource | GithubSource | UploadSource, Field(discriminator="type")]
 
 
 class Task(Model):
@@ -225,6 +241,8 @@ class Task(Model):
 class RunSpec(Model):
     command: str = Field(description="How to run the agent once; {input} is replaced by the task input")
     tasks: list[Task] = Field(min_length=1, max_length=10)
+    workdir: str | None = Field(default=None, description="Folder inside the repository to install and run from; the root if omitted")
+    env: dict[str, str] = Field(default_factory=dict, description="Other environment variables the code needs. Held in memory for the job only, like the key")
 
 
 class ModelKey(Model):

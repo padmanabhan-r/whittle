@@ -47,6 +47,7 @@ from costcutter.contract import (
     Quality,
     RunTotals,
     SampleSource,
+    UploadSource,
     TaskComparison,
     TaskRun,
 )
@@ -127,6 +128,8 @@ class JobContext:
 
     def __init__(self, job: Job, tasks: list[Task], command: str, language: Language, provider: str, api_key: str | None, expect_known: bool):
         self.job = job
+        self.workdir = ""  # folder inside the repository to install and run from
+        self.env: dict[str, str] = {}  # the owner's other variables; in memory only, never saved
         self.tasks = tasks
         self.command = command
         self.language = language
@@ -172,6 +175,7 @@ class JobContext:
             "job": self.job.model_dump(mode="json"),
             "tasks": [asdict(t) for t in self.tasks],
             "command": self.command,
+            "workdir": self.workdir,
             "language": self.language.value,
             "provider": self.provider,
             "expect_known": self.expect_known,
@@ -193,6 +197,7 @@ class JobContext:
         tasks = [Task(**t) for t in data["tasks"]]
         ctx = cls(job, tasks, data["command"], Language(data["language"]), data["provider"], None, data["expect_known"])
         ctx.base_commit = data["base_commit"]
+        ctx.workdir = data.get("workdir", "")
         ctx.kept = list(data["kept"])
         ctx.steps = int(data.get("steps", 0))
         ctx.findings = [Finding.model_validate(f) for f in data["findings"]]
@@ -325,14 +330,21 @@ class JobRunner:
             tasks = [Task(t["id"], t["input"], t.get("expect", [])) for t in sample["tasks"]]
             command, language, provider, key, expect_known = sample["run"]["command"], Language(sample["language"]), sample.get("provider", "anthropic"), None, True
         elif body.mode is JobMode.SCAN:
+            if isinstance(body.source, UploadSource):
+                from costcutter import uploads
+
+                uploads.extracted(body.source.upload_id)  # raises a clear error now, not later in the job
             tasks, command, language, provider, key, expect_known = [], "", Language.OTHER, "anthropic", None, False
         else:
             if body.run is None or body.model_key is None:
-                raise ValueError("To measure a github source, give both run and model_key. To read the code without running it, use mode scan.")
+                raise ValueError("To measure your own code, give both run and model_key. To read the code without running it, use mode scan.")
             tasks = [Task(t.id or f"task-{i + 1}", t.input) for i, t in enumerate(body.run.tasks)]
             command, language, provider, key, expect_known = body.run.command, Language.PYTHON, body.model_key.provider, body.model_key.key, False
         job = Job(id=job_id, state=JobState.QUEUED, mode=body.mode, source=body.source, language=language, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
         ctx = JobContext(job, tasks, command, language, provider, key, expect_known)
+        if body.run is not None and body.mode is not JobMode.SCAN:
+            ctx.workdir = (body.run.workdir or "").strip().strip("/")
+            ctx.env = {k: v for k, v in body.run.env.items() if k and not k.upper().endswith(("_BASE_URL", "_API_BASE"))}
         self.jobs[job_id] = ctx
         ctx.task = asyncio.create_task(self._guard(ctx, self.scan(ctx) if body.mode is JobMode.SCAN else self.diagnose(ctx)))
         return job
@@ -360,6 +372,21 @@ class JobRunner:
             ctx.step("tool_result", neatlogs_client.summarise(readings, totals.llm_calls, totals.cost_usd))
         except Exception as exc:  # the check is a second opinion; the job does not depend on it
             ctx.step("tool_result", f"neatlogs could not be read ({type(exc).__name__}); using the proxy's own record.")
+
+    @staticmethod
+    def _runtime_language(ctx: JobContext) -> Language:
+        """Which sandbox runs this project: by the command first, then by what the folder holds."""
+        project = ctx.repo / ctx.workdir
+        first = (_shell_words(ctx.command) or [""])[0].rsplit("/", 1)[-1]
+        if first in ("node", "npx", "npm", "pnpm", "yarn", "tsx", "ts-node", "bun", "deno"):
+            return Language.TYPESCRIPT if any(project.rglob("*.ts")) else Language.JAVASCRIPT
+        if first.startswith("python") or first in ("uv", "poetry", "pytest", "pip"):
+            return Language.PYTHON
+        if (project / "package.json").is_file() and not ((project / "requirements.txt").is_file() or (project / "pyproject.toml").is_file()):
+            return Language.TYPESCRIPT if (project / "tsconfig.json").is_file() else Language.JAVASCRIPT
+        if (project / "requirements.txt").is_file() or (project / "pyproject.toml").is_file() or any(project.glob("*.py")):
+            return Language.PYTHON
+        return Language.OTHER
 
     # --- scan: read the code, run nothing -----------------------------------
 
@@ -416,8 +443,18 @@ class JobRunner:
         ctx.log("install", f"Repository ready at {ctx.base_commit[:7]} ({len(ctx.tasks)} tasks)")
 
         ctx.set_state(JobState.INSTALLING)
-        ctx.log("install", f"Detected a {ctx.language.value} agent; installing dependencies in the sandbox")
-        installed = await asyncio.to_thread(self.sandbox.install, ctx.repo, job.id)
+        if not isinstance(job.source, SampleSource):
+            ctx.language = job.language = self._runtime_language(ctx)
+        ctx.kind = "node" if ctx.language in (Language.TYPESCRIPT, Language.JAVASCRIPT) else "python"
+        if ctx.language is Language.OTHER:
+            ctx.fail("unsupported_language", "Whittle can run Python, JavaScript and TypeScript code in its sandbox. This repository looks like another language; the scan still reads it.")
+            return
+        ctx.log("install", f"Detected a {ctx.language.value} project{' in ' + ctx.workdir if ctx.workdir else ''}; installing its dependencies in the sandbox")
+        try:
+            installed = await asyncio.to_thread(lambda: self.sandbox.install(ctx.repo, job.id, kind=ctx.kind, subdir=ctx.workdir))
+        except (FileNotFoundError, ValueError) as exc:
+            ctx.fail("bad_workdir", f"The folder to run from was not found in the repository: {exc}")
+            return
         ctx.log("install", installed.stdout or "Install finished")
         if installed.exit_code != 0:
             ctx.log("install", installed.stderr, stream="stderr")
@@ -468,6 +505,13 @@ class JobRunner:
             subprocess.run(["git", "init", "-q", "-b", "main"], cwd=ctx.repo, check=True)
             ctx.git("add", "-A")
             ctx.git("-c", "user.name=Whittle", "-c", "user.email=whittle@example.invalid", "commit", "-q", "-m", "Baseline")
+        elif isinstance(source, UploadSource):
+            from costcutter import uploads
+
+            shutil.copytree(uploads.extracted(source.upload_id), ctx.repo, ignore=shutil.ignore_patterns("__pycache__", ".git", "node_modules", ".venv"))
+            subprocess.run(["git", "init", "-q", "-b", "main"], cwd=ctx.repo, check=True)
+            ctx.git("add", "-A")
+            ctx.git("-c", "user.name=Whittle", "-c", "user.email=whittle@example.invalid", "commit", "-q", "-m", "Uploaded code")
         else:
             assert isinstance(source, GithubSource)
             cmd = ["git", "clone", "-q", "--depth", "50", source.repo_url, str(ctx.repo)]
@@ -503,7 +547,8 @@ class JobRunner:
                 result = await asyncio.to_thread(
                     self.sandbox.run_agent, ctx.repo, command,
                     job_id=ctx.job.id, proxy_base_url=self.proxy_url, dummy_api_key=session.dummy_key, provider=ctx.provider,
-                    extra_env={"WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": phase, "WHITTLE_TASK": task.id},
+                    extra_env={**ctx.env, "WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": phase, "WHITTLE_TASK": task.id},
+                    kind=getattr(ctx, "kind", "python"), subdir=ctx.workdir,
                 )
             finally:
                 self.close_session(session.session_id)

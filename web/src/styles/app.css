@@ -935,3 +935,10 @@ details.measure-own > summary {
 .scan-good li::marker {
   color: var(--green);
 }
+
+.scan-start .or {
+  align-self: center;
+  padding-bottom: 9px;
+  color: var(--mute);
+  font-size: 13.5px;
+}

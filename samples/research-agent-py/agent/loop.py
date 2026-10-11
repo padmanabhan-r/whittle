@@ -22,12 +22,15 @@ INSTRUCTIONS = (
 )
 
 
-def _system_prompt() -> str:
-    # The run's timestamp and id sit at the top of the system prompt, so no two
-    # requests share a prefix and the prompt cache is never used.
+def _run_header() -> str:
     now = datetime.now(timezone.utc).isoformat()
     run_id = os.environ.get("RESEARCH_AGENT_RUN_ID", "local")
-    return f"Run started {now}, id {run_id}.\n\n{INSTRUCTIONS}"
+    return f"Run started {now}, id {run_id}."
+
+
+def _system_prompt() -> list[dict]:
+    # Static prefix only, marked for caching; the varying run header goes in the user message.
+    return [{"type": "text", "text": INSTRUCTIONS, "cache_control": {"type": "ephemeral"}}]
 
 
 def _client() -> anthropic.Anthropic:
@@ -51,7 +54,7 @@ def classify(client: anthropic.Anthropic, question: str) -> str:
     return "general"
 
 
-def _call(client: anthropic.Anthropic, system: str, messages: list[dict]) -> anthropic.types.Message:
+def _call(client: anthropic.Anthropic, system, messages: list[dict]) -> anthropic.types.Message:
     return client.messages.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,
@@ -74,7 +77,7 @@ def _run_tools(blocks, transcript: list[str]) -> list[dict]:
 
 def run_pass(client: anthropic.Anthropic, question: str, transcript: list[str]) -> str:
     system = _system_prompt()
-    messages: list[dict] = [{"role": "user", "content": question}]
+    messages: list[dict] = [{"role": "user", "content": f"{_run_header()}\n\n{question}"}]
     for turn in range(MAX_TURNS):
         if transcript and turn > 0:
             # Every passage gathered so far is sent again on every turn.

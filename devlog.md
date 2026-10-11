@@ -17,10 +17,10 @@
 - **AI models (build):** Cursor Agent (Composer) for Sethuraman's Saturday night backend session; earlier entries used Claude Code with claude-opus-5-5
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
-- **cfo.ai:** account created 11 Oct; plan not started (`business/` to come)
+- **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 1
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T10:17:00+05:30
+- **Last updated:** 2026-10-11T10:47:00+05:30
 
 ## Evidence
 
@@ -29,7 +29,7 @@
 | The agent improved | The product's agent on the sample: $0.0303 to $0.0068 per run (77.6%) on job `job_af31fed04311`, quality held. Whittle's own agent on the same fix, caching off then on: 10,945 uncached input tokens and $0.0440 against 8 uncached, 6,697 cache-read, 4,405 cache-write tokens and $0.0359 (18% lower on a 3-call fix); measured 11 Oct 7:40 AM IST, numbers from the SDK's usage fields, no trace link yet | partial |
 | Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
-| Used cfo.ai | none yet | missing |
+| Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
 | Built in public | 1 post tagged #neatHack: https://x.com/__padmanabhan/status/2109143046889898043 (11 Oct, about 10:15 AM IST) | partial |
 | Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
@@ -574,6 +574,28 @@ First public post, and the business plan started.
 
 Evidence rows still missing: the agent improved (trace links), used neatlogs
 (links that open), used cfo.ai, written during the hackathon.
+
+### 2026-10-11 - business plan
+The business plan is done, the README describes the product as it now is, and
+the sample agent has a public repository of its own.
+
+- **Shipped:** `business/plan.md`, a summary of the model cfo.ai built from our
+  measured costs. Its recommendation: $49 a month per repository after one free
+  job; 10% of verified savings only for larger accounts (the two are $49 and
+  $47 on our sample). Base case: 66 paying repositories and $17,255 revenue in
+  twelve months, break-even at about 5 repositories. Its warning: paying each
+  founder $1,000 a month takes cash below zero in December 2026. The $5,000
+  opening cash is a placeholder.
+- **Changed:** README rewritten around the real runs, with real screenshots in
+  place of the mock's and each sponsor tool's role and code path (`e1e5bb4`).
+- **Shipped:** https://github.com/padmanabhan-r/research-agent, the sample
+  agent as a public repository, so the pull request path can be run against a
+  repository that is not Whittle's own.
+- **Not verified:** the pull request path is still unrun; trace links from
+  this morning are still pending on neatlogs' side.
+
+Evidence rows still missing: the agent improved (trace links), used neatlogs
+(links that open), written during the hackathon.
 
 ## Submission
 

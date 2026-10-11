@@ -144,9 +144,15 @@ call is made, and the fixing agent can ask it what a change would touch
 
 ### cfo.ai
 
-The business plan: pricing, cost per job, revenue under three growth cases and
-runway, built from the measured cost per run above. The plan is being built in
-cfo.ai now and will be added under `business/`.
+The business plan, built in cfo.ai from the cost per run measured above:
+[`business/plan.md`](business/plan.md). It recommends $49 a month per
+repository after one free job, with 10% of verified savings as the option for
+larger accounts. About five paying repositories cover the running costs. The
+base case reaches 66 paying repositories and $17,255 of revenue in twelve
+months, and the plan says plainly that this only holds while neither founder is
+paid.
+
+![The business plan in cfo.ai](business/cfo-ai-plan.jpg)
 
 ## Run it
 
@@ -219,6 +225,7 @@ repositories are accepted. One job runs at a time.
 | `api/costcutter/agent/` | The fixing agent |
 | `api/costcutter/jobs.py`, `server.py` | The job runner and the API |
 | `samples/research-agent-py/` | The sample agent, with five kinds of waste built in |
+| `business/plan.md` | The business plan from cfo.ai |
 | `start.sh` | Starts the API and the UI together |
 | `docs/plan.md` | What is done, what is next, who owns it |
 | `docs/superpowers/specs/` | The design |

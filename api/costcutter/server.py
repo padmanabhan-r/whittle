@@ -1,0 +1,183 @@
+"""The real Whittle API: the contract's endpoints over the job runner, with the proxy mounted at /proxy.
+
+Run: uv run uvicorn costcutter.server:app --port 8787
+The sandbox reaches the proxy at http://host.docker.internal:<port>/proxy.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+from collections.abc import AsyncIterator
+
+from fastapi import FastAPI, Header, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
+
+from costcutter.agent.fixer import fix_finding
+from costcutter.contract import (
+    TERMINAL_STATES,
+    Comparison,
+    Diff,
+    ErrorBody,
+    FindingList,
+    FixRequest,
+    Job,
+    JobCreate,
+    JobState,
+    PullRequest,
+    Sample,
+    SampleList,
+)
+from costcutter.jobs import JobContext, JobRunner
+from costcutter.proxy.app import CreateSessionBody, create_app as create_proxy
+from costcutter.proxy.settings import ProxySettings
+
+PORT = int(os.environ.get("WHITTLE_API_PORT", "8787"))
+HEARTBEAT_SECONDS = 15
+
+
+class ApiError(HTTPException):
+    def __init__(self, status: int, code: str, message: str):
+        super().__init__(status_code=status, detail={"code": code, "message": message})
+
+
+ERRORS = {code: {"model": ErrorBody} for code in (404, 409, 422)}
+
+
+def create_app() -> FastAPI:
+    settings = ProxySettings.from_env()
+    proxy = create_proxy(settings)
+    open_session = proxy.state.open_session
+    sessions = proxy.state.sessions
+
+    def open_for_job(*, job_id, phase, task_id, provider, api_key, on_call):
+        body = CreateSessionBody(job_id=job_id, phase=phase, task_id=task_id, provider=provider, api_key=api_key)
+        session = open_session(body)
+        session.on_call = on_call
+        return session
+
+    runner = JobRunner(
+        open_session=open_for_job,
+        close_session=sessions.close,
+        proxy_url_for_sandbox=os.environ.get("WHITTLE_SANDBOX_PROXY_URL", f"http://host.docker.internal:{PORT}/proxy"),
+        fixer=lambda ctx, finding: fix_finding(ctx, finding, ctx.step),
+    )
+
+    app = FastAPI(title="Whittle API", version="0.1.0")
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Disposition"])
+    app.state.runner = runner
+    app.mount("/proxy", proxy)
+
+    @app.exception_handler(ApiError)
+    async def api_error(_: Request, exc: ApiError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(_: Request, exc: RequestValidationError) -> JSONResponse:
+        first = exc.errors()[0]
+        where = ".".join(str(part) for part in first["loc"])
+        return JSONResponse(status_code=422, content={"error": {"code": "invalid_request", "message": f"{where}: {first['msg']}"}})
+
+    def get_job(job_id: str) -> JobContext:
+        if job_id not in runner.jobs:
+            raise ApiError(404, "job_not_found", f"No job with id {job_id}.")
+        return runner.jobs[job_id]
+
+    def require_done(ctx: JobContext) -> None:
+        if ctx.job.state is not JobState.DONE:
+            raise ApiError(409, "job_not_done", f"The job is {ctx.job.state.value}; this is available once it is done.")
+
+    @app.get("/api/samples", response_model=SampleList)
+    async def list_samples() -> SampleList:
+        return SampleList(samples=[Sample(id=s["id"], name=s["name"], description=s["description"], language=s["language"], repo_url=f"https://github.com/padmanabhan-r/whittle/tree/main/samples/{s['id']}", task_count=len(s["tasks"])) for s in runner.samples()])
+
+    @app.post("/api/jobs", response_model=Job, status_code=201, responses=ERRORS)
+    async def create_job(body: JobCreate) -> Job:
+        try:
+            return runner.create(body)
+        except KeyError as exc:
+            raise ApiError(404, "sample_not_found", f"No sample with id {exc.args[0]}.")
+        except ValueError as exc:
+            raise ApiError(422, "invalid_request", str(exc))
+
+    @app.get("/api/jobs/{job_id}", response_model=Job, responses=ERRORS)
+    async def read_job(job_id: str) -> Job:
+        return get_job(job_id).job
+
+    @app.get("/api/jobs/{job_id}/events", responses=ERRORS)
+    async def stream_events(job_id: str, last_event_id: str | None = Header(default=None), after: int | None = Query(None, ge=0)) -> StreamingResponse:
+        ctx = get_job(job_id)
+        start = after if after is not None else int(last_event_id) if (last_event_id or "").isdigit() else 0
+
+        async def stream() -> AsyncIterator[str]:
+            sent = start
+            while True:
+                while sent < len(ctx.events):
+                    event = ctx.events[sent]
+                    sent += 1
+                    yield f"id: {event.seq}\nevent: {event.type}\ndata: {event.model_dump_json()}\n\n"
+                if ctx.job.state in TERMINAL_STATES and sent >= len(ctx.events):
+                    return
+                ctx.changed.clear()
+                try:
+                    await asyncio.wait_for(ctx.changed.wait(), HEARTBEAT_SECONDS)
+                except asyncio.TimeoutError:
+                    yield ": ping\n\n"
+
+        return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    @app.get("/api/jobs/{job_id}/findings", response_model=FindingList, responses=ERRORS)
+    async def list_findings(job_id: str) -> FindingList:
+        return FindingList(findings=get_job(job_id).findings)
+
+    @app.post("/api/jobs/{job_id}/fix", response_model=Job, status_code=202, responses=ERRORS)
+    async def start_fix(job_id: str, body: FixRequest) -> Job:
+        ctx = get_job(job_id)
+        if ctx.job.state is not JobState.AWAITING_SELECTION:
+            raise ApiError(409, "not_awaiting_selection", f"The job is {ctx.job.state.value}; fixes can start only from awaiting_selection.")
+        known = {f.id for f in ctx.findings}
+        unknown = sorted(set(body.finding_ids) - known)
+        if unknown:
+            raise ApiError(422, "unknown_finding", f"No finding with id {', '.join(unknown)}.")
+        runner.start_fix(ctx, body.finding_ids)
+        return ctx.job
+
+    @app.get("/api/jobs/{job_id}/comparison", response_model=Comparison, responses=ERRORS)
+    async def read_comparison(job_id: str) -> Comparison:
+        ctx = get_job(job_id)
+        require_done(ctx)
+        if "after" not in ctx.phases:
+            raise ApiError(409, "job_not_done", "The job ended before any fix was tried, so there is nothing to compare.")
+        return runner.comparison(ctx)
+
+    @app.get("/api/jobs/{job_id}/diff", response_model=Diff, responses=ERRORS)
+    async def read_diff(job_id: str) -> Diff:
+        ctx = get_job(job_id)
+        require_done(ctx)
+        return ctx.diff()
+
+    @app.get("/api/jobs/{job_id}/patch", response_class=PlainTextResponse, responses=ERRORS)
+    async def download_patch(job_id: str) -> PlainTextResponse:
+        ctx = get_job(job_id)
+        require_done(ctx)
+        return PlainTextResponse(ctx.diff().unified, media_type="text/x-diff", headers={"Content-Disposition": f'attachment; filename="whittle-{job_id}.patch"'})
+
+    @app.post("/api/jobs/{job_id}/pr", response_model=PullRequest, status_code=201, responses=ERRORS)
+    async def open_pull_request(job_id: str) -> PullRequest:
+        ctx = get_job(job_id)
+        require_done(ctx)
+        if not ctx.kept:
+            raise ApiError(409, "nothing_to_deliver", "No fix was kept, so there is nothing to open a pull request for.")
+        from costcutter.delivery import open_pull_request as deliver
+
+        try:
+            return await asyncio.to_thread(deliver, ctx, runner.comparison(ctx))
+        except RuntimeError as exc:
+            raise ApiError(409, "pr_unavailable", str(exc))
+
+    return app
+
+
+app = create_app()

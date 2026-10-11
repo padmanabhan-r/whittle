@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T21:55:00+05:30
+- **Last updated:** 2026-10-11T22:15:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `0b8a170` at 9:48 PM IST on 11 October. 92 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `e3c1063` at 10:13 PM IST on 11 October. 95 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1031,6 +1031,42 @@ remaining posts and the submission itself.
 - **Not verified:** a full measure-and-fix job with a working key on the live
   site. The open site still has no daily limit of its own; the workspace's
   monthly spend limit is the only cap.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - e3c1063
+Three things a visitor hit on the live site tonight, fixed the same hour.
+
+- **Failed:** a scan of a private repository showed git's own output:
+  "remote: Repository not found. fatal: repository ... not found". A measured
+  job on the same address did worse and reported an internal error.
+- **Shipped:** a repository that cannot be fetched now gets one sentence to act
+  on, by cause: missing or private, GitHub unreachable, slower than five
+  minutes, or a branch that does not exist. A private repository fails at once
+  and cannot wait at a password prompt.
+- **Failed:** a measured job on a public repository
+  (`job_2bd331c4129e`, live) made one model call costing $0.0016, found no
+  waste, and ended on "The comparison could not be loaded". The job was right;
+  the page treated a result as an error.
+- **Shipped:** that page now says "Nothing worth fixing", gives what was
+  measured, lists the five checks, and says that one model call gives them
+  little to compare.
+- **Shipped:** a measured job has a progress strip like a scan's: six stages,
+  what is happening this second, and a clock. It turns amber and links to the
+  findings while the job waits for a choice.
+- **Changed:** the baseline tile no longer says "of 5 tasks" whatever the
+  number of tasks; singular counts read correctly in the agent's log.
+- **Tests:** `uv run pytest`, 50 passed, one new for the clone messages;
+  `npx tsc --noEmit`, `npm run lint` and `npm run build` in `web/`, no errors.
+- **Evidence:** a real scan and a real measured job on a missing repository,
+  run locally, both stopped with the new sentence. After the deploy, a scan of
+  a missing repository on https://whittleai.site gave the same sentence. The
+  strip was watched on a mock job in Chrome, and the new result page on a
+  finished job with nothing to fix, built locally for the check.
+- **Not verified:** the amber waiting state on screen, and the strip on a real
+  measured job on the live site.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

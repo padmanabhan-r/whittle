@@ -20,13 +20,13 @@
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T08:55:00+05:30
+- **Last updated:** 2026-10-11T09:10:00+05:30
 
 ## Evidence
 
 | Claim | Evidence | Status |
 |---|---|---|
-| The agent improved | Whittle's agent on the same fix, caching off then on: 10,945 uncached input tokens and $0.0440 against 8 uncached, 6,697 cache-read, 4,405 cache-write tokens and $0.0359 (18% lower on a 3-call fix); measured 11 Oct 7:40 AM IST, numbers from the SDK's usage fields, no trace link yet | partial |
+| The agent improved | The product's agent on the sample: $0.0303 to $0.0068 per run (77.6%) on job `job_af31fed04311`, quality held. Whittle's own agent on the same fix, caching off then on: 10,945 uncached input tokens and $0.0440 against 8 uncached, 6,697 cache-read, 4,405 cache-write tokens and $0.0359 (18% lower on a 3-call fix); measured 11 Oct 7:40 AM IST, numbers from the SDK's usage fields, no trace link yet | partial |
 | Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | none yet | missing |
@@ -508,6 +508,30 @@ nothing to do with the fix.
   memory).
 - **Checked:** `uv run pytest`, 21 passed; `npx tsc -b` and `npm run lint`
   clean (three pre-existing warnings).
+- **Built with:** Claude Code, claude-fable-5-1.
+
+Evidence rows still missing: the agent improved (trace links), used neatlogs
+(links that open), used cfo.ai, built in public, written during the hackathon.
+
+### 2026-10-11 - 6e45eba
+A clean run with the retry in place: all five fixes kept, no connection
+errors. One regression from the recorder change found and fixed first.
+
+- **Failed, then fixed:** with the SDK recorder back in the proxy, the fixing
+  agent's own `neatlogs.init` raised "Neatlogs is already running" and job
+  `job_ac54154ea07a` skipped all five fixes (each logged as a `recovery` with
+  action `skipped`). Both entry points now share one guarded initialiser
+  (`api/costcutter/tracing.py`, `6e45eba`).
+- **Measured:** job `job_af31fed04311` on `research-agent-py`, 9:01 to 9:08 AM
+  IST, Whittle's agent on `claude-sonnet-5-5`: baseline 5 runs, 30 model calls,
+  $0.1516, $0.0303 per run; after all five fixes, 25 calls, 20 tool calls,
+  $0.0068 per run, 77.6% lower; quality 1.00 to 1.00; cache-read tokens 0 to
+  37,560; input tokens 57,869 to 7,220. Every fix was cheaper than the last
+  and kept. No sandbox connection errors, so the retry path did not fire.
+- **Failed:** this job's 35 run traces are `dlq`, `pending` or 404 in
+  neatlogs, like everything since 7:30 AM. Not a Whittle change: see the
+  previous entry.
+- **Checked:** `uv run pytest`, 21 passed.
 - **Built with:** Claude Code, claude-fable-5-1.
 
 Evidence rows still missing: the agent improved (trace links), used neatlogs

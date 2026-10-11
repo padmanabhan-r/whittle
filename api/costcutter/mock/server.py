@@ -303,7 +303,7 @@ def require_done(mock: MockJob) -> None:
 
 @app.get("/api/samples", response_model=SampleList)
 async def list_samples() -> SampleList:
-    return SampleList(samples=sc.SAMPLES)
+    return SampleList(samples=sc.SAMPLES, mock=True)
 
 
 @app.post("/api/jobs", response_model=Job, status_code=201, responses=ERRORS)

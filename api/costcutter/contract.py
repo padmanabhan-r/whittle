@@ -154,6 +154,7 @@ class Sample(Model):
 
 class SampleList(Model):
     samples: list[Sample]
+    mock: bool = Field(default=False, description="True when the server is the mock and plays scripted jobs")
 
 
 # --- Jobs ------------------------------------------------------------------

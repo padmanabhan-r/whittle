@@ -10,6 +10,7 @@ import '../styles/app.css'
 export function Start() {
   const navigate = useNavigate()
   const [samples, setSamples] = useState<Sample[] | null>(null)
+  const [mock, setMock] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -23,7 +24,13 @@ export function Start() {
   const [key, setKey] = useState('')
 
   useEffect(() => {
-    api.samples().then(setSamples).catch((e: ApiError) => setLoadError(e.message))
+    api
+      .samples()
+      .then((r) => {
+        setSamples(r.samples)
+        setMock(Boolean(r.mock))
+      })
+      .catch((e: ApiError) => setLoadError(e.message))
   }, [])
 
   async function start(body: JobCreate, label: string) {
@@ -31,7 +38,7 @@ export function Start() {
     setError(null)
     try {
       const runs = Number(monthlyRuns)
-      const job = await api.createJob({ ...body, monthly_runs: runs > 0 ? runs : undefined }, { speed })
+      const job = await api.createJob({ ...body, monthly_runs: runs > 0 ? runs : undefined }, mock ? { speed } : undefined)
       // The key lives only in this request. Drop it from the page as soon as it is sent.
       setKey('')
       navigate(`/app/jobs/${job.id}`)
@@ -74,17 +81,26 @@ export function Start() {
         <h2 className="section-title" style={{ marginTop: 0 }}>Try a sample agent</h2>
         <div className="panel">
           <div className="toolbar">
-            <span className="tag mock">mock data</span>
-            <span className="note">The backend is a mock for now: the run is scripted and its numbers are invented.</span>
-            <span className="spacer" />
-            <label className="check">
-              Playback
-              <select className="pick" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
-                <option value={1}>Real pace (about a minute)</option>
-                <option value={4}>Fast</option>
-                <option value={12}>Very fast</option>
-              </select>
-            </label>
+            {mock ? (
+              <>
+                <span className="tag mock">mock data</span>
+                <span className="note">This server is the mock: the run is scripted and its numbers are invented.</span>
+                <span className="spacer" />
+                <label className="check">
+                  Playback
+                  <select className="pick" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+                    <option value={1}>Real pace (about a minute)</option>
+                    <option value={4}>Fast</option>
+                    <option value={12}>Very fast</option>
+                  </select>
+                </label>
+              </>
+            ) : (
+              <span className="note">
+                Each sample runs in a Docker sandbox on this machine with Whittle's own model key. A full job takes
+                about eight minutes and costs under a dollar in model calls.
+              </span>
+            )}
           </div>
           <div className="table-wrap">
             <table className="ledger">
@@ -152,7 +168,9 @@ export function Start() {
               {busy === 'repo' ? 'Starting…' : <>Run on this repo <ArrowRight /></>}
             </button>
             <span className="note" style={{ color: 'var(--mute)', fontSize: 13 }}>
-              With the mock backend this plays the same scripted run; your repo is not cloned.
+              {mock
+                ? 'With the mock backend this plays the same scripted run; your repo is not cloned.'
+                : 'Public repositories only. Your key is held in memory for this job and never stored.'}
             </span>
           </div>
         </form>

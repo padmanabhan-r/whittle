@@ -81,9 +81,8 @@ def create_app(settings: ProxySettings | None = None, on_call: OnCall | None = N
             job_id=body.job_id,
             phase=body.phase,
             task_id=body.task_id,
-            write_key=settings.neatlogs_write_key,
-            project=settings.neatlogs_project,
-            endpoint=settings.neatlogs_endpoint,
+            neatlogs_api_key=settings.neatlogs_api_key,
+            neatlogs_endpoint=settings.neatlogs_endpoint,
             workflow_prefix=settings.neatlogs_workflow_prefix,
         )
         return store.create(
@@ -231,7 +230,7 @@ def _record(
         usage=usage,
         request=payload,
         response=data,
-        trace_id=None,
+        trace_id=session.recorder.trace_id,
         span_id=span_id,
         error=error or (str(cap_error) if cap_error else None),
         extra={"spent_usd": round(session.spent_usd, 8), "finish_reason": finish},

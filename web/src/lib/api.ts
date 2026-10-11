@@ -183,7 +183,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  samples: () => request<{ samples: Sample[] }>('/api/samples').then((r) => r.samples),
+  samples: () => request<{ samples: Sample[]; mock?: boolean }>('/api/samples'),
   createJob: (body: JobCreate, mock?: { speed?: number; scenario?: string }) => {
     const query = new URLSearchParams()
     if (mock?.speed !== undefined) query.set('speed', String(mock.speed))

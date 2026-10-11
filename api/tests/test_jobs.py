@@ -7,6 +7,7 @@ from pathlib import Path
 
 from costcutter.contract import Job, JobState, JobSummary, Language, SampleSource
 from costcutter.jobs import JobContext, PhaseResult, RunResult, Task, _shell_words
+from costcutter import jobs as jobs_module
 from costcutter.proxy import store as store_module
 from costcutter.proxy.store import CallRecord
 
@@ -17,6 +18,7 @@ def test_shell_words_keeps_quoted_input():
 
 def test_diff_lists_changed_files(tmp_path, monkeypatch):
     monkeypatch.setattr(store_module, "DATA_ROOT", tmp_path)
+    monkeypatch.setattr(jobs_module, "DATA_ROOT", tmp_path)
     job = Job(id="job_t", state=JobState.QUEUED, source=SampleSource(type="sample", sample_id="x"), created_at="", updated_at="", summary=JobSummary())
     ctx = JobContext(job, [Task("task-1", "q")], "python run.py", Language.PYTHON, "anthropic", None, True)
     ctx.repo.mkdir(parents=True)

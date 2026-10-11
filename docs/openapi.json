@@ -1593,6 +1593,12 @@
             },
             "type": "array",
             "title": "Samples"
+          },
+          "mock": {
+            "type": "boolean",
+            "title": "Mock",
+            "description": "True when the server is the mock and plays scripted jobs",
+            "default": false
           }
         },
         "additionalProperties": false,

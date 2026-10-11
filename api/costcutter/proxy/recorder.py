@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import threading
 from typing import Any
 
@@ -68,7 +70,7 @@ class JobTraceRecorder:
             },
         )
         ctx = self._workflow_span.get_span_context()
-        self.trace_id = format(ctx.trace_id, "032x")
+        self.trace_id = format(ctx.trace_id, "032x") if self.enabled else ""
         self._ctx = trace.set_span_in_context(self._workflow_span)
         self._closed = False
 
@@ -87,6 +89,8 @@ class JobTraceRecorder:
         cost_usd: float,
         finish_reason: str | None = None,
         error: str | None = None,
+        request: dict[str, Any] | None = None,
+        response: dict[str, Any] | None = None,
     ) -> str | None:
         """Add one LLM span under the root. Returns the span id for the detectors' evidence."""
         if self._closed:
@@ -122,6 +126,10 @@ class JobTraceRecorder:
             span.set_attribute("neatlogs.llm.cost_usd", cost_usd)
             if finish_reason:
                 span.set_attribute("neatlogs.llm.finish_reason", finish_reason)
+            if request:
+                _set_input_attributes(span, request)
+            if response:
+                _set_output_attributes(span, response)
             if error:
                 span.set_status(StatusCode.ERROR, error)
             else:
@@ -148,6 +156,73 @@ class JobTraceRecorder:
                 neatlogs.flush()
             except Exception:
                 pass
+
+
+def _text(value: Any, limit: int = 4000) -> str:
+    """Flatten a message's content to text the dashboard can show."""
+    if isinstance(value, str):
+        text = value
+    elif isinstance(value, list):
+        parts = []
+        for block in value:
+            if not isinstance(block, dict):
+                parts.append(str(block))
+            elif block.get("type") == "text":
+                parts.append(block.get("text", ""))
+            elif block.get("type") == "tool_use":
+                parts.append(f"[tool_use {block.get('name')}] {json.dumps(block.get('input'), default=str)}")
+            elif block.get("type") == "tool_result":
+                parts.append(f"[tool_result] {_text(block.get('content'), limit)}")
+            else:
+                parts.append(json.dumps(block, default=str))
+        text = "\n".join(parts)
+    else:
+        text = json.dumps(value, default=str)
+    return text if len(text) <= limit else text[:limit] + "…"
+
+
+def _set_input_attributes(span: Any, request: dict[str, Any]) -> None:
+    """Mirror what the neatlogs SDK's own wrappers record for a call's input."""
+    idx = 0
+    system = request.get("system")
+    if system:
+        span.set_attribute(f"neatlogs.llm.input_messages.{idx}.role", "system")
+        span.set_attribute(f"neatlogs.llm.input_messages.{idx}.content", _text(system))
+        idx += 1
+    for msg in request.get("messages") or []:
+        if not isinstance(msg, dict):
+            continue
+        span.set_attribute(f"neatlogs.llm.input_messages.{idx}.role", str(msg.get("role", "")))
+        span.set_attribute(f"neatlogs.llm.input_messages.{idx}.content", _text(msg.get("content")))
+        idx += 1
+    for i, tool in enumerate(request.get("tools") or []):
+        if isinstance(tool, dict):
+            fn = tool.get("function") if isinstance(tool.get("function"), dict) else tool
+            span.set_attribute(f"neatlogs.llm.tools.{i}.name", str(fn.get("name", "")))
+    for param in ("max_tokens", "temperature"):
+        if param in request and isinstance(request[param], (int, float)):
+            span.set_attribute(f"neatlogs.llm.{param}", request[param])
+
+
+def _set_output_attributes(span: Any, response: dict[str, Any]) -> None:
+    content = response.get("content")
+    if content is None:
+        choices = response.get("choices") or []
+        message = choices[0].get("message") if choices and isinstance(choices[0], dict) else None
+        content = (message or {}).get("content") if isinstance(message, dict) else None
+        calls = (message or {}).get("tool_calls") if isinstance(message, dict) else None
+        for i, call in enumerate(calls or []):
+            fn = call.get("function") or {}
+            span.set_attribute(f"neatlogs.llm.tool_calls.{i}.id", str(call.get("id", "")))
+            span.set_attribute(f"neatlogs.llm.tool_calls.{i}.name", str(fn.get("name", "")))
+            span.set_attribute(f"neatlogs.llm.tool_calls.{i}.arguments", _text(fn.get("arguments", "")))
+    else:
+        for i, block in enumerate(b for b in content if isinstance(b, dict) and b.get("type") == "tool_use"):
+            span.set_attribute(f"neatlogs.llm.tool_calls.{i}.id", str(block.get("id", "")))
+            span.set_attribute(f"neatlogs.llm.tool_calls.{i}.name", str(block.get("name", "")))
+            span.set_attribute(f"neatlogs.llm.tool_calls.{i}.arguments", _text(block.get("input")))
+    span.set_attribute("neatlogs.llm.output_messages.0.role", "assistant")
+    span.set_attribute("neatlogs.llm.output_messages.0.content", _text(content) if content is not None else "")
 
 
 def anthropic_usage_from_body(body: dict[str, Any]) -> dict[str, int]:

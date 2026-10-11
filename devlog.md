@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T23:06:00+05:30
+- **Last updated:** 2026-10-11T23:17:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `5cce54b` at 11:05 PM IST on 11 October. 106 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `bb53517` at 11:16 PM IST on 11 October. 108 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1251,6 +1251,40 @@ The cause behind the job above: the task was wrong, not only the page.
   `npm run lint` and `npm run build` in `web/`, clean.
 - **Not verified:** a measured job run with these tasks. A repository with no
   task list of its own still gets invented tasks, scored by the judge.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - bb53517
+Whittle opened its first pull request from the live site, and it was one it
+should not have opened.
+
+- **Shipped (confirmed live):** the whole path works end to end on
+  https://whittleai.site. A measured job on this repository ended with a pull
+  request from the bot account: https://github.com/padmanabhan-r/whittle/pull/1,
+  two files, one commit per kept fix, with before and after trace links. The
+  two kept fixes are sound: the classify step moved to a smaller model, and
+  the run's timestamp moved out of the cached system prompt.
+- **Failed:** that pull request was titled "Cut this agent's cost per run by
+  57.9%" while its description said answer quality fell from 1.00 to 0.30. The
+  job had run one task, scored by the model judge: the noisy setup described
+  two entries above, started from a scan made before `5cce54b`.
+- **Decided:** a cheaper run whose answers did not hold is not a saving, and
+  Whittle must not propose it. Pull request #1 was closed without merging, with
+  a comment saying why.
+- **Shipped:** the server refuses a pull request when the final rerun's
+  answers are under the bar, or when it was not cheaper, and says what to do
+  instead. Such a job is recorded as no saving. The result page shows it in
+  yellow as "Cheaper, but not shown to be safe" and hides the monthly figure.
+- **Changed:** the pull request description said "1 tasks".
+- **Evidence:** the workflow GitHub started for the bot's pull request stopped
+  at "action required", so the rule set when the repository went public held:
+  nothing from an outside account ran on the production server.
+- **Tests:** `uv run pytest`, 53 passed, one new for the refusal; `npx tsc
+  --noEmit`, `npm run lint` and `npm run build` in `web/`, clean.
+- **Not verified:** the yellow panel on screen, and a pull request from a job
+  run on the repository's own tasks scored against facts. That run is next.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

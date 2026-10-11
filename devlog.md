@@ -18,9 +18,9 @@
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** account created 11 Oct; plan not started (`business/` to come)
-- **Built in public:** 0
+- **Built in public:** 1
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T09:56:00+05:30
+- **Last updated:** 2026-10-11T10:17:00+05:30
 
 ## Evidence
 
@@ -31,7 +31,7 @@
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | none yet | missing |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
-| Built in public | none yet | missing |
+| Built in public | 1 post tagged #neatHack: https://x.com/__padmanabhan/status/2109143046889898043 (11 Oct, about 10:15 AM IST) | partial |
 | Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
 
 ## Log
@@ -558,6 +558,22 @@ Finished jobs now survive an API restart, checked on a real job.
 
 Evidence rows still missing: the agent improved (trace links), used neatlogs
 (links that open), used cfo.ai, built in public, written during the hackathon.
+
+### 2026-10-11 - dae7d22
+First public post, and the business plan started.
+
+- **Shared:** https://x.com/__padmanabhan/status/2109143046889898043, the
+  introduction post with the landing page, tagged #neatHack and naming
+  neatlogs, Entire and cfo.ai.
+- **Changed:** cfo.ai account opened and briefed with the measured figures
+  ($0.0303 to $0.0068 per run, about $0.20 model cost per job); its assistant
+  is building a 12-month model with three growth cases. Not finished or
+  exported yet.
+- **Changed:** the neatlogs ingestion failure was raised with the organisers
+  on Discord; no answer recorded yet. `main` pushed at `dae7d22`.
+
+Evidence rows still missing: the agent improved (trace links), used neatlogs
+(links that open), used cfo.ai, written during the hackathon.
 
 ## Submission
 

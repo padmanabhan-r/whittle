@@ -14,7 +14,7 @@ the deploy job will remain queued waiting for the EC2 runner.
 ## One-time setup
 
 1. In the repository, open **Settings → Secrets and variables → Actions →
-   Variables** and add `WHITTLE_PUBLIC_URL` with the value
+   Variables** and add `WHITTLEPUBLICURL` with the value
    `https://whittleai.site`. This is public configuration, not a secret.
 2. On the EC2 instance, sign in as `ubuntu` and open the repository's **Settings
    → Actions → Runners → New self-hosted runner** page. Select Linux x64 and run

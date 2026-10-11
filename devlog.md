@@ -7,8 +7,8 @@
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
 - **Status:** deployed
 - **Live app:** https://whittleai.site
-- **Demo:** not recorded
-- **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public on 12 October before the post)
+- **Demo:** https://youtu.be/J1PHhwzYoHk (2:45, unlisted, covers neatlogs, Entire and cfo.ai)
+- **Repo:** https://github.com/padmanabhan-r/whittle (public since 11 October, 9:45 PM IST)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
 - **Hosting:** AWS EC2
 - **Auth:** none
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T20:53:00+05:30
+- **Last updated:** 2026-10-11T21:50:00+05:30
 
 ## Evidence
 
@@ -28,11 +28,11 @@
 |---|---|---|
 | The agent improved | Measured after the cost fix: the Python sample $0.0300 to $0.0095 per run, 68.2% lower, 5 fixes kept (`job_3e1b3cc39865`); the TypeScript sample $0.0128 to $0.0039, 69.4% (`job_166ea0202321`); answer quality 1.00 on both sides. Earlier figures of 77% to 82% were overstated by a pricing fault, see the 12:50 entry. Whittle's own agent, caching off then on: $0.0440 against $0.0359 on one fix | partial |
 | Used neatlogs | Every sandboxed run is one trace at `https://app.neatlogs.com/traces/<id>` (format confirmed in the app on 11 Oct). The measured Python sample, task 1: baseline https://app.neatlogs.com/traces/c0cce5b378185e2e7562705f0b64c72b (6 calls, $0.0296) and after the kept fixes https://app.neatlogs.com/traces/6f88917a54da7d28d857385d937056c3 ($0.0094), both from `job_3e1b3cc39865`. The links open for members of the project; screenshots are in the README (`assets/screens/neatlogs-trace.jpg`) and `docs/evidence/` | have |
-| Used Entire | 62 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` on); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
+| Used Entire | 72 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` on); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `8b4ef0a` at 6:46 PM IST on 11 October. 77 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `9bf3881` at 8:53 PM IST on 11 October. 91 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -994,8 +994,38 @@ the other provider is refused before anything runs (`8160aad`).
 - **Built with:** Claude Code, claude-fable-5-1 and claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public is marked have with four
-posts; four more and the submission are drafted. The video link is still to
-come.
+posts; four more and the submission are drafted.
+
+### 2026-10-11 - after 9bf3881
+The repository is public and the demo video is up. Everything left is the
+remaining posts and the submission itself.
+
+- **Shipped:** the demo video, https://youtu.be/J1PHhwzYoHk, 2:45, unlisted,
+  with chapters and a thumbnail drawn in the product's own type and colours.
+  Its mix was changed after a listen: effects 3 dB lower, the music bed about
+  1 dB higher. Listened to and approved by Padmanabhan.
+- **Shipped:** the repository was made public at about 9:45 PM IST. Before the
+  switch, every pushed branch and the tag were scanned for key-shaped strings
+  (none), and the logs of all 18 GitHub Actions runs were scanned for keys,
+  tokens and email addresses (none).
+- **Decided:** the deploy runner is self-hosted on the production server, so a
+  workflow from a fork's pull request could run there. Workflows from all
+  outside contributors now wait for approval (set straight after going public).
+- **Changed:** `docs/neathack-rules.md` rewritten to match the live page, which
+  was read again at 9:17 PM IST: cfo.ai is required, the video must cover all
+  three tools, winners are announced on 16 October. The body still called
+  cfo.ai optional.
+- **Changed:** the live site's model key was replaced with a longer-lived one
+  in its own workspace with a spend limit, to last past the judging.
+- **Tests:** `uv run pytest`, 49 passed; `npm test` in `cli/`, 8 passed;
+  `npx tsc --noEmit` in `web/`, clean; `npm run lint`, three warnings.
+- **Not verified:** a full measure-and-fix job with a working key on the live
+  site. The open site still has no daily limit of its own; the workspace's
+  monthly spend limit is the only cap.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Outstanding: the remaining posts and the
+quote post on X.
 
 ## Submission
 
@@ -1003,7 +1033,7 @@ come.
 |---|---|
 | Team | done: Attention Heads (Padmanabhan and Sethuraman) |
 | Project name | done: Whittle AI |
-| Public repo link | outstanding (repository exists but is private) |
-| Demo link | outstanding: the live app is at https://whittleai.site; the video is rendered and not yet uploaded |
-| Video under three minutes covering neatlogs, Entire and cfo.ai | rendered (2:45), to be listened to and uploaded |
+| Public repo link | done: https://github.com/padmanabhan-r/whittle |
+| Demo link | done: https://youtu.be/J1PHhwzYoHk (uploaded 11 Oct, unlisted); the live app is at https://whittleai.site |
+| Video under three minutes covering neatlogs, Entire and cfo.ai | done: 2:45, with a section on each |
 | Quote post on X | outstanding |

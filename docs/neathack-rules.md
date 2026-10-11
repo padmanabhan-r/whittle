@@ -2,10 +2,7 @@
 
 Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read on 9 October 2026.
 
-> **Changed on the live site, checked 9 October 2026, evening.** Two points below are out of date:
->
-> - **cfo.ai is now required**, not optional. The site says "Your project must use neatlogs, Entire and cfo.ai", the 25% judging category is "Use of neatlogs, Entire and cfo.ai", the demo must explain all three, and a business plan (pricing, costs, revenue, runway) is listed as required evidence. Signup is at https://cfo.ai/neathacks and needs a card.
-> - **Start time:** the site and its FAQ both say the hackathon begins at 12:30 PM IST on Saturday 10 October, with the kickoff call at 9:00 AM IST. It describes a 48-hour build on 10 and 11 October.
+Checked again against the live page on 11 October 2026, 9:17 PM IST: nothing below differs from it.
 
 ## The challenge
 
@@ -36,14 +33,14 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 
 ## Mandatory requirements
 
-- **Use both neatlogs and Entire.** Each must have a clear role in the agent or in how you build it.
+- **Use neatlogs, Entire and cfo.ai.** The site: "Your project must use neatlogs, Entire and cfo.ai. Use neatlogs and Entire to build and improve your agent, and cfo.ai to plan its business."
   - neatlogs: trace every agent run (model and tool calls, state changes, retries, failures, latency, tokens, cost).
   - Entire: repository context for your coding agent (Checkpoints and entire-graph).
-- **All code written during the hackathon**, between the start on 10 October and the deadline on 12 October.
+  - cfo.ai: plan the agent's pricing, costs, revenue and runway, and include the business plan in the submission. Signup at https://cfo.ai/neathacks needs a card; cancel the subscription straight after.
+- **All code written during the hackathon**, between the start at 12:30 PM IST on Saturday 10 October and the deadline on 12 October. The site calls it a 48-hour hackathon.
 - Finished or half-built projects cannot be brought in. Planning the idea in advance is allowed.
 - **Public repository** with commits dated during the hackathon, so judges can verify.
 - Use neatlogs throughout development, not just at the end.
-- Optional: using cfo.ai to model the business earns extra bonus points. It does not replace either required tool.
 
 ## Teams
 
@@ -61,7 +58,7 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 - The post must include: team, name, project, public repository link, demo link.
 - Keep the official post attached, then publish. Opening the draft alone does not count as submitting.
 - **Demo video: three minutes or less.**
-- The video must explicitly cover both neatlogs and Entire: architecture, implementation, runtime, reasoning and result for each tool.
+- The video must explain the agent and the use of neatlogs, Entire and cfo.ai.
 - Include supporting evidence in the repository.
 - neatlogs and cfo.ai will engage with the first 50 quote posts.
 
@@ -70,8 +67,8 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 | Category | Weight | What it means |
 |---|---|---|
 | The agent | 30% | How well it handles a substantial task from start to finish |
-| Use of neatlogs and Entire | 25% | How effectively both were used to build and improve the agent |
-| Demo video | 20% | How clearly it explains the agent and the use of both tools |
+| Use of neatlogs, Entire and cfo.ai | 25% | How effectively all three were used to build, improve and plan a business around the agent |
+| Demo video | 20% | How clearly it explains the agent and the use of neatlogs, Entire and cfo.ai |
 | Building in public | 15% | How you shared the project while building it |
 | Usefulness and originality | 10% | Whether it solves a real problem in a new way |
 
@@ -85,6 +82,7 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 | The agent improved | A run before your change and a run after, e.g. two neatlogs traces, with the numbers compared |
 | You used neatlogs | Links to neatlogs traces from the project, or screenshots |
 | You used Entire | Checkpoints or entire-graph output from the repository |
+| You used cfo.ai | A business plan covering the agent's pricing, costs, revenue and runway |
 | The agent recovers from failures | A run where an action failed, showing what the agent did next |
 | You built in public | Links to what you shared during the hackathon, tagged #neatHack |
 | You wrote the code during the hackathon | A public repository with commits dated during the hackathon |
@@ -107,14 +105,12 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 
 | When | What |
 |---|---|
-| Sat 10 Oct, 9:00 AM | Intro call on Discord |
-| Sat 10 Oct, 12:30 PM | Kickoff: challenge, rules, judging, sponsors |
+| Sat 10 Oct, 9:00 AM | Kickoff call |
+| Sat 10 Oct, 12:30 PM | Hackathon begins |
 | Sat 10 and Sun 11 Oct | Workshops and office hours |
 | Mon 12 Oct, 5:00 to 6:00 PM | Closing call |
 | Mon 12 Oct, 7:00 to 11:55 PM | Submissions |
 | Fri 16 Oct | Winners announced |
-
-**Start time to confirm:** the Luma message says the hackathon begins at 12:00 AM IST on Saturday; the website says it starts at 12:30 PM IST. Check Discord before making the first commit.
 
 ## Prizes
 
@@ -135,7 +131,7 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 
 ## Not published yet
 
-- The official X post to quote for submission (still "Submissions opening soon" on 11 October, 5 PM IST).
+- The official X post to quote for submission (still "Submissions opening soon" on 11 October, 9:17 PM IST).
 - The full workshop schedule.
 - How to redeem the AWS and Crustdata credits.
 

@@ -22,7 +22,7 @@ the two disagree.
 
 Padmanabhan:
 
-- [ ] Watch `video/demo/final/whittle-ai-demo-paddy.mp4` once, end to end,
+- [x] Watch `video/demo/final/whittle-ai-demo-paddy.mp4` once, end to end,
       with sound and headphones. Only a person can judge the voice, the music,
       the sound effects (are the pops and ticks audible, does the typing read
       as typing) and the end card in motion. It is 2:45, under the three-minute
@@ -30,7 +30,7 @@ Padmanabhan:
       cut on the Chris voice (2:50) is beside it; pick one to upload. The scan
       section was re-recorded on 11 Oct, 8:50 PM, on the current interface, and
       the narration is a new take, so listen to the whole film again.
-- [ ] Upload the video to YouTube, public or unlisted. X cuts standard
+- [x] Uploaded 11 Oct, unlisted: https://youtu.be/J1PHhwzYoHk (the Paddy cut, with title, description, chapters and thumbnail; subtitles not added yet). Upload the video to YouTube, public or unlisted. X cuts standard
       accounts off at 2:20 for native video, so the post links to YouTube.
       Put the link in the devlog header (`Demo`) and the README.
 - [x] neatlogs trace links: format confirmed (`https://app.neatlogs.com/traces/<id>`),
@@ -66,16 +66,17 @@ Either:
 - [x] License: Functional Source License 1.1 (FSL-1.1-MIT) for everything,
       the command-line tool included (`LICENSE.md`, `cli/LICENSE.md`). Both names
       as holders (11 Oct).
-- [ ] Sethuraman confirms the license, as co-owner, before the repository is public.
+- [x] Sethuraman confirms the license, as co-owner, before the repository is public (11 Oct).
+- [x] A longer-lived model key for the live site, minted by Padmanabhan and handed to Sethuraman (11 Oct). Still to do: he installs it and restarts; it must last past 16 October, when winners are announced.
 
 ## Monday, before posting
 
-- [ ] **Make the repository public:**
+- [x] **Make the repository public** (done 11 Oct, 9:45 PM; fork pull request workflows need approval, because the deploy runner is the production server):
       `gh repo edit padmanabhan-r/whittle --visibility public`.
       Then open https://github.com/padmanabhan-r/whittle logged out and check
       the README renders, the banner shows, and the first commit reads
       10 October 12:37 IST.
-- [ ] Check nothing secret is in the repository: `.env.local` is ignored,
+- [x] Check nothing secret is in the repository (pushed history and all Actions logs scanned, 11 Oct): `.env.local` is ignored,
       `.env.example` carries no values, no key in `devlog.md` or the docs.
 - [ ] Final devlog update: `Repo` public, `Live app`, `Demo`, `Status`
       `deployed`, every evidence row with a link, the submission table below
@@ -118,7 +119,7 @@ After posting:
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`, shown in the README | have |
 | Recovers from failures | fixes reverted when not cheaper (`job_1a5e1ef6b80e`); scan entry point failed, rewritten, verified (`job_2f4aac670180`) | have |
 | Built in public | four posts tagged #neatHack, links in `devlog.md` | have, add more |
-| Written during the hackathon | first commit 10 Oct 12:37 IST, seven minutes after the start; repository to be made public | have, pending public |
+| Written during the hackathon | first commit 10 Oct 12:37 IST, seven minutes after the start; the repository is public | have |
 
 ## Submission table
 
@@ -127,8 +128,8 @@ After posting:
 | Team registered on Luma, both under Attention Heads | done |
 | Web check-in | done |
 | cfo.ai signup, subscription cancelled after | done |
-| Public repository link | outstanding: private until Monday |
-| Live app | done: https://whittleai.site, live with a Let's Encrypt certificate since 11 Oct, 7:30 PM; a full scan through the live site still to be run |
-| Demo video under three minutes, all three tools | two cuts rendered 11 Oct 8:50 PM with the current interface and sound effects (Paddy 2:45, Chris 2:50); to be listened to, one chosen and uploaded |
+| Public repository link | done: https://github.com/padmanabhan-r/whittle, public since 11 Oct, 9:45 PM |
+| Live app | done: https://whittleai.site, live with a Let's Encrypt certificate since 11 Oct, 7:30 PM; a full scan run through it on 11 Oct (`job_5ff5ad24dcf3`, verified) |
+| Demo video under three minutes, all three tools | done: https://youtu.be/J1PHhwzYoHk, 2:45, unlisted, uploaded 11 Oct |
 | Business plan in the repository | done |
 | Quote post on X | outstanding: window opens Monday 7:00 PM |

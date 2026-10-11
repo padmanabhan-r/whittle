@@ -4,6 +4,7 @@
 
 # Whittle AI
 
+[![Watch the demo](https://img.shields.io/badge/Watch_the_demo_(2:45)-c8281c?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/J1PHhwzYoHk)
 [![Design](https://img.shields.io/badge/Read_the_design-0a48dc?style=for-the-badge&logo=readme&logoColor=white)](docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md)
 [![Build plan](https://img.shields.io/badge/Build_plan-0a48dc?style=for-the-badge&logo=target&logoColor=white)](docs/plan.md)
 [![API contract](https://img.shields.io/badge/API_contract-0a48dc?style=for-the-badge&logo=openapiinitiative&logoColor=white)](docs/api-contract.md)

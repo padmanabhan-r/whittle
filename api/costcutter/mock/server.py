@@ -10,7 +10,9 @@ import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from typing import Literal
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request

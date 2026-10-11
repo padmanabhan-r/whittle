@@ -3,31 +3,31 @@
 - **Project:** Whittle
 - **Event:** neatHack
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
-- **What it does:** Not built yet. Planned: a web app that runs someone's AI agent in a sandbox, shows where each run's tokens and money go, fixes the waste in the code, reruns it and proves the saving with before and after traces (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
+- **What it does:** Web UI and mock API ship today; backend adds a recording model proxy, a Docker sandbox runner, and a wasteful Python sample agent. The fix loop and real job server are not wired yet (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** building (UI, contract and mock server done; proxy, sandbox and agent not started)
+- **Status:** working prototype (UI + mock; proxy and sample agent in tree, uncommitted on laptop at handover)
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
-- **Stack:** Python 3.13, FastAPI, Pydantic, uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`). Planned: SQLite, Docker
+- **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`). Docker sandbox image for Python samples
 - **Hosting:** not deployed
 - **Auth:** none
 - **External services:** none
 - **AI models (product):** none in code yet. The agent's provider and model will be set in the environment; each developer picks their own (`CLAUDE.md`, "Model calls")
-- **AI models (build):** Claude Code with claude-opus-5-5
-- **neatlogs:** not wired in. There is no agent to instrument yet
+- **AI models (build):** Cursor Agent (Composer) for Sethuraman's Saturday night backend session; earlier entries used Claude Code with claude-opus-5-5
+- **neatlogs:** recording proxy initializes the SDK and emits a WORKFLOW span per proxied session (`api/costcutter/proxy/recorder.py`). Sample agents inherit traces when pointed at the proxy. No public trace URLs logged yet for tonight's runs
 - **Entire:** configured, not yet producing checkpoints. `.entire/settings.json` has `enabled: true` and `commit_linking: always`, and entire-graph's instructions are checked in with their managed blocks in `CLAUDE.md` and `AGENTS.md`. `.cursor/hooks.json` calls Entire through `cmd.exe`, so it works on Windows only, and the `entire` CLI is not installed on the second machine
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T20:48:00+05:30
+- **Last updated:** 2026-10-10T23:10:00+05:30
 
 ## Evidence
 
 | Claim | Evidence | Status |
 |---|---|---|
 | The agent improved | none yet | missing |
-| Used neatlogs | none yet | missing |
+| Used neatlogs | proxy recorder in code; trace URLs still to paste after smoke/sample run | missing |
 | Used Entire | settings and entire-graph instructions are checked in; no checkpoint and no entire-graph output yet | missing |
 | Used cfo.ai | none yet | missing |
 | Recovers from failures | none yet | missing |
@@ -404,6 +404,20 @@ Dropped the rule that fixed one model for the agent.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: all seven.
+
+### 2026-10-10 - working tree (Saturday night backend)
+Recording proxy, sandbox runner, Python sample agent, and morning handover doc.
+
+- **Added:** `api/costcutter/proxy/` — FastAPI forwarder for Anthropic and OpenAI-compatible APIs, dummy-key swap, spend cap, streaming, `POST /_whittle/sessions`, neatlogs recorder and pricing.
+- **Added:** `api/costcutter/sandbox/runner.py` and `sandbox/python.Dockerfile` — install vs run-step Docker wrapper (`host.docker.internal` for local proxy).
+- **Added:** `samples/research-agent-py/` — five tasks matching the mock UI; intentional W1–W5 in `agent/loop.py`.
+- **Added:** `docs/handover.md`, `api/README-dev.md`; updated `docs/plan.md` "Where things stand".
+- **Tests:** `cd api` then `.\.venv\Scripts\python -m pytest` — 10 passed, 2 skipped (Docker tests when `docker` not on PATH).
+- **Failed:** Port 8790 already bound when restarting proxy (`WinError 10048`). `docker` missing in Cursor's integrated terminal though it works in an external CMD until PATH is refreshed.
+- **Not verified:** End-to-end proxy smoke or sample task with a neatlogs trace link captured; full sandbox run with install inside container; detectors and real API server.
+- **Built with:** Cursor Agent (Composer), Sethuraman session.
+
+Evidence rows still missing: all seven (neatlogs row needs trace URLs; agent improved, recovery, cfo.ai, built in public still open).
 
 ## Submission
 

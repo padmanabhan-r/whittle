@@ -1,0 +1,11 @@
+# Pip install (Python 3.10+): pip install -r requirements.txt && pip install -e .
+fastapi>=0.115
+uvicorn>=0.30
+pydantic>=2.8
+httpx>=0.27
+neatlogs>=1.4
+pytest>=8
+anyio>=4.15.1
+python-dotenv>=1.0
+anthropic>=0.40
+openai>=1.0

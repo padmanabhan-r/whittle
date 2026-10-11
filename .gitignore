@@ -43,3 +43,4 @@ temp.txt
 # Recorded runs: prompts and responses of users' agents
 data/
 shots/
+x-posts/

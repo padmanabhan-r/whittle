@@ -59,9 +59,12 @@ Either:
 - [ ] Decide whether the CLI defaults point at whittleai.site. If yes, bump
       `cli/package.json`, `npm publish` from an interactive terminal (2FA),
       and note the version in the devlog. If no, leave 0.1.0 as it is. Either
-      way a publish would also put the MIT license on the registry page, which
-      still says UNLICENSED.
-- [x] `LICENSE`: MIT, at the root and in `cli/`, both names as holders (11 Oct).
+      way the copy on the registry says UNLICENSED and ships no license file,
+      which grants nothing; the next publish carries the FSL text.
+- [x] License: Functional Source License 1.1 (FSL-1.1-MIT) for everything,
+      the command-line tool included (`LICENSE.md`, `cli/LICENSE.md`). Both names
+      as holders (11 Oct).
+- [ ] Sethuraman confirms the license, as co-owner, before the repository is public.
 
 ## Monday, before posting
 

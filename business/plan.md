@@ -30,6 +30,10 @@ customer mix, growth, conversion, churn, software and marketing budgets.
 
 ## Pricing
 
+How the price is collected (sign-in, keys, what stays free) is the next step
+after the hackathon, designed in `docs/accounts-and-billing.md`. None of it is
+built yet; the product is free for now.
+
 **Recommended: $49 a month per repository, after one free job.** The customer
 supplies the model key, and the plan includes four optimisation jobs a month,
 not unlimited runs.

@@ -9,5 +9,5 @@
   "scripts": { "test": "node --test" },
   "keywords": ["llm", "agents", "cost", "tokens", "anthropic", "openai", "prompt-caching", "observability"],
   "repository": { "type": "git", "url": "git+https://github.com/padmanabhan-r/whittle.git", "directory": "cli" },
-  "license": "MIT"
+  "license": "SEE LICENSE IN LICENSE.md"
 }

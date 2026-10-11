@@ -153,7 +153,9 @@ Everything the judges ask for, in one place: [the devlog](devlog.md) with its
 evidence table and every commit's story; [neatlogs traces](docs/evidence/neatlogs.md),
 a before and after pair with the numbers; [Entire](docs/evidence/entire.md),
 checkpoints and real graph output; [the business plan](business/plan.md) from
-cfo.ai; and [the submission checklist](docs/submission.md).
+cfo.ai, with [the monetization path](docs/accounts-and-billing.md) planned for
+after the hackathon; and
+[the submission checklist](docs/submission.md).
 
 ## Run it yourself
 
@@ -216,4 +218,12 @@ cd web && npm install && npm run build
 
 ## License
 
-MIT. See `LICENSE`.
+Whittle is source-available, under the
+[Functional Source License 1.1](LICENSE.md) (FSL-1.1-MIT). That covers the
+whole repository: the service, the web app and the `whittle-ai` command-line
+tool. You may read the code, run it, change it and use it inside your own
+company. You may not offer it to others as a competing commercial product or
+service. Each version becomes MIT-licensed two years after it is published.
+
+Later versions may be released under different terms. A version you already
+have keeps the license it came with.

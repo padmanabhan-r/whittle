@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T17:41:00+05:30
+- **Last updated:** 2026-10-11T18:28:00+05:30
 
 ## Evidence
 
@@ -834,7 +834,7 @@ job (`run.files`) and is excluded from the diff, so it never reaches a pull requ
   test only.
 - **Built with:** Claude Code, claude-fable-5-1.
 
-### 2026-10-11 - working tree
+### 2026-10-11 - aaef4a3
 Submission packaging, no product code. The repository now carries the
 evidence the judges ask for, in files they can open: `docs/evidence/neatlogs.md`
 with a before and after trace pair for one task (links and screenshots, since
@@ -845,9 +845,10 @@ new Evidence section and shows the trace pair. An MIT license is at the root and
 in the npm package's folder, and `cli/package.json` says MIT instead of
 UNLICENSED (the registry copy still says UNLICENSED until the next publish).
 
-- **Decision:** MIT rather than AGPL. The product's value is the hosted
-  service and the measured history, not the code, and a permissive license
-  removes every question about trying the CLI (user's decision).
+- **Decision:** MIT rather than AGPL, chosen by the coding agent when asked for
+  a suitable license. Corrected the same evening: this line first called it the
+  user's decision, which it was not, and the choice was reversed in the next
+  entry before the repository was public.
 - **Evidence:** the trace link format is `https://app.neatlogs.com/traces/<id>`,
   confirmed in the app; baseline task 1 of `job_3e1b3cc39865` is 6 calls,
   16.7 s, $0.0296, and after the kept fixes 5 calls, 12.2 s, $0.0094.
@@ -860,7 +861,7 @@ UNLICENSED (the registry copy still says UNLICENSED until the next publish).
 Evidence rows still missing: none. Built in public is marked have with four
 posts; more are planned before the submission.
 
-### 2026-10-11 - working tree
+### 2026-10-11 - d3e6dbf
 Deployed Whittle on the EC2 Elastic IP and started its API and UI with the new
 public API address; the user confirmed the landing page and tests are
 reachable. Added push-to-main CI and EC2 deployment automation in commit
@@ -890,8 +891,45 @@ tmux server it spawned.
   systemd deployment change and confirm the app stays up after the Actions job
   completes and after an EC2 reboot.
 
+### 2026-10-11 - working tree
+The license changed before anything was published under the old one. The
+repository is now source-available under the Functional Source License 1.1
+(`LICENSE.md`, the official FSL-1.1-MIT text): anyone may read, run and modify
+the code and use it inside their own company, but not offer it as a competing
+commercial service, and each version becomes MIT two years after release. The
+command-line tool is under the same license (`cli/LICENSE.md`): it may be sold
+by subscription later, and the license lets anyone install and use it while
+keeping a competitor from building on its recording proxy.
+
+- **Decision:** FSL for the whole repository, the command-line tool included
+  (user's decision). The business plan is a hosted service at $49 a repository,
+  and the tool may go behind a subscription; MIT would have let anyone host and
+  sell the same code. The hackathon asks for a public repository with dated
+  commits, not an open-source license. The `whittle-ai` 0.1.0 already on npm
+  was published as UNLICENSED with no license file, so nothing was ever
+  released under MIT.
+- **Fixed:** the demo video held one shot on a frame captured mid-scroll, so a
+  white band showed above the sidebar from 0:16 to 0:24 (the user saw it). The
+  shot now holds on the settled frame half a second earlier; both cuts were
+  exported again and scanned every quarter-second for the band.
+- **Changed:** the video has sound effects on its reveals and a second cut on
+  another voice (Paddy 2:37, Chris 2:39); its end card names `whittleai.site`.
+- **Evidence:** the workflow added in `fe4c68d` ran on push `d1ed8bc`: checks
+  and the EC2 deploy job both succeeded (Actions run `38138672104`).
+- **Decision:** the command-line tool will sign in two ways, through the
+  browser (`whittle login`) or with a Whittle API key in the environment, and
+  the charge is enforced on the server, where the detectors, the fixing agent,
+  neatlogs and Entire run (user's decision). Designed in
+  `docs/accounts-and-billing.md`. Not built: accounts and billing stay after
+  the hackathon.
+- **Not verified:** the deployed app from outside. At 5:48 PM IST neither port
+  answered from this machine, and `whittleai.site` did not resolve. Sethuraman
+  has yet to confirm the license change as co-owner.
+- **Built with:** Claude Code, claude-fable-5-1 and claude-opus-5-5.
+
 Evidence rows still missing: none. Built in public is marked have with four
-posts; verify the deployment remains available after the workflow exits.
+posts. Still to come: the live link, the video link, and a check that the
+deployment stays available after the workflow exits.
 
 ## Submission
 

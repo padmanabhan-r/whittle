@@ -1104,3 +1104,17 @@ details.measure-own > summary {
 .scan-progress.waiting .dot {
   background: var(--amber-line);
 }
+
+/* The calls page before the first call: what the sandbox is doing, with the end of its output */
+.empty.setup {
+  max-width: none;
+}
+.empty.setup .console {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  max-height: 220px;
+  overflow: auto;
+}

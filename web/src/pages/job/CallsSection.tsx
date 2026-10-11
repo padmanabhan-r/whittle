@@ -3,6 +3,13 @@ import type { Phase } from '../../lib/api'
 import { int, KIND_LABEL, usd } from '../../lib/format'
 import type { RunView } from '../../lib/useJob'
 
+const SETUP: Record<string, { title: string; text: string }> = {
+  queued: { title: 'Waiting to start', text: 'One job runs in the sandbox at a time. This one starts as soon as the sandbox is free.' },
+  cloning: { title: 'Downloading the repository', text: 'The code is being fetched. The model calls are listed here once the agent starts running.' },
+  installing: { title: 'Installing the code in the sandbox', text: 'The dependencies are being installed. A large project can take a few minutes. The model calls are listed here once the agent starts running.' },
+  baseline: { title: 'The agent is running', text: 'Its first model call will appear here as soon as it is made, with its tokens and its price.' },
+}
+
 export function CallsSection({ view, recorded = false }: { view: RunView; recorded?: boolean }) {
   const [phase, setPhase] = useState<Phase>('baseline')
   const [task, setTask] = useState('all')
@@ -36,6 +43,9 @@ export function CallsSection({ view, recorded = false }: { view: RunView; record
   const total = shown.reduce((sum, c) => sum + c.cost_usd, 0)
   const flagged = phase === 'baseline' ? calls.filter((c) => marks.has(`${c.task_id}:${c.call_index}`)).length : 0
   const newest = calls[calls.length - 1]?.seq
+  // Before the first call there is nothing to list, so the page says what the job is doing instead.
+  const setup = SETUP[view.state]
+  const tail = view.logs.slice(-8)
 
   return (
     <div className="panel">
@@ -59,7 +69,17 @@ export function CallsSection({ view, recorded = false }: { view: RunView; record
           {calls.length} calls{flagged ? ` · ${flagged} marked by a finding` : ''}
         </span>
       </div>
-      {calls.length === 0 ? (
+      {calls.length === 0 && phase === 'baseline' && setup ? (
+        <div className="empty setup">
+          <h2>{setup.title}</h2>
+          <p>{setup.text}</p>
+          {tail.length > 0 && (
+            <pre className="console" aria-label="What the sandbox is printing">
+              {tail.map((log) => <span key={log.seq}>{log.line}{'\n'}</span>)}
+            </pre>
+          )}
+        </div>
+      ) : calls.length === 0 ? (
         <div className="empty">
           <h2>{phase === 'baseline' ? 'Waiting for the first model call' : 'No rerun yet'}</h2>
           <p>

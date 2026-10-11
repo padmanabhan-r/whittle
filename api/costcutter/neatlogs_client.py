@@ -62,6 +62,6 @@ def summarise(readings: list[TraceReading], own_calls: int, own_cost: float) -> 
         return f"neatlogs holds {len(readings)} trace id{'' if len(readings) == 1 else 's'} for this baseline but has not finished processing {'it' if len(readings) == 1 else 'them'} yet; using the proxy's own record of {own_calls} call{'' if own_calls == 1 else 's'}."
     calls, cost = sum(r.llm_calls for r in done), sum(r.cost_usd for r in done)
     if len(done) < len(readings):
-        return f"neatlogs has processed {len(done)} of {len(readings)} traces so far: {calls} model calls, ${cost:.4f}. The rest are still processing."
+        return f"neatlogs has processed {len(done)} of {len(readings)} traces so far: {calls} model call{'' if calls == 1 else 's'}, ${cost:.4f}. The rest {'is' if len(readings) - len(done) == 1 else 'are'} still processing."
     agree = calls == own_calls and abs(cost - own_cost) <= max(0.0005, own_cost * 0.03)
     return f"neatlogs reports {calls} model calls and ${cost:.4f} across {len(done)} traces" + (", matching the proxy's record." if agree else f"; the proxy recorded {own_calls} calls and ${own_cost:.4f}.")

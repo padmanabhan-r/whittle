@@ -18,7 +18,7 @@
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
-- **Built in public:** 1
+- **Built in public:** 2
 - **Started:** 2026-10-10T12:37:00+05:30
 - **Last updated:** 2026-10-11T10:47:00+05:30
 
@@ -31,7 +31,7 @@
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
-| Built in public | 1 post tagged #neatHack: https://x.com/__padmanabhan/status/2109143046889898043 (11 Oct, about 10:15 AM IST) | partial |
+| Built in public | 2 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction) and https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) | partial |
 | Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
 
 ## Log
@@ -593,6 +593,10 @@ the sample agent has a public repository of its own.
   repository that is not Whittle's own.
 - **Not verified:** the pull request path is still unrun; trace links from
   this morning are still pending on neatlogs' side.
+
+- **Shared:** https://x.com/__padmanabhan/status/2109159510082482614, the
+  first measured result (cost per run before and after), 11 Oct about 11:20 AM
+  IST.
 
 Evidence rows still missing: the agent improved (trace links), used neatlogs
 (links that open), written during the hackathon.

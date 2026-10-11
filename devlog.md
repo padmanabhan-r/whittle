@@ -17,7 +17,7 @@
 - **AI models (build):** Cursor Agent (Composer) for Sethuraman's Saturday night backend session; earlier entries used Claude Code with claude-opus-5-5
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
-- **cfo.ai:** not started
+- **cfo.ai:** account created 11 Oct; plan not started (`business/` to come)
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
 - **Last updated:** 2026-10-11T09:10:00+05:30

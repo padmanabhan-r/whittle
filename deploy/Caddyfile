@@ -22,6 +22,7 @@ whittleai.site {
 	}
 
 	handle /health {
+		rewrite * /proxy/health
 		reverse_proxy localhost:8787
 	}
 

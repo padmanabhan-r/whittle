@@ -58,12 +58,15 @@ class LLM:
 
     @staticmethod
     def _wrap(client):
+        """Trace every call Whittle's agent makes under the project key, in the workflow 'whittle-agent'."""
         try:
             import neatlogs
 
+            ensure_neatlogs()
             return neatlogs.wrap(client)
         except Exception:
             return client
+
 
     # --- one turn -----------------------------------------------------------
 
@@ -120,3 +123,19 @@ class LLM:
         if self.provider == "anthropic":
             return [{"role": "user", "content": [{"type": "tool_result", "tool_use_id": call_id, "content": content} for call_id, content in results]}]
         return [{"role": "tool", "tool_call_id": call_id, "content": content} for call_id, content in results]
+_neatlogs_ready = False
+
+
+def ensure_neatlogs() -> bool:
+    """Initialise the neatlogs SDK once per process. Returns whether tracing is on."""
+    global _neatlogs_ready
+    if _neatlogs_ready:
+        return True
+    key = os.environ.get("NEATLOGS_API_KEY", "").strip()
+    if not key:
+        return False
+    import neatlogs
+
+    neatlogs.init(api_key=key, endpoint=os.environ.get("NEATLOGS_ENDPOINT") or None, workflow_name="whittle-agent", debug=False)
+    _neatlogs_ready = True
+    return True

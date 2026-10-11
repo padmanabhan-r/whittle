@@ -13,7 +13,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
-from costcutter.agent.llm import LLM
+from costcutter.agent.llm import LLM, ensure_neatlogs
 from costcutter.contract import Finding
 
 MAX_TURNS = 14
@@ -114,10 +114,23 @@ async def fix_finding(ctx, finding: Finding, step: Callable[..., None] | None = 
     """Run the agent on one finding inside ctx.repo. Returns the patch summary, or None when nothing changed."""
     import asyncio
 
-    return await asyncio.to_thread(_fix_sync, ctx.repo, finding, step or (lambda *a, **k: None))
+    return await asyncio.to_thread(_fix_sync, ctx.repo, finding, step or (lambda *a, **k: None), ctx.job.id)
 
 
-def _fix_sync(repo: Path, finding: Finding, step: Callable[..., None]) -> dict[str, Any] | None:
+def _fix_sync(repo: Path, finding: Finding, step: Callable[..., None], job_id: str = "") -> dict[str, Any] | None:
+    """One trace per fix in neatlogs: the root is the fix, every model call a child."""
+    if ensure_neatlogs():
+        import neatlogs
+
+        # The span decorator is the SDK's own root; wrapped client calls nest under it.
+        traced = neatlogs.span(kind="WORKFLOW", name=f"whittle-fix-{finding.kind.value}")(_fix_body)
+        result = traced(repo, finding, step)
+        neatlogs.flush()
+        return result
+    return _fix_body(repo, finding, step)
+
+
+def _fix_body(repo: Path, finding: Finding, step: Callable[..., None]) -> dict[str, Any] | None:
     llm = LLM()
     ws = Workspace(repo)
     messages: list[Any] = [{"role": "user", "content": finding_brief(finding)}]

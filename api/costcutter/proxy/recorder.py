@@ -96,6 +96,7 @@ class JobTraceRecorder:
         try:
             span = self._tracer.start_span(
                 f"{provider}.{name}",
+                context=self._ctx,
                 attributes={
                     "neatlogs.span.kind": "llm",
                     "neatlogs.llm.provider": provider,

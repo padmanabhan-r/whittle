@@ -11,12 +11,14 @@ from datetime import datetime, timezone
 import anthropic
 
 from agent.config import CLASSIFY_MODEL, MAX_TOKENS, MAX_TURNS, MODEL
+from agent.guide import GUIDE
 from agent.tools import TOOL_SCHEMAS, ToolError, dispatch
 
 INSTRUCTIONS = (
     "You are a research assistant. Use web_search to find passages, and call "
     "check_source_status on the source 'corpus' before you rely on a passage. "
-    "Then answer in two to four sentences, in plain words, with the key numbers."
+    "Then answer in two to four sentences, in plain words, with the key numbers.\n\n"
+    + GUIDE
 )
 
 
@@ -49,11 +51,11 @@ def classify(client: anthropic.Anthropic, question: str) -> str:
     return "general"
 
 
-def _call(client: anthropic.Anthropic, messages: list[dict]) -> anthropic.types.Message:
+def _call(client: anthropic.Anthropic, system: str, messages: list[dict]) -> anthropic.types.Message:
     return client.messages.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,
-        system=_system_prompt(),
+        system=system,
         tools=TOOL_SCHEMAS,
         messages=messages,
         output_config={"effort": "low"},
@@ -71,6 +73,7 @@ def _run_tools(blocks, transcript: list[str]) -> list[dict]:
 
 
 def run_pass(client: anthropic.Anthropic, question: str, transcript: list[str]) -> str:
+    system = _system_prompt()
     messages: list[dict] = [{"role": "user", "content": question}]
     for turn in range(MAX_TURNS):
         if transcript and turn > 0:
@@ -78,7 +81,7 @@ def run_pass(client: anthropic.Anthropic, question: str, transcript: list[str]) 
             messages.append({"role": "user", "content": "All tool output so far:\n" + "\n\n".join(transcript) + "\nContinue."})
         attempts = 0
         while True:
-            response = _call(client, messages)
+            response = _call(client, system, messages)
             tool_blocks = [b for b in response.content if b.type == "tool_use"]
             if not tool_blocks:
                 return "\n".join(b.text for b in response.content if getattr(b, "type", "") == "text").strip()

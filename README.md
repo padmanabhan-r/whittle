@@ -74,9 +74,9 @@ there is a command-line tool, in [`cli/`](cli/). It runs your command where it
 already works and records each model call through a proxy on localhost:
 
 ```bash
-node cli/bin/whittle.mjs run --runs 3 -- python agent.py "your question"   # record, and see the cost
-node cli/bin/whittle.mjs analyze                                           # findings for the recording
-node cli/bin/whittle.mjs fix -- python agent.py "your question"            # fix, and prove each fix here
+npx whittle-ai run --runs 3 -- python agent.py "your question"   # record, and see the cost
+npx whittle-ai analyze                                           # findings for the recording
+npx whittle-ai fix -- python agent.py "your question"            # fix, and prove each fix here
 ```
 
 `run` keeps everything on your machine; the key is passed through and never
@@ -94,8 +94,9 @@ against a bar of 0.85. On the TypeScript sample: $0.0125 to $0.0038, 69.6%,
 three of three kept. Recording alone was also run on the TypeScript web app from
 the scan above, which needs a live database and writes its provider's address in
 its code: the call was recorded with the same token counts the app reported.
-The package is named `whittle-ai` and is not yet published to npm, so for now it
-runs from this repository.
+The package is [`whittle-ai` on npm](https://www.npmjs.com/package/whittle-ai).
+`analyze` and `fix` talk to a Whittle server, by default the one `./start.sh`
+runs on your machine; `--api` names another.
 
 ![A scan of a TypeScript repository](assets/screens/scan.jpg)
 
@@ -313,7 +314,7 @@ taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 | Pull request delivery | Written, not yet run against a real repository |
 | Measured runs in Python, JavaScript and TypeScript | Built; run end to end on a Python and a TypeScript sample agent |
 | Zip upload for code that is not on GitHub | Built and tested |
-| Command-line tool for code that only runs on your machine (`cli/`): record, findings, and fix with reruns on that machine | Built; the fix loop run end to end on a Python and a TypeScript sample. Not yet on npm |
+| Command-line tool for code that only runs on your machine (`cli/`): record, findings, and fix with reruns on that machine | Built; the fix loop run end to end on a Python and a TypeScript sample. Published as `whittle-ai` 0.1.0 |
 | Measured runs in other languages | Not built: the scan reads them, the sandbox does not run them |
 | Deployment | In progress |
 

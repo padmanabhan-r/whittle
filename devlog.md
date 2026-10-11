@@ -730,7 +730,8 @@ fix on the developer's own machine.
   covered for `urllib` by a test and was checked by hand for `requests`,
   `httpx` and the Anthropic SDK.
 - **Changed:** `main` now holds the command-line work (merged at `4360d91`).
-  The package is not on npm: the publish step needs to be run by Padmanabhan.
+  The package was published to npm as `whittle-ai` 0.1.0 at 2:37 PM and runs
+  through `npx whittle-ai`.
   Entire Trails still answers "repository not found" for this repository, though
   `entire repo view` shows its mirror as ready.
 - **Shared:** https://x.com/__padmanabhan/status/2109201036741423288, the third

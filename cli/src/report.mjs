@@ -60,7 +60,7 @@ export function summarise(calls) {
 
 export function render(summary, { seconds = null } = {}) {
   const lines = [], s = summary;
-  if (!s.calls) return [yellow("No model calls were recorded."), "The program may call its provider in a way whittle does not intercept yet: a hardcoded URL in a language other than JavaScript,", "or a cloud gateway such as Bedrock or Vertex. Model SDKs that read ANTHROPIC_BASE_URL or OPENAI_BASE_URL are recorded."].join("\n");
+  if (!s.calls) return [yellow("No model calls were recorded."), "The program may call its provider in a way whittle does not intercept yet: a hardcoded URL in a language other than JavaScript or Python,", "or a cloud gateway such as Bedrock or Vertex. Model SDKs that read ANTHROPIC_BASE_URL or OPENAI_BASE_URL are recorded."].join("\n");
   lines.push(bold(`${n(s.calls)} model call${s.calls === 1 ? "" : "s"}`) + ` in ${s.runs} run${s.runs === 1 ? "" : "s"}` + (seconds !== null ? `, ${seconds.toFixed(1)} s` : "") + ` · ${bold(usd(s.cost))}` + (s.runs > 1 ? ` (${usd(s.cost / s.runs)} a run)` : ""));
   lines.push("");
   const w = Math.max(5, ...s.models.map((m) => m.model.length));

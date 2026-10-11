@@ -17,9 +17,10 @@ before and after neatlogs traces, a diff and an optional pull request.
 
 - Design: `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`
 - Build order, Entire cadence, checks: `docs/plan.md`
-- Stack: Python 3.13 and FastAPI in `api/`, SQLite
-  for job state, Docker for the sandbox, the UI in `web/`, one EC2 instance in
-  `us-east-1`. Python must be 3.10 to 3.13: on 3.14 pip installs an old
+- Stack: Python 3.13 and FastAPI in `api/`, job state as files under
+  `data/jobs/<id>/` (events, a `job.json` snapshot, the clone, call records;
+  finished jobs survive a restart, running ones are marked failed), Docker for
+  the sandbox, the UI in `web/`, one EC2 instance in `us-east-1`. Python must be 3.10 to 3.13: on 3.14 pip installs an old
   neatlogs without `wrap` or `trace`.
 - Backend map, all under `api/costcutter/`: `proxy/` (recording proxy:
   sessions named by the dummy key, call records under `data/jobs/`, neatlogs

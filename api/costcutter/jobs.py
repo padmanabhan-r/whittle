@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import shutil
 import subprocess
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -37,6 +38,7 @@ from costcutter.contract import (
     JobState,
     JobSummary,
     Language,
+    TERMINAL_STATES,
     Outcome,
     Projection,
     Quality,
@@ -51,6 +53,7 @@ from costcutter.proxy.store import DATA_ROOT, CallRecord, load_phase, run_path
 from costcutter.sandbox.runner import SandboxRunner
 
 EVENTS: TypeAdapter[Event] = TypeAdapter(Event)
+log = logging.getLogger("whittle.jobs")
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SAMPLES_DIR = REPO_ROOT / "samples"
 
@@ -140,6 +143,7 @@ class JobContext:
         self.lock = asyncio.Lock()
         self.dir.mkdir(parents=True, exist_ok=True)
         self._events_file = self.dir / "events.jsonl"
+        self._state_file = self.dir / "job.json"
 
     # --- events ---------------------------------------------------------
 
@@ -150,8 +154,52 @@ class JobContext:
         self.job.updated_at = event.ts
         with self._events_file.open("a", encoding="utf-8") as handle:
             handle.write(event.model_dump_json() + "\n")
+        self.save()
         self.changed.set()
         return event
+
+    # --- persistence ----------------------------------------------------
+    # Everything a finished job needs to be read back after a restart lives under
+    # its folder: the events, the clone, the call records, and this snapshot of
+    # the rest. The model key is never written.
+
+    def save(self) -> None:
+        snapshot = {
+            "job": self.job.model_dump(mode="json"),
+            "tasks": [asdict(t) for t in self.tasks],
+            "command": self.command,
+            "language": self.language.value,
+            "provider": self.provider,
+            "expect_known": self.expect_known,
+            "base_commit": self.base_commit,
+            "kept": self.kept,
+            "steps": self.steps,
+            "findings": [f.model_dump(mode="json") for f in self.findings],
+            "phases": {name: [_run_to_dict(run) for run in phase.runs] for name, phase in self.phases.items()},
+        }
+        tmp = self._state_file.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(snapshot), encoding="utf-8")
+        tmp.replace(self._state_file)
+
+    @classmethod
+    def restore(cls, folder: Path) -> "JobContext":
+        data = json.loads((folder / "job.json").read_text(encoding="utf-8"))
+        job = Job.model_validate(data["job"])
+        tasks = [Task(**t) for t in data["tasks"]]
+        ctx = cls(job, tasks, data["command"], Language(data["language"]), data["provider"], None, data["expect_known"])
+        ctx.base_commit = data["base_commit"]
+        ctx.kept = list(data["kept"])
+        ctx.steps = int(data.get("steps", 0))
+        ctx.findings = [Finding.model_validate(f) for f in data["findings"]]
+        by_id = {t.id: t for t in tasks}
+        for name, runs in data["phases"].items():
+            records = load_phase(job.id, name)
+            ctx.phases[name] = PhaseResult(name, [_run_from_dict(r, by_id, records.get(r["task_id"], [])) for r in runs])
+        events_file = folder / "events.jsonl"
+        if events_file.exists():
+            with events_file.open(encoding="utf-8") as handle:
+                ctx.events = [EVENTS.validate_json(line) for line in handle if line.strip()]
+        return ctx
 
     def set_state(self, state: JobState) -> None:
         if state is self.job.state:
@@ -194,6 +242,20 @@ class JobContext:
         return Diff(base_commit=self.base_commit, branch="whittle/cut-agent-cost", files=files, unified=unified)
 
 
+def _run_to_dict(run: RunResult) -> dict[str, Any]:
+    return {
+        "task_id": run.task.id, "exit_code": run.exit_code, "answer": run.answer, "stderr": run.stderr[-4000:],
+        "trace_id": run.trace_id, "cost_usd": run.cost_usd, "duration_ms": run.duration_ms,
+        "score": asdict(run.score) if run.score else None,
+    }
+
+
+def _run_from_dict(data: dict[str, Any], tasks: dict[str, Task], records: list[CallRecord]) -> RunResult:
+    task = tasks.get(data["task_id"]) or Task(data["task_id"], "")
+    score = TaskScore(**data["score"]) if data.get("score") else None
+    return RunResult(task, data["exit_code"], data["answer"], data["stderr"], records, data["trace_id"], data["cost_usd"], data["duration_ms"], score)
+
+
 class JobRunner:
     """Creates jobs and drives them. One job runs at a time; the sandbox is shared."""
 
@@ -227,6 +289,25 @@ class JobRunner:
         return out
 
     # --- create -----------------------------------------------------------
+
+    def load_saved(self) -> int:
+        """Read back the jobs saved under the data folder. A job that was still running
+        when the server stopped is marked failed, since its sandbox and sessions are gone."""
+        folder = DATA_ROOT / "jobs"
+        if not folder.is_dir():
+            return 0
+        loaded = 0
+        for path in sorted(folder.glob("job_*/job.json")):
+            try:
+                ctx = JobContext.restore(path.parent)
+            except Exception as exc:  # a half-written or older snapshot; skip it, keep the server up
+                log.warning("could not restore %s: %s", path.parent.name, exc)
+                continue
+            if ctx.job.state not in TERMINAL_STATES:
+                ctx.fail("server_restarted", "The server restarted while this job was running. Start it again.")
+            self.jobs[ctx.job.id] = ctx
+            loaded += 1
+        return loaded
 
     def create(self, body: JobCreate) -> Job:
         job_id = f"job_{uuid.uuid4().hex[:12]}"

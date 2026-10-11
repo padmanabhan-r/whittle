@@ -7,6 +7,7 @@ The sandbox reaches the proxy at http://host.docker.internal:<port>/proxy.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 from collections.abc import AsyncIterator
 
@@ -64,6 +65,10 @@ def create_app() -> FastAPI:
         proxy_url_for_sandbox=os.environ.get("WHITTLE_SANDBOX_PROXY_URL") or None,
         fixer=lambda ctx, finding: fix_finding(ctx, finding, ctx.step),
     )
+
+    restored = runner.load_saved()
+    if restored:
+        logging.getLogger("whittle").info("restored %d saved job(s)", restored)
 
     app = FastAPI(title="Whittle API", version="0.1.0")
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["Content-Disposition"])

@@ -6,7 +6,8 @@ import subprocess
 from pathlib import Path
 
 from costcutter.contract import Job, JobState, JobSummary, Language, SampleSource
-from costcutter.jobs import JobContext, PhaseResult, RunResult, Task, _shell_words
+from costcutter.evaluate import TaskScore
+from costcutter.jobs import JobContext, JobRunner, PhaseResult, RunResult, Task, _shell_words
 from costcutter import jobs as jobs_module
 from costcutter.proxy import store as store_module
 from costcutter.proxy.store import CallRecord
@@ -44,3 +45,38 @@ def test_phase_totals_add_up():
     assert totals.runs == 2 and totals.llm_calls == 4 and totals.tool_calls == 4
     assert totals.cost_usd == 0.06 and totals.cost_per_run_usd == 0.03
     assert totals.cache_read_tokens == 200 and run.total_tokens == 320
+
+
+def test_job_restores_from_its_folder(tmp_path, monkeypatch):
+    """A finished job reads back after a restart: record, events, findings and phases."""
+    monkeypatch.setattr(store_module, "DATA_ROOT", tmp_path)
+    monkeypatch.setattr(jobs_module, "DATA_ROOT", tmp_path)
+    job = Job(id="job_r", state=JobState.QUEUED, source=SampleSource(type="sample", sample_id="x"), created_at="", updated_at="", summary=JobSummary())
+    ctx = JobContext(job, [Task("task-1", "q", ["a"])], "python run.py", Language.PYTHON, "anthropic", "sk-never-saved", True)
+    ctx.base_commit = "abc123"
+    ctx.set_state(JobState.BASELINE)
+    run = RunResult(ctx.tasks[0], 0, "answer a", "", [], "trace1", 0.01, 500, TaskScore("task-1", 1.0, True, "ok"))
+    ctx.phases["baseline"] = PhaseResult("baseline", [run])
+    ctx.kept.append("f1")
+    ctx.set_state(JobState.DONE)
+
+    assert "sk-never-saved" not in (tmp_path / "jobs" / "job_r" / "job.json").read_text()
+    back = JobContext.restore(tmp_path / "jobs" / "job_r")
+    assert back.job.state is JobState.DONE and back.api_key is None
+    assert [e.type for e in back.events] == ["job.state", "job.state"]
+    assert back.base_commit == "abc123" and back.kept == ["f1"]
+    assert back.phases["baseline"].runs[0].answer == "answer a"
+    assert back.phases["baseline"].runs[0].score.passed is True
+    assert back.tasks[0].expect == ["a"]
+
+
+def test_loader_fails_a_job_that_was_running(tmp_path, monkeypatch):
+    monkeypatch.setattr(store_module, "DATA_ROOT", tmp_path)
+    monkeypatch.setattr(jobs_module, "DATA_ROOT", tmp_path)
+    job = Job(id="job_s", state=JobState.QUEUED, source=SampleSource(type="sample", sample_id="x"), created_at="", updated_at="", summary=JobSummary())
+    ctx = JobContext(job, [Task("task-1", "q")], "python run.py", Language.PYTHON, "anthropic", None, True)
+    ctx.set_state(JobState.FIXING)
+    runner = JobRunner(open_session=None, close_session=None)
+    assert runner.load_saved() == 1
+    assert runner.jobs["job_s"].job.state is JobState.FAILED
+    assert runner.jobs["job_s"].job.error.code == "server_restarted"

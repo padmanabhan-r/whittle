@@ -55,7 +55,7 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 
 ## Submission
 
-- **Window:** Monday 12 October 2026, 7:00 PM to 11:55 PM IST.
+- **Window:** Monday 12 October 2026, 7:00 PM to 11:55 PM IST. The site calls the close "planned" and says the final cutoff is announced on Discord (checked 11 October).
 - **Late submissions will not be judged.**
 - Submit as a public **quote post of the official neatlogs submission post on X**.
 - The post must include: team, name, project, public repository link, demo link.
@@ -129,12 +129,13 @@ Source: https://neatlogs.com/hackathon and the organisers' Luma messages, read o
 
 ## Free credits
 
-- AWS credits: first 200 teams to complete web check-in.
+- AWS credits: one $25 allowance per team, first 350 teams to complete web check-in (the site said 200 on 9 October; 350 on 11 October). Bedrock is not included.
+- LiteLLM: one shared $20 model budget per checked-in team (Nova and Claude through one OpenAI-compatible key), sent to the team leader's check-in email.
 - Crustdata: 5,000 credits for everyone participating.
 
 ## Not published yet
 
-- The official X post to quote for submission.
+- The official X post to quote for submission (still "Submissions opening soon" on 11 October, 5 PM IST).
 - The full workshop schedule.
 - How to redeem the AWS and Crustdata credits.
 

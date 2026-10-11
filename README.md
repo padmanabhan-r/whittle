@@ -132,9 +132,28 @@ Take any one away and part of the product stops working.
 | **Entire** | `entire graph search` finds the line to fix in a repository Whittle has never seen. Every commit here carries an `Entire-Checkpoint` | Findings cannot be pinned to code, so nothing can be fixed |
 | **cfo.ai** | Turned the measured cost per run into [a business plan](business/plan.md): $49 a repository a month, break-even at about five | The saving stays a number per run, with no price or runway |
 
-![One run of the agent as a neatlogs trace](assets/screens/neatlogs-trace.jpg)
+One task of the Python sample as neatlogs saw it, before and after the kept
+fixes. Six model calls became five, the first moved from Opus to Haiku, the same
+2,124-token request fell from $0.0077 to $0.0026 once the cache could hit, and
+the run went from $0.0296 to $0.0094
+([before](https://app.neatlogs.com/traces/c0cce5b378185e2e7562705f0b64c72b),
+[after](https://app.neatlogs.com/traces/6f88917a54da7d28d857385d937056c3);
+the links open for project members, so the same traces are in
+[docs/evidence](docs/evidence/neatlogs.md)).
+
+| Before | After |
+|---|---|
+| ![Baseline task 1 trace](docs/evidence/neatlogs-baseline-task-1.jpg) | ![After task 1 trace](docs/evidence/neatlogs-after-task-1.jpg) |
 
 ![The business plan in cfo.ai](business/cfo-ai-plan.jpg)
+
+## Evidence
+
+Everything the judges ask for, in one place: [the devlog](devlog.md) with its
+evidence table and every commit's story; [neatlogs traces](docs/evidence/neatlogs.md),
+a before and after pair with the numbers; [Entire](docs/evidence/entire.md),
+checkpoints and real graph output; [the business plan](business/plan.md) from
+cfo.ai; and [the submission checklist](docs/submission.md).
 
 ## Run it yourself
 
@@ -192,3 +211,7 @@ cd api && uv sync && uv run pytest   # backend tests
 cd cli && npm test                   # CLI tests
 cd web && npm install && npm run build
 ```
+
+## License
+
+MIT. See `LICENSE`.

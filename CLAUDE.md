@@ -229,25 +229,6 @@ for run numbers, and **Shared:** for every public post. Link only traces that
 are safe to make public. Each update ends by listing the evidence rows still
 missing.
 
-## Before the first commit
-
-Done by the user, not automatically. Remove this section once complete.
-
-1. Confirm the start time on Discord. Do the web check-in:
-   https://neatlogs.com/hackathon/check-in
-2. Create the public GitHub repository and add it as `origin`.
-3. Install Entire: `brew install --cask entireio/tap/entire`, then
-   `entire enable --agent claude-code` (check the name with
-   `entire agent list`). Set `"commit_linking": "always"` in
-   `.entire/settings.json` so commits made by the agent do not wait on a prompt.
-4. entire-graph: `entire plugin install graph`, then
-   `entire graph init-agents --repo .` and commit the files it writes.
-5. neatlogs: create a project at https://app.neatlogs.com and put
-   `NEATLOGS_API_KEY` in `.env.local`.
-6. cfo.ai: sign up at https://cfo.ai/neathacks. A card is required; the site
-   says to cancel the subscription in Settings, Billing straight after.
-7. Pick the idea, then `/devlog start`.
-
 <!-- entire-graph:begin -->
 This repo has the entire-graph code graph installed. Before exploring code with
 grep/find/whole-file reads, read .entire/graph-agent.md — resolution-first guidance

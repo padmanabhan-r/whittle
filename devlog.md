@@ -8,7 +8,7 @@
 - **Status:** working end to end on the sample agents, in the sandbox and from the command-line tool on the developer's machine; pull requests and deployment still open
 - **Live app:** not deployed yet; the domain is https://whittleai.site (bought 11 Oct, deployment with Sethuraman, steps in `docs/deploy.md`)
 - **Demo:** not recorded
-- **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
+- **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public on 12 October before the post)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
 - **Hosting:** not deployed
 - **Auth:** none
@@ -20,15 +20,15 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T16:36:00+05:30
+- **Last updated:** 2026-10-11T17:05:00+05:30
 
 ## Evidence
 
 | Claim | Evidence | Status |
 |---|---|---|
 | The agent improved | Measured after the cost fix: the Python sample $0.0300 to $0.0095 per run, 68.2% lower, 5 fixes kept (`job_3e1b3cc39865`); the TypeScript sample $0.0128 to $0.0039, 69.4% (`job_166ea0202321`); answer quality 1.00 on both sides. Earlier figures of 77% to 82% were overstated by a pricing fault, see the 12:50 entry. Whittle's own agent, caching off then on: $0.0440 against $0.0359 on one fix | partial |
-| Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
-| Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
+| Used neatlogs | Every sandboxed run is one trace at `https://app.neatlogs.com/traces/<id>` (format confirmed in the app on 11 Oct). The measured Python sample, task 1: baseline https://app.neatlogs.com/traces/c0cce5b378185e2e7562705f0b64c72b (6 calls, $0.0296) and after the kept fixes https://app.neatlogs.com/traces/6f88917a54da7d28d857385d937056c3 ($0.0094), both from `job_3e1b3cc39865`. The links open for members of the project; screenshots are in the README (`assets/screens/neatlogs-trace.jpg`) and `docs/evidence/` | have |
+| Used Entire | 59 checkpoints on `main` (`Entire-Checkpoint` trailers from `f4d5dcb` on); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md` | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane | partial |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
@@ -774,7 +774,7 @@ The command-line tool is on npm, and the repository was tidied for readers.
 - **Checked:** `uv run pytest`, 42 passed; `npm test` in `cli/`, 8 passed.
 - **Built with:** Claude Code, claude-opus-5-5.
 
-### 2026-10-11 - working tree
+### 2026-10-11 - 4426c97
 The scan now works out how to run the code itself, and tries it. Before this,
 a repository whose model calls sit behind a server, such as a Next.js app, ended
 the scan with "enter the command if you know it". Now the agent must arrive at a
@@ -834,8 +834,31 @@ job (`run.files`) and is excluded from the diff, so it never reaches a pull requ
   test only.
 - **Built with:** Claude Code, claude-fable-5-1.
 
-Evidence rows still missing: none are empty. Used neatlogs, used Entire,
-recovers from failures and built in public are marked partial.
+### 2026-10-11 - working tree
+Submission packaging, no product code. The repository now carries the
+evidence the judges ask for, in files they can open: `docs/evidence/neatlogs.md`
+with a before and after trace pair for one task (links and screenshots, since
+neatlogs has no public share link), `docs/evidence/entire.md` with real
+checkpoint, graph search, impact and stats output, and `docs/submission.md`,
+a checklist of what is left and who does it. The README links all of it from a
+new Evidence section and shows the trace pair. An MIT license is at the root and
+in the npm package's folder, and `cli/package.json` says MIT instead of
+UNLICENSED (the registry copy still says UNLICENSED until the next publish).
+
+- **Decision:** MIT rather than AGPL. The product's value is the hosted
+  service and the measured history, not the code, and a permissive license
+  removes every question about trying the CLI (user's decision).
+- **Evidence:** the trace link format is `https://app.neatlogs.com/traces/<id>`,
+  confirmed in the app; baseline task 1 of `job_3e1b3cc39865` is 6 calls,
+  16.7 s, $0.0296, and after the kept fixes 5 calls, 12.2 s, $0.0094.
+- **Changed:** `docs/neathack-rules.md` refreshed from the live site (AWS
+  allowance to the first 350 teams, a shared LiteLLM budget, the close
+  "planned" with the cutoff on Discord); the setup section was removed from
+  `CLAUDE.md` because registration, check-in and the cfo.ai signup are done.
+- **Built with:** Claude Code, claude-fable-5-1.
+
+Evidence rows still missing: none. Built in public is marked have with four
+posts; more are planned before the submission.
 
 ## Submission
 

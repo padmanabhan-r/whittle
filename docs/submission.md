@@ -25,9 +25,11 @@ Padmanabhan:
 - [ ] Watch `video/demo/final/whittle-ai-demo-paddy.mp4` once, end to end,
       with sound and headphones. Only a person can judge the voice, the music,
       the sound effects (are the pops and ticks audible, does the typing read
-      as typing) and the end card in motion. It is 2:37, under the three-minute
+      as typing) and the end card in motion. It is 2:45, under the three-minute
       limit, and has a section each on neatlogs, Entire and cfo.ai. A second
-      cut on the Chris voice (2:39) is beside it; pick one to upload.
+      cut on the Chris voice (2:50) is beside it; pick one to upload. The scan
+      section was re-recorded on 11 Oct, 8:50 PM, on the current interface, and
+      the narration is a new take, so listen to the whole film again.
 - [ ] Upload the video to YouTube, public or unlisted. X cuts standard
       accounts off at 2:20 for native video, so the post links to YouTube.
       Put the link in the devlog header (`Demo`) and the README.
@@ -127,6 +129,6 @@ After posting:
 | cfo.ai signup, subscription cancelled after | done |
 | Public repository link | outstanding: private until Monday |
 | Live app | done: https://whittleai.site, live with a Let's Encrypt certificate since 11 Oct, 7:30 PM; a full scan through the live site still to be run |
-| Demo video under three minutes, all three tools | two cuts with sound effects rendered 11 Oct 17:36 (Paddy 2:37, Chris 2:39); to be watched, one chosen and uploaded |
+| Demo video under three minutes, all three tools | two cuts rendered 11 Oct 8:50 PM with the current interface and sound effects (Paddy 2:45, Chris 2:50); to be listened to, one chosen and uploaded |
 | Business plan in the repository | done |
 | Quote post on X | outstanding: window opens Monday 7:00 PM |

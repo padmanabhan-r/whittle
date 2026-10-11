@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T19:55:00+05:30
+- **Last updated:** 2026-10-11T20:53:00+05:30
 
 ## Evidence
 
@@ -30,7 +30,7 @@
 | Used neatlogs | Every sandboxed run is one trace at `https://app.neatlogs.com/traces/<id>` (format confirmed in the app on 11 Oct). The measured Python sample, task 1: baseline https://app.neatlogs.com/traces/c0cce5b378185e2e7562705f0b64c72b (6 calls, $0.0296) and after the kept fixes https://app.neatlogs.com/traces/6f88917a54da7d28d857385d937056c3 ($0.0094), both from `job_3e1b3cc39865`. The links open for members of the project; screenshots are in the README (`assets/screens/neatlogs-trace.jpg`) and `docs/evidence/` | have |
 | Used Entire | 62 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` on); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
-| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane | partial |
+| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
 | Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `8b4ef0a` at 6:46 PM IST on 11 October. 77 commits after merging the two latest main branches, none before the start | done |
 
@@ -895,7 +895,7 @@ commit `8b4ef0a`, but have not yet been pushed or verified on EC2.
   deployment change, and verify Caddy's HTTPS certificate, UI/API routes, and
   app availability after the Actions job completes.
 
-### 2026-10-11 - working tree
+### 2026-10-11 - 244cd1c
 The license changed before anything was published under the old one. The
 repository is now source-available under the Functional Source License 1.1
 (`LICENSE.md`, the official FSL-1.1-MIT text): anyone may read, run and modify
@@ -954,11 +954,48 @@ restarts the API as a systemd service. The build and deployment are wired to
 `WHITTLE_PUBLIC_URL`; EC2 deployment and external HTTPS verification remain
 pending.
 
-Evidence rows still incomplete: the agent-improved comparison, public
-failure-recovery evidence, and built-in-public evidence remain marked partial.
-The app is available by Elastic IP; verify the custom HTTPS domain after the
-domain deployment runs. The demo video and submission quote post are
-outstanding.
+### 2026-10-11 - 8160aad
+The live site was tried the way a visitor would use it, and three things it
+showed were fixed. A scan gave no sign it was still working after its first
+findings appeared; a strip now says which of five stages it is in, what it is
+doing and for how long, and stays pinned while the page scrolls (`132695f`). A
+scan on the server could not install a pnpm project, because the server still
+held a sandbox image built before the Dockerfile changed; images are now named
+by a hash of their Dockerfile, so a changed one is rebuilt where it is needed
+(`419f0ca`). And a job that could not be measured showed an error code; each way
+a job can stop now says what happened in plain words, and a key that belongs to
+the other provider is refused before anything runs (`8160aad`).
+
+- **Evidence:** scans run through https://whittleai.site, in a browser and by
+  its API. `job_a793baeec18d` showed the install failure on the server; after
+  the fix, `job_5ff5ad24dcf3` installed in 12.5 seconds, failed its first try in
+  the sandbox, rewrote its entry point and reached a model call on the second.
+- **Evidence:** a measured job started from a verified scan, with an invalid key
+  on purpose (`job_487478b8128c`, local): the written entry point reached the
+  clone and ran, the provider refused the key, and the job stopped in twelve
+  seconds with "The model key was refused" and "Nothing was charged". This also
+  closes the earlier "not verified" on the entry point reaching a measured job.
+- **Failed:** four sandbox tests failed on macOS after a CI helper compared the
+  temporary folder by an unresolved path. Fixed by resolving both sides.
+- **Changed:** the product no longer says a scan runs nothing; it says one dry
+  run in the sandbox, with no key. `CONTRIBUTIONS.md` sets out who built what,
+  from the commit history.
+- **Changed:** the demo video's scan section was recorded again on the current
+  interface, on the same repository: the progress strip, the agent's three
+  tries in the sandbox (two failures, each followed by a rewritten script),
+  and the dry run. The narration line "nothing was run" was replaced, which
+  meant a new narration take; both cuts were rendered again (2:45 and 2:50).
+  Neither has been listened to by a person yet.
+- **Tests:** `uv run pytest`, 49 passed; `npx tsc --noEmit` and `npm run build`
+  in `web/`, clean. Every push since `fe4c68d` ran the checks and the EC2 deploy
+  in GitHub Actions; the last five runs succeeded.
+- **Not verified:** a full measure-and-fix job with a working key on the live
+  site; the daily spend limit for the open site does not exist yet.
+- **Built with:** Claude Code, claude-fable-5-1 and claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public is marked have with four
+posts; four more and the submission are drafted. The video link is still to
+come.
 
 ## Submission
 
@@ -967,6 +1004,6 @@ outstanding.
 | Team | done: Attention Heads (Padmanabhan and Sethuraman) |
 | Project name | done: Whittle AI |
 | Public repo link | outstanding (repository exists but is private) |
-| Demo link | outstanding |
-| Video under three minutes covering neatlogs, Entire and cfo.ai | outstanding |
+| Demo link | outstanding: the live app is at https://whittleai.site; the video is rendered and not yet uploaded |
+| Video under three minutes covering neatlogs, Entire and cfo.ai | rendered (2:45), to be listened to and uploaded |
 | Quote post on X | outstanding |

@@ -11,7 +11,7 @@ if [[ ! "$WHITTLE_API_URL" =~ ^https?://[A-Za-z0-9.-]+:8787$ ]]; then
   exit 1
 fi
 
-for command in curl git npm tmux uv; do
+for command in curl git npm sudo systemctl uv; do
   command -v "$command" >/dev/null || {
     echo "Required deployment command is missing: $command"
     exit 1
@@ -35,9 +35,30 @@ git -C "$DEPLOY_DIR" pull --ff-only --quiet origin main
 (cd "$DEPLOY_DIR/web" && npm ci)
 (cd "$DEPLOY_DIR/web" && VITE_API_URL="$WHITTLE_API_URL" npm run build)
 
-tmux kill-session -t whittle-main 2>/dev/null || true
-printf -v start_command 'VITE_API_URL=%q WHITTLE_WEB_MODE=preview bash start.sh' "$WHITTLE_API_URL"
-tmux new-session -d -s whittle-main -c "$DEPLOY_DIR" "$start_command"
+sudo tee /etc/systemd/system/whittle.service >/dev/null <<UNIT
+[Unit]
+Description=Whittle AI
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=$DEPLOY_DIR
+Environment="VITE_API_URL=$WHITTLE_API_URL"
+Environment="WHITTLE_WEB_MODE=preview"
+Environment="PATH=/home/ubuntu/.local/bin:/home/ubuntu/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/bin/bash $DEPLOY_DIR/start.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+sudo systemctl daemon-reload
+sudo systemctl enable whittle.service
+sudo systemctl restart whittle.service
 
 api_url="http://127.0.0.1:${API_PORT:-8787}"
 web_url="http://127.0.0.1:${WEB_PORT:-5173}"
@@ -52,5 +73,6 @@ for attempt in {1..30}; do
 done
 
 echo "Deployment health checks failed. Recent Whittle output:"
-tmux capture-pane -pt whittle-main -S -80 || true
+sudo systemctl status whittle.service --no-pager || true
+sudo journalctl -u whittle.service -n 80 --no-pager || true
 exit 1

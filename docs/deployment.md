@@ -50,15 +50,15 @@ Do not add `.env.local` or provider keys to GitHub Actions variables or secrets.
 
 After checks pass on a push to `main`, the EC2 job fast-forwards the deployment
 checkout, syncs backend dependencies, installs frontend dependencies, builds
-the UI with `WHITTLE_API_URL`, and restarts the `whittle-main` tmux session in
-production-preview mode. It verifies the local UI, API docs, and proxy health
-endpoints. Existing ignored job data and `.env.local` stay in place. If the
-checkout has local tracked changes or cannot fast-forward, deployment stops
-instead of overwriting them.
+the UI with `WHITTLE_API_URL`, writes and restarts the `whittle.service` system
+service in production-preview mode, and verifies the local UI, API docs, and
+proxy health endpoints. Existing ignored job data and `.env.local` stay in
+place. If the checkout has local tracked changes or cannot fast-forward,
+deployment stops instead of overwriting them.
 
 Pull-request workflows run only on GitHub-hosted workers. The EC2 runner must
 remain restricted to trusted `main`-branch deployment code; do not add
 pull-request jobs to it. When EC2 is stopped, the runner is offline and a
 deployment job waits for it to come back online, subject to GitHub's queue
-timeout. The running app itself must also be started after an instance reboot
-unless a separate boot service is configured.
+timeout. Whittle runs as the `whittle.service` system service, independent of
+the runner process, and is enabled to start after an instance reboot.

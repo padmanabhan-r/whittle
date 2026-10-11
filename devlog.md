@@ -864,10 +864,12 @@ posts; more are planned before the submission.
 Deployed Whittle on the EC2 Elastic IP and started its API and UI with the new
 public API address; the user confirmed the landing page and tests are
 reachable. Added push-to-main CI and EC2 deployment automation in commit
-`fe4c68d`, but its first Actions run stopped before deployment: 43 tests passed
+`fe4c68d`. The first Actions run stopped before deployment: 43 tests passed
 and four Docker sandbox tests failed because the test helper tried to change
-permissions on `/tmp`. The helper now changes only pytest-owned temporary
-directories; the focused sandbox test file passes locally.
+permissions on `/tmp`. That helper was corrected and the user reports both
+checks and deployment succeeded. The next check found the app was no longer
+listening after the deploy job ended: the runner had cleaned up the detached
+tmux server it spawned.
 
 - **Decision:** Keep the deployment job behind passing tests, so a failed
   change does not replace the live app.
@@ -875,13 +877,21 @@ directories; the focused sandbox test file passes locally.
   `PermissionError` while changing `/tmp`; the EC2 deploy job was skipped.
 - **Fixed:** Bound the test permission adjustment to paths beneath Python's
   temporary directory root; `pytest tests/test_sandbox_runner.py` passed, 4
-  tests, on the local Windows/Docker environment. The Linux Actions rerun is
-  still pending.
-- **Next:** Push the test fix to `main`; confirm CI passes and the EC2 deploy
-  job restarts and health-checks the UI and API.
+  tests, on the local Windows/Docker environment. GitHub Actions checks and
+  the EC2 deploy job subsequently passed, as reported by the user.
+- **Failed:** After the successful deploy, both public app ports refused
+  connections; EC2 showed no tmux server or local listeners, while the runner
+  service remained active.
+- **Fixed:** Changed the pending deployment script to install and restart
+  Whittle as an enabled systemd service, independent of the runner job. Shell
+  syntax and whitespace checks pass; the EC2 service-based deployment has not
+  yet been run.
+- **Next:** Restart the existing app for immediate access, then push the
+  systemd deployment change and confirm the app stays up after the Actions job
+  completes and after an EC2 reboot.
 
 Evidence rows still missing: none. Built in public is marked have with four
-posts; the deployment workflow's successful Actions run is still pending.
+posts; verify the deployment remains available after the workflow exits.
 
 ## Submission
 

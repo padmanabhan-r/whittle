@@ -3,9 +3,9 @@
 - **Project:** Whittle
 - **Event:** neatHack
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
-- **What it does:** Web UI and mock API ship today; backend adds a recording model proxy, a Docker sandbox runner, and a wasteful Python sample agent. The fix loop and real job server are not wired yet (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
+- **What it does:** Runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** working prototype (UI + mock; proxy and sample agent in tree, uncommitted on laptop at handover)
+- **Status:** working end to end on the sample agent; traces, pull requests and deployment still open
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
@@ -13,24 +13,24 @@
 - **Hosting:** not deployed
 - **Auth:** none
 - **External services:** none
-- **AI models (product):** none in code yet. The agent's provider and model will be set in the environment; each developer picks their own (`CLAUDE.md`, "Model calls")
+- **AI models (product):** Whittle's agent uses `WHITTLE_PROVIDER`/`WHITTLE_MODEL` from the environment (`api/costcutter/agent/llm.py`); the first real job ran it on `claude-sonnet-5-5`. The sample agent uses `claude-sonnet-5-5` and `claude-opus-5-5` for its classify step
 - **AI models (build):** Cursor Agent (Composer) for Sethuraman's Saturday night backend session; earlier entries used Claude Code with claude-opus-5-5
-- **neatlogs:** recording proxy initializes the SDK and emits a WORKFLOW span per proxied session (`api/costcutter/proxy/recorder.py`). Sample agents inherit traces when pointed at the proxy. No public trace URLs logged yet for tonight's runs
-- **Entire:** configured, not yet producing checkpoints. `.entire/settings.json` has `enabled: true` and `commit_linking: always`, and entire-graph's instructions are checked in with their managed blocks in `CLAUDE.md` and `AGENTS.md`. `.cursor/hooks.json` calls Entire through `cmd.exe`, so it works on Windows only, and the `entire` CLI is not installed on the second machine
+- **neatlogs:** the proxy posts one trace per sandboxed run by HTTP trace injection (`api/costcutter/proxy/recorder.py`, needs `NEATLOGS_WRITE_KEY`); Whittle's own agent client is wrapped with `neatlogs.wrap` (`api/costcutter/agent/llm.py`). No trace link captured yet
+- **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-10T23:10:00+05:30
+- **Last updated:** 2026-10-11T07:40:00+05:30
 
 ## Evidence
 
 | Claim | Evidence | Status |
 |---|---|---|
-| The agent improved | none yet | missing |
-| Used neatlogs | proxy recorder in code; trace URLs still to paste after smoke/sample run | missing |
-| Used Entire | settings and entire-graph instructions are checked in; no checkpoint and no entire-graph output yet | missing |
+| The agent improved | the fixing agent's own runs are not yet traced with caching off and on | missing |
+| Used neatlogs | proxy traces built on HTTP injection, waiting on the write key; no link yet | missing |
+| Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | none yet | missing |
-| Recovers from failures | none yet | missing |
+| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper (events in `data/`, not public) | partial |
 | Built in public | none yet | missing |
 | Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
 
@@ -405,7 +405,7 @@ Dropped the rule that fixed one model for the agent.
 
 Evidence rows still missing: all seven.
 
-### 2026-10-10 - working tree (Saturday night backend)
+### 2026-10-10 - 0db8d78 (Saturday night backend, Sethuraman)
 Recording proxy, sandbox runner, Python sample agent, and morning handover doc.
 
 - **Added:** `api/costcutter/proxy/` — FastAPI forwarder for Anthropic and OpenAI-compatible APIs, dummy-key swap, spend cap, streaming, `POST /_whittle/sessions`, neatlogs recorder and pricing.
@@ -418,6 +418,48 @@ Recording proxy, sandbox runner, Python sample agent, and morning handover doc.
 - **Built with:** Cursor Agent (Composer), Sethuraman session.
 
 Evidence rows still missing: all seven (neatlogs row needs trace URLs; agent improved, recovery, cfo.ai, built in public still open).
+
+### 2026-10-11 - working tree
+Merged Sethuraman's night work and built the rest of the backend on it. One
+real job ran end to end.
+
+- **Merged:** his proxy, sandbox runner, sample and tests (`0db8d78`, squashed
+  under his name without the editor's attribution trailer). All his tests pass
+  here, including the two Docker tests he could not run.
+- **Fixed:** his price table (Opus 5.5 $4/$20, Sonnet 5.5 $2/$10, Haiku 5.5
+  $0.10/$0.50, from Anthropic's rate card) and the dev dependency group so
+  `uv run pytest` works.
+- **Added:** call records for every proxied request (`proxy/store.py`);
+  sessions named by the dummy key the sandbox is given, so the user's agent
+  needs no header; streamed replies assembled into records; a sandbox install
+  step with a dependency volume; the Python sample rewritten so each kind of
+  waste shows in its model traffic; the five detectors with evidence and
+  estimated savings; the locator; the job runner; the fixing agent; the real
+  server; pull request delivery (untested).
+- **Decision:** Traces of runs are published by neatlogs' HTTP trace
+  injection, after hand-built OpenTelemetry spans stayed "pending" forever in
+  neatlogs. It needs the `nlw_` write key and the project name.
+- **Decision:** The locator pins the agent's call site in any repository by
+  grepping the clone for literal strings the recorded requests carry (tool
+  names, the model id, the system prompt's first words), then asks entire
+  graph for the symbol (user's question about large repositories).
+- **Measured:** job `job_1a5e1ef6b80e` on `research-agent-py`, 7:26 to 7:34
+  AM IST: baseline 5 runs, 30 model calls, $0.1508, $0.0302 per run; after 4
+  kept fixes, 20 calls, $0.0053 per run, 82.3% lower; answer quality 1.00 to
+  1.00 (keyword check); cache read tokens 0 to 28,170. Fix 3 (duplicate tool
+  call) was reverted: $0.0076 against $0.0076, not cheaper. The agent's model
+  was `claude-sonnet-5-5` with prompt caching on (6,791 cached tokens on one
+  fix's calls).
+- **Failed:** `neatlogs` MCP `log_trace` returned 403 for a 6-call trace;
+  manual OTel spans from both the wrap and the init pipelines never finalised.
+- **Not verified:** trace links (no write key yet); the pull request path;
+  the sandbox run step's network is still open; the UI was not clicked by
+  hand, only screenshotted against the real server.
+- **Built with:** Claude Code, claude-opus-5-5 until 6:55 AM, then
+  claude-fable-5-1.
+
+Evidence rows still missing: the agent improved, used neatlogs (links),
+used cfo.ai, built in public, written during the hackathon.
 
 ## Submission
 

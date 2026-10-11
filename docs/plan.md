@@ -3,88 +3,53 @@
 The design this plan builds is in
 `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`. Read it first.
 
-## Where things stand (Saturday 10 October, ~11 PM IST)
+## Where things stand (Sunday 11 October, 7:40 AM IST)
 
-Read **`docs/handover.md`** first for commands, env vars and gaps. This table is the summary.
+Read this first. `docs/handover.md` is Sethuraman's Saturday-night note and is
+superseded by this section.
 
 | Piece | State | Where |
 |---|---|---|
-| Phase 0 spikes | Done, except cfo.ai from a server (blocked on signup) | `spikes/ongoing.md`, `devlog.md` |
-| API contract | Done | `docs/api-contract.md`, `api/costcutter/contract.py` |
-| Mock server | Done, 6 mock tests pass | `api/costcutter/mock/` |
-| Web UI | Done against the mock | `web/` |
-| Recording proxy | **Built; live trace link pending** | `api/costcutter/proxy/`, `api/scripts/proxy_smoke.py` |
-| Sandbox runner | **Partial** (Python image + runner; install/run script TBD) | `api/costcutter/sandbox/`, `sandbox/python.Dockerfile` |
-| Sample agents | **Python scaffold** (W1–W5 in code; baselines not batched) | `samples/research-agent-py/` |
-| Detectors | Not started | `api/costcutter/analyzers/` |
-| Agent loop | Not started | `api/costcutter/agent/` |
-| Real API server | Not started | `api/costcutter/server.py` |
-| Pull request, deployment | Not started | see below |
+| Phase 0 spikes | Done | `spikes/`, `devlog.md` |
+| API contract and mock server | Done, tests pass | `docs/api-contract.md`, `api/costcutter/mock/` |
+| Web UI | Done; runs against the real backend | `web/` |
+| Recording proxy | **Done.** Sessions named by the dummy key, call records, spend cap, streaming | `api/costcutter/proxy/` |
+| neatlogs traces of runs | Built (HTTP trace injection); **needs `NEATLOGS_WRITE_KEY` and `NEATLOGS_PROJECT`**, untested until then | `api/costcutter/proxy/recorder.py` |
+| Sandbox runner | Done: install step into a volume, read-only run step, tests pass | `api/costcutter/sandbox/`, `sandbox/python.Dockerfile` |
+| Sample agent (Python) | Done, with `whittle.json` manifest and expected answers | `samples/research-agent-py/` |
+| Detectors and locator | Done, all five fire on the sample | `api/costcutter/analyzers/` |
+| Fixing agent | Done; provider and model from the environment | `api/costcutter/agent/` |
+| Job runner and real server | **Done; one real job ran end to end** | `api/costcutter/jobs.py`, `server.py` |
+| Pull request delivery | Written, untested; needs the bot token | `api/costcutter/delivery.py` |
+| TypeScript sample and image | Not started; cut unless time remains | |
+| Deployment to EC2 | Not started (Sethuraman) | |
+| cfo.ai business plan | Not started (Padmanabhan) | `business/` |
 
-Run everything that exists with `./start.sh` from the root.
+**Measured on the first real job** (11 October, 7:26 to 7:34 AM IST, sample
+`research-agent-py`, Whittle's agent on `claude-sonnet-5-5`): cost per run
+$0.0302 before, $0.0053 after, 82.3% lower; answer quality 1.00 before and
+after on the keyword check; 30 model calls per 5 runs became 20; 4 fixes kept,
+1 reverted because it did not make the run cheaper. At 20,000 runs a month
+that is $603 to $107.
 
-### What to build next, in order
+Run everything with `./start.sh` (Docker running, keys in `.env.local`).
 
-Each step has a check that says it is finished. Do not start a step before the
-one above it passes its check.
+### What is left, in order
 
-1. **Recording proxy.** Forward Anthropic and OpenAI-compatible calls, swap the
-   dummy key for the real one, record request and response, enforce a spend
-   cap, and emit one neatlogs trace per run (spike S2 shows how).
-   *Done when:* a script pointed at the proxy with `ANTHROPIC_BASE_URL` gets a
-   normal answer, and the call appears in neatlogs with tokens, cache tokens
-   and cost.
-2. **Sandbox runner.** Install step with the package registry only; run step
-   with the proxy only. Limits as in the design.
-   *Done when:* a container that tries to reach the internet or read the key
-   fails at both, and a normal agent run completes.
-3. **Two sample agents** with the five kinds of waste built in honestly, five
-   tasks each, and a check of each answer. Decide whether each lives in its own
-   public repo, so the demo's pull request is real.
-   *Done when:* each runs in the sandbox and its baseline trace is in neatlogs.
-   **Keep the trace links: they are the first evidence.**
-4. **Detectors W1 to W5** with unit tests on recorded traces.
-   *Done when:* both samples yield the expected findings.
-5. **Agent loop**: diagnose, plan, fix, verify, revert. Provider and model
-   come from the environment (Anthropic or OpenAI-compatible; see `CLAUDE.md`,
-   "Model calls"). Caching on with an off switch where the provider has it; one
-   `WORKFLOW` root per job.
-   *Done when:* one sample goes from baseline to a verified saving unaided, and
-   the smaller-model fix is reverted on a real run.
-6. **Real API server** that emits the contract's events. The UI then works
-   unchanged: point `start.sh` at it instead of the mock.
-   *Done when:* `./start.sh` runs a real job end to end in the browser.
-7. **Pull request delivery**, then **deployment**, then evidence and the video.
-
-### Tonight's shift and the morning handover
-
-Sethuraman builds through Saturday night and hands over on Sunday morning.
-Padmanabhan then tests it end to end, polishes it and carries on from there.
-
-**Aim for tonight:** steps 1 to 4 above (proxy, sandbox, sample agents,
-detectors). **The least that makes the handover useful:** steps 1 to 3, so a
-real sample run produces a real trace. Go deep on one Python sample before
-starting the TypeScript one.
-
-**Before stopping, leave these, or the morning is spent guessing:**
-
-1. Everything committed and pushed on one branch from `main`. No work left
-   only on the laptop.
-2. `docs/handover.md`, short and factual:
-   - what works, and the exact command that shows it working;
-   - what is half-done, and the file and function where it stops;
-   - what was tried and failed, so it is not tried again;
-   - every environment variable the code now needs;
-   - the neatlogs trace links for the runs that worked.
-3. Tests for whatever is claimed to work, passing with `uv run pytest`.
-4. `./start.sh` still runs. If the real server is not ready, the mock stays
-   the default.
-5. A devlog entry (`/devlog`), with the trace links under **Evidence:**.
-
-**Rules that save the morning:** commit small and often with the
-`Entire-Checkpoint` trailer; change the contract only together with the mock,
-the document and `web/src/lib/api.ts`; if something in the plan turns out
-wrong, write down what and why instead of working around it silently.
+1. **Trace links.** Add `NEATLOGS_WRITE_KEY` (the `nlw_` ingest key) and
+   `NEATLOGS_PROJECT` to `.env.local`, run a sample job, confirm each run's
+   trace appears in neatlogs with its calls and cost. *Done when:* the Result
+   page's trace links open real traces. **Keep them: they are the evidence.**
+2. **Whittle's own agent traced.** `neatlogs.wrap` is on its client; confirm
+   its traces appear, then record one job with `WHITTLE_CACHE=off` and one
+   with caching on for the "agent improved" row.
+3. **Click through the UI by hand** on a real job; fix what jars.
+4. **Pull request delivery** once the bot token exists: a sample repo of its
+   own on GitHub, so the demo's pull request is real.
+5. **Sandbox network:** the run step still has full network. For the demo
+   claim, run the API in Docker on an internal network, or document the gap.
+6. **Deployment** to the EC2 instance (Sethuraman).
+7. **Evidence, business plan, video, submission** on Monday morning.
 
 ### What the backend must match, because the UI depends on it
 

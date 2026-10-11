@@ -317,6 +317,11 @@ class JobRunner:
             subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
             if source.ref:
                 ctx.git("checkout", "-q", source.ref)
+        # Build output must never land in the diff, whatever the repository ignores.
+        exclude = ctx.repo / ".git" / "info" / "exclude"
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        with exclude.open("a", encoding="utf-8") as handle:
+            handle.write("\n__pycache__/\n*.pyc\nnode_modules/\n.venv/\n")
         ctx.base_commit = ctx.git("rev-parse", "HEAD").stdout.strip()
         ctx.job.base_commit = ctx.base_commit
         ctx.git("checkout", "-q", "-b", "whittle/cut-agent-cost")

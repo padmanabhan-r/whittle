@@ -12,7 +12,8 @@ function who(step: Step): { label: string; cls: string } {
   if (tool.startsWith('neatlogs')) return { label: 'neatlogs', cls: 'neatlogs' }
   if (tool.startsWith('entire')) return { label: 'entire', cls: 'entire' }
   if (tool.startsWith('sandbox')) return { label: 'sandbox', cls: 'sandbox' }
-  return { label: step.kind === 'tool_result' ? 'result' : tool || 'tool', cls: '' }
+  // Any other tool is named by its family: repo.read_file is the repo at work.
+  return { label: step.kind === 'tool_result' ? 'result' : (tool.split('.')[0] || 'tool'), cls: '' }
 }
 
 export function Inspector({ view, selected }: { view: RunView; selected: string | null }) {

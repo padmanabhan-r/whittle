@@ -21,9 +21,27 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-sandbox-2496ED?style=flat-square&logo=docker&logoColor=white)
 
-[![neatlogs](https://img.shields.io/badge/traced_with-neatlogs-090a1b?style=flat-square)](https://neatlogs.com)
-[![Entire](https://img.shields.io/badge/checkpoints_by-Entire-090a1b?style=flat-square)](https://entire.io)
-[![cfo.ai](https://img.shields.io/badge/business_plan-cfo.ai-090a1b?style=flat-square)](https://cfo.ai)
+<br />
+
+<table align="center">
+  <tr>
+    <td align="center" valign="top" width="270">
+      <a href="https://neatlogs.com"><img src="assets/logos/neatlogs.png" alt="neatlogs" width="56" height="56" /></a><br />
+      <b>neatlogs</b><br />
+      <sub>The proof. Every run of the agent becomes a trace, and Whittle checks its own cost count against what neatlogs recorded</sub>
+    </td>
+    <td align="center" valign="top" width="270">
+      <a href="https://entire.io"><img src="assets/logos/entire.png" alt="Entire" width="56" height="56" /></a><br />
+      <b>Entire</b><br />
+      <sub>The memory. Its code graph finds the line to fix inside the user's repository, and every commit here carries a checkpoint</sub>
+    </td>
+    <td align="center" valign="top" width="270">
+      <a href="https://cfo.ai"><img src="assets/logos/cfo-ai.png" alt="cfo.ai" width="56" height="56" /></a><br />
+      <b>cfo.ai</b><br />
+      <sub>The business. It turned the cost per run we measured into pricing, break-even and runway</sub>
+    </td>
+  </tr>
+</table>
 
 </div>
 
@@ -92,22 +110,33 @@ time; every figure is measured from the recorded calls of that run.
 The landing page's receipt and its figures are an illustration. Every other
 screenshot is of a real job.
 
-## How it works
+## How it works, step by step
 
-1. **Baseline.** The agent runs in a Docker sandbox on a network with no route
-   to the internet. Its model calls go through a recording proxy, so every call
-   is captured with no change to the agent's code, in any language, and the
-   real API key never enters the container.
-2. **Findings.** Detectors read the recorded calls and list the waste they can
-   prove, with the calls behind each finding and the place in the code.
-3. **Fix and verify.** You choose what to fix. For each finding, Whittle's
-   agent reads the code, writes a patch, and the same tasks are rerun and
-   scored. A fix is kept only if the run is cheaper and the answers still pass.
-   Otherwise it is reverted and the earlier fixes stay.
-4. **Proof.** Cost per run before and after, a trace for every run, the diff, a
-   patch, and an optional pull request.
+You give Whittle AI one thing: a link to a public GitHub repository.
 
-The waste it looks for:
+**1. It reads the code.** Whittle clones the repository and finds every place
+that calls a model: an SDK call, a framework helper, or a plain web request to
+a provider. This works in any language, because nothing is run yet.
+
+**2. It tells you where the money goes.** Its agent reads each of those places
+and the code that calls them, then reports what is wasteful, what is already
+done well, and the change to make. Each finding points at its lines. This is
+the scan, and it needs no key and no command.
+
+**3. It runs your agent in a locked sandbox.** When you want real numbers, you
+give your model key. The agent runs in a Docker container that cannot reach the
+internet. Every model call it makes is recorded: the model, the tokens, the
+cache hits, the cost.
+
+| What it measures | From |
+|---|---|
+| Cost and tokens of every call | Whittle's own recording of each request and response |
+| A trace of every run | neatlogs, written as the run happens |
+| A second opinion on the totals | neatlogs, read back and compared with Whittle's count |
+
+**4. It finds the waste it can prove.** Five detectors read the recorded calls.
+Each finding lists the calls it shows up in and what it costs per run. Entire's
+code graph then finds where in your code that waste comes from.
 
 | Waste | What happens | Typical fix |
 |---|---|---|
@@ -116,6 +145,18 @@ The waste it looks for:
 | Duplicate tool call | The same tool is called with the same arguments twice in one run | Remember results within the run |
 | Oversized model | A one-line step runs on the largest model | Route that step to a small model |
 | Context bloat | Whole tool results are sent again on every turn | Send each result once |
+
+**5. You choose what to fix.** Tick the findings you want. Nothing changes
+without your say.
+
+**6. It fixes one thing at a time, and checks each fix.** For every finding,
+Whittle's agent reads the code, writes a patch, and reruns the same tasks. The
+fix is kept only if the run got cheaper and the answers still pass. Otherwise it
+is reverted and the earlier fixes stay.
+
+**7. It hands you the proof.** Cost per run before and after, the monthly
+figure at your volume, a trace for every run, the diff, a patch file, and a
+pull request if you want one.
 
 What the agent does when things go wrong, all visible in the job's event
 stream:
@@ -129,14 +170,26 @@ stream:
 - A finished job survives a restart of the API; a job that was running when the
   server stopped is marked failed with the reason.
 
-## The three sponsor tools
+## The three sponsor tools, and why each is load-bearing
+
+None of the three is bolted on. Take any one away and a part of the product
+stops working.
+
+| Without | What breaks |
+|---|---|
+| neatlogs | There is no trace behind any number, and no independent record to check Whittle's cost count against |
+| Entire | Findings cannot be pinned to a line in a repository Whittle has never seen, so nothing can be fixed |
+| cfo.ai | The saving stays a number per run, with no price, break-even or runway |
 
 ### neatlogs
 
 Every run of the user's agent is one neatlogs trace: a `WORKFLOW` root for the
 task and an `LLM` span per model call with its tokens, cache counts, cost and
 messages. The proxy writes them, so the agent under test needs no SDK
-(`api/costcutter/proxy/recorder.py`). Whittle's own fixing agent is traced the
+(`api/costcutter/proxy/recorder.py`). After the baseline, Whittle reads those
+traces back from neatlogs and compares the calls and cost with its own record
+(`api/costcutter/neatlogs_client.py`); the result is a line in the app's Agent
+panel. Whittle's own fixing agent and its scan agent are traced the
 same way through `neatlogs.wrap` (`api/costcutter/agent/llm.py`), which is how
 its prompt caching was checked: the same fix cost $0.0440 with caching off and
 $0.0359 with it on.

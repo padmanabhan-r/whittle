@@ -28,7 +28,7 @@
 |---|---|---|
 | The agent improved | Measured after the cost fix: the Python sample $0.0300 to $0.0095 per run, 68.2% lower, 5 fixes kept (`job_3e1b3cc39865`); the TypeScript sample $0.0128 to $0.0039, 69.4% (`job_166ea0202321`); answer quality 1.00 on both sides. Earlier figures of 77% to 82% were overstated by a pricing fault, see the 12:50 entry. Whittle's own agent, caching off then on: $0.0440 against $0.0359 on one fix | partial |
 | Used neatlogs | Every sandboxed run is one trace at `https://app.neatlogs.com/traces/<id>` (format confirmed in the app on 11 Oct). The measured Python sample, task 1: baseline https://app.neatlogs.com/traces/c0cce5b378185e2e7562705f0b64c72b (6 calls, $0.0296) and after the kept fixes https://app.neatlogs.com/traces/6f88917a54da7d28d857385d937056c3 ($0.0094), both from `job_3e1b3cc39865`. The links open for members of the project; screenshots are in the README (`assets/screens/neatlogs-trace.jpg`) and `docs/evidence/` | have |
-| Used Entire | 59 checkpoints on `main` (`Entire-Checkpoint` trailers from `f4d5dcb` on); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md` | have |
+| Used Entire | 62 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` on); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane | partial |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
@@ -926,6 +926,13 @@ keeping a competitor from building on its recording proxy.
   neatlogs and Entire run (user's decision). Designed in
   `docs/accounts-and-billing.md`. Not built: accounts and billing stay after
   the hackathon.
+- **Decision:** Entire keeps linking every commit to its checkpoint, but the
+  checkpoints are no longer uploaded (user's decision). A checkpoint is the
+  whole session transcript, and ours hold email addresses and private
+  messages; a public repository would have made them downloadable. Automatic
+  upload is off (`push_sessions: false`) and the 62 refs already on GitHub were
+  removed; the local copies remain. A scan of all 62 for key-shaped strings
+  found none.
 - **Not verified:** the deployed app from outside. At 5:48 PM IST neither port
   answered from this machine, and `whittleai.site` did not resolve. Sethuraman
   has yet to confirm the license change as co-owner.

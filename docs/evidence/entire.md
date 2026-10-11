@@ -7,6 +7,15 @@ and the working tree after it.
 
 ## Checkpoints
 
+**The checkpoints themselves are not in this public repository.** A checkpoint
+holds the whole coding session behind a commit: every prompt, every reply and
+every command's output. Ours contain personal details (email addresses, private
+messages between the two of us), so on 11 October we turned off Entire's
+automatic upload (`.entire/settings.json`, `push_sessions: false`) and removed
+the 62 checkpoint refs from GitHub. They are kept on the build machine, and we
+can show any of them to a judge on request. What stays public is the link
+between each commit and its checkpoint, and the output below.
+
 Every commit on `main` made from this machine carries an `Entire-Checkpoint`
 trailer (see `git log --format=%B`). Entire's hooks capture the agent session
 and the git hook links it to the commit. `.entire/settings.json` sets

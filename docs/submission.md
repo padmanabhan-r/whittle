@@ -112,7 +112,7 @@ After posting:
 |---|---|---|
 | The agent improved | `devlog.md` evidence table: $0.0300 to $0.0095 per run, 68.2% lower, answers 1.00 on both sides (`job_3e1b3cc39865`) | have |
 | Used neatlogs | trace links in `devlog.md`; screenshots in the README and `docs/evidence/` | have |
-| Used Entire | `docs/evidence/entire.md`: checkpoints, search, impact, stats | have |
+| Used Entire | `docs/evidence/entire.md`: checkpoint list, search, impact, stats. The checkpoints themselves stay on the build machine (they are full session transcripts); show one on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`, shown in the README | have |
 | Recovers from failures | fixes reverted when not cheaper (`job_1a5e1ef6b80e`); scan entry point failed, rewritten, verified (`job_2f4aac670180`) | have |
 | Built in public | four posts tagged #neatHack, links in `devlog.md` | have, add more |

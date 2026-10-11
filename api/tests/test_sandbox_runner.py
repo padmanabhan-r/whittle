@@ -54,10 +54,11 @@ def test_no_network_cannot_reach_the_internet(runner, tmp_path):
 def test_run_step_reaches_only_the_relay(runner, tmp_path, monkeypatch):
     """On the internal network the agent can open the relay and nothing on the internet."""
     monkeypatch.delenv("WHITTLE_SANDBOX_RUN_NETWORK", raising=False)
-    base = runner.proxy_url_for_container(1)  # a port nothing listens on: the relay accepts, the host refuses
+    # Its own relay, so the test never replaces the relay a running job is using.
+    base = runner.proxy_url_for_container(1, relay_name="whittle-relay-test")  # a port nothing listens on: the relay accepts, the host refuses
     (tmp_path / "main.py").write_text(
         "import socket, sys\n"
-        "ok = socket.create_connection(('whittle-relay', 8787), timeout=5)\n"
+        "ok = socket.create_connection(('whittle-relay-test', 8787), timeout=5)\n"
         "ok.close()\n"
         "try:\n"
         "    socket.create_connection(('example.com', 80), timeout=3)\n"
@@ -66,5 +67,6 @@ def test_run_step_reaches_only_the_relay(runner, tmp_path, monkeypatch):
         "print('internet reachable'); sys.exit(1)\n"
     )
     result = runner.run_agent(tmp_path, ["python", "main.py"], job_id="test-net", proxy_base_url=base, dummy_api_key="whittle-x")
+    subprocess.run(["docker", "rm", "-f", "whittle-relay-test"], capture_output=True)
     assert result.exit_code == 0, result.stderr + result.stdout
     assert "internet blocked" in result.stdout

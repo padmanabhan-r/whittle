@@ -47,7 +47,7 @@ from costcutter.contract import (
 )
 from costcutter.evaluate import TaskScore, phase_score, score_run
 from costcutter.proxy.recorder import trace_url
-from costcutter.proxy.store import DATA_ROOT, CallRecord, load_phase
+from costcutter.proxy.store import DATA_ROOT, CallRecord, load_phase, run_path
 from costcutter.sandbox.runner import SandboxRunner
 
 EVENTS: TypeAdapter[Event] = TypeAdapter(Event)
@@ -345,18 +345,28 @@ class JobRunner:
 
     async def run_task(self, ctx: JobContext, phase: str, task: Task, baseline: PhaseResult | None) -> RunResult:
         label = "baseline" if phase == "baseline" else "after"
-        session = self.open_session(job_id=ctx.job.id, phase=phase, task_id=task.id, provider=ctx.provider, api_key=ctx.api_key, on_call=lambda s, r: self._on_call(ctx, label, s, r))
-        ctx.log(label, f"$ {ctx.command.replace('{input}', task.input[:60])}", task.id)
         command = _shell_words(ctx.command.replace("{input}", task.input))
         started = time.time()
-        try:
-            result = await asyncio.to_thread(
-                self.sandbox.run_agent, ctx.repo, command,
-                job_id=ctx.job.id, proxy_base_url=self.proxy_url, dummy_api_key=session.dummy_key, provider=ctx.provider,
-                extra_env={"WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": phase, "WHITTLE_TASK": task.id},
-            )
-        finally:
-            self.close_session(session.session_id)
+        for attempt in (1, 2):
+            session = self.open_session(job_id=ctx.job.id, phase=phase, task_id=task.id, provider=ctx.provider, api_key=ctx.api_key, on_call=lambda s, r: self._on_call(ctx, label, s, r))
+            ctx.log(label, f"$ {ctx.command.replace('{input}', task.input[:60])}", task.id)
+            try:
+                result = await asyncio.to_thread(
+                    self.sandbox.run_agent, ctx.repo, command,
+                    job_id=ctx.job.id, proxy_base_url=self.proxy_url, dummy_api_key=session.dummy_key, provider=ctx.provider,
+                    extra_env={"WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": phase, "WHITTLE_TASK": task.id},
+                )
+            finally:
+                self.close_session(session.session_id)
+            if attempt == 1 and result.exit_code != 0 and _proxy_unreachable(result.stderr):
+                # The sandbox could not reach the proxy: an infrastructure fault, not the agent's.
+                # Scoring it would blame the fix (or the baseline) for a dropped connection.
+                ctx.log(label, result.stderr[-600:], task.id, stream="stderr")
+                ctx.emit("recovery", finding_id=phase.removeprefix("verify-") if phase.startswith("verify-") else "", action="retried",
+                         reason=f"The sandbox could not reach the model proxy on {task.id}; running that task again.")
+                run_path(ctx.job.id, phase, task.id).unlink(missing_ok=True)  # the dropped attempt's calls must not count
+                continue
+            break
         duration_ms = int((time.time() - started) * 1000)
         records = load_phase(ctx.job.id, phase).get(task.id, [])
         answer = result.stdout.strip()
@@ -490,6 +500,11 @@ class JobRunner:
 
 def _task_run(run: RunResult) -> TaskRun:
     return TaskRun(cost_usd=run.cost_usd, total_tokens=run.total_tokens, llm_calls=len(run.records), duration_ms=run.duration_ms, passed=bool(run.score and run.score.passed), trace_id=run.trace_id, trace_url=trace_url(run.trace_id))
+
+
+def _proxy_unreachable(stderr: str) -> bool:
+    """True when the agent died because it could not reach the proxy, whichever SDK it used."""
+    return any(marker in stderr for marker in ("APIConnectionError", "ECONNREFUSED", "ECONNRESET", "Connection error", "ConnectionRefusedError"))
 
 
 def _shell_words(command: str) -> list[str]:

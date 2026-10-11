@@ -52,24 +52,24 @@ class SandboxRunner:
         if INTERNAL_NETWORK not in networks:
             subprocess.run([self._docker, "network", "create", "--internal", INTERNAL_NETWORK], check=True, capture_output=True)
 
-    def ensure_relay(self, host_port: int) -> str:
+    def ensure_relay(self, host_port: int, name: str = RELAY) -> str:
         """An internal network where the agent can reach one thing: a relay to the proxy on the host.
 
         The agent container joins only the internal network, which Docker keeps off the
         internet. The relay container sits on that network and on the default bridge, and
         forwards one port to the proxy. Returns the base URL the agent should use."""
         self.ensure_internal_network()
-        running = subprocess.run([self._docker, "ps", "--filter", f"name=^{RELAY}$", "--format", "{{.Names}} {{.Label \"whittle.port\"}}"], capture_output=True, text=True).stdout.strip()
-        if running != f"{RELAY} {host_port}":
-            subprocess.run([self._docker, "rm", "-f", RELAY], capture_output=True)
+        running = subprocess.run([self._docker, "ps", "--filter", f"name=^{name}$", "--format", "{{.Names}} {{.Label \"whittle.port\"}}"], capture_output=True, text=True).stdout.strip()
+        if running != f"{name} {host_port}":
+            subprocess.run([self._docker, "rm", "-f", name], capture_output=True)
             subprocess.run(
-                [self._docker, "run", "-d", "--name", RELAY, "--label", f"whittle.port={host_port}", "--restart", "unless-stopped",
+                [self._docker, "run", "-d", "--name", name, "--label", f"whittle.port={host_port}", "--restart", "unless-stopped",
                  "--network", INTERNAL_NETWORK, "--add-host", "host.docker.internal:host-gateway",
                  RELAY_IMAGE, f"tcp-listen:{RELAY_PORT},fork,reuseaddr", f"tcp:host.docker.internal:{host_port}"],
                 check=True, capture_output=True, text=True,
             )
-            subprocess.run([self._docker, "network", "connect", "bridge", RELAY], check=True, capture_output=True)
-        return f"http://{RELAY}:{RELAY_PORT}"
+            subprocess.run([self._docker, "network", "connect", "bridge", name], check=True, capture_output=True)
+        return f"http://{name}:{RELAY_PORT}"
 
     @staticmethod
     def deps_volume(job_id: str) -> str:
@@ -176,8 +176,8 @@ class SandboxRunner:
                                     f"timed out after {timeout_s}s", name)
         return SandboxRunResult(exit_code=proc.returncode, stdout=proc.stdout, stderr=proc.stderr, container_id=name)
 
-    def proxy_url_for_container(self, host_port: int, path: str = "") -> str:
+    def proxy_url_for_container(self, host_port: int, path: str = "", relay_name: str = RELAY) -> str:
         """Base URL agents inside Docker use to reach the proxy on the host."""
         if os.environ.get("WHITTLE_SANDBOX_RUN_NETWORK", "internal") == "internal":
-            return self.ensure_relay(host_port) + path
+            return self.ensure_relay(host_port, relay_name) + path
         return f"http://host.docker.internal:{host_port}{path}"

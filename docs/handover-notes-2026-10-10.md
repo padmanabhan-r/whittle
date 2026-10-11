@@ -3,7 +3,7 @@
 **Team:** Attention Heads (Padmanabhan + Sethuraman)  
 **Project:** Whittle (neatHack)  
 **Machine:** Windows, Python 3.10.11, pip + `api/.venv`  
-**Handover for Paddy:** also see `docs/handover.md` and `devlog.md` (updated tonight).
+**Handover for Paddy:** also see `docs/handover.md` and `devlog.md`; this is the longer note behind the handover (updated tonight).
 
 ---
 

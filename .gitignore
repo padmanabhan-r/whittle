@@ -39,3 +39,6 @@ temp.txt
 
 # Editor settings are per machine
 .vscode/
+
+# Recorded runs: prompts and responses of users' agents
+data/

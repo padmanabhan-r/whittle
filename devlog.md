@@ -26,8 +26,8 @@
 
 | Claim | Evidence | Status |
 |---|---|---|
-| The agent improved | the fixing agent's own runs are not yet traced with caching off and on | missing |
-| Used neatlogs | proxy traces built on HTTP injection, waiting on the write key; no link yet | missing |
+| The agent improved | Whittle's agent on the same fix, caching off then on: 10,945 uncached input tokens and $0.0440 against 8 uncached, 6,697 cache-read, 4,405 cache-write tokens and $0.0359 (18% lower on a 3-call fix); measured 11 Oct 7:40 AM IST, numbers from the SDK's usage fields, no trace link yet | partial |
+| Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | none yet | missing |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper (events in `data/`, not public) | partial |
@@ -450,8 +450,16 @@ real job ran end to end.
   call) was reverted: $0.0076 against $0.0076, not cheaper. The agent's model
   was `claude-sonnet-5-5` with prompt caching on (6,791 cached tokens on one
   fix's calls).
-- **Failed:** `neatlogs` MCP `log_trace` returned 403 for a 6-call trace;
-  manual OTel spans from both the wrap and the init pipelines never finalised.
+- **Failed:** `neatlogs` MCP `log_trace` returned 403 for a 6-call trace.
+  Hand-built OpenTelemetry spans finalised for only 9 of the first job's 26
+  runs; the rest stayed pending or lost their parent, so the proxy moved to
+  HTTP trace injection. Whittle's own agent's calls (`neatlogs.wrap`) do not
+  nest under the fix's root span either; both appear in neatlogs as separate
+  traces under workflow `whittle-agent`.
+- **Measured:** Whittle's agent fixing the context-bloat finding, caching off:
+  3 calls, 10,945 uncached input tokens, $0.0440; caching on: 8 uncached,
+  6,697 cache-read, 4,405 cache-write tokens, $0.0359. Same finding, same
+  change, 18% cheaper; longer fixes gain more because the write is paid once.
 - **Not verified:** trace links (no write key yet); the pull request path;
   the sandbox run step's network is still open; the UI was not clicked by
   hand, only screenshotted against the real server.

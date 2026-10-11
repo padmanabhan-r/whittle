@@ -36,14 +36,19 @@ Run everything with `./start.sh` (Docker running, keys in `.env.local`).
 
 ### What is left, in order
 
-1. **Trace links.** Add `NEATLOGS_WRITE_KEY` (the `nlw_` ingest key) and
-   `NEATLOGS_PROJECT` to `.env.local`, run a sample job, confirm each run's
-   trace appears in neatlogs with its calls and cost. *Done when:* the Result
-   page's trace links open real traces. **Keep them: they are the evidence.**
+1. **Trace links.** Blocked on neatlogs' side as of Sunday 8:50 AM IST: their
+   own `neatlogs doctor --probe` fails at "pii_redaction", and even the SDK's
+   canonical path leaves traces pending. The proxy publishes SDK spans (the
+   only path that has produced readable traces: 14 of the last 50). Ask the
+   organisers on Discord, then rerun a sample job and check the Result page's
+   links. **Keep the finalised ones: they are the evidence.**
 2. **Whittle's own agent traced.** Done in part: its calls reach neatlogs
    under workflow `whittle-agent`, and the caching off/on measurement is in
    the devlog. The calls do not nest under the fix's root span; nice to fix.
-3. **Click through the UI by hand** on a real job; fix what jars.
+3. **Click through the UI by hand** on a real job: done Sunday morning
+   (`job_1f855fd2b521`). Still to do: one more full job to see the sandbox
+   retry work, and job state that survives an API restart (today a finished
+   job's pages 404 after a restart).
 4. **Pull request delivery** once the bot token exists: a sample repo of its
    own on GitHub, so the demo's pull request is real.
 5. **Sandbox network:** done. The run step joins an internal Docker network

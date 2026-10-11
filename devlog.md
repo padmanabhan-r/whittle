@@ -1,6 +1,6 @@
 # Devlog
 
-- **Project:** Whittle
+- **Project:** Whittle AI
 - **Event:** neatHack
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
@@ -15,12 +15,12 @@
 - **External services:** none
 - **AI models (product):** Whittle's agent uses `WHITTLE_PROVIDER`/`WHITTLE_MODEL` from the environment (`api/costcutter/agent/llm.py`); the first real job ran it on `claude-sonnet-5-5`. The sample agent uses `claude-sonnet-5-5` and `claude-opus-5-5` for its classify step
 - **AI models (build):** Cursor Agent (Composer) for Sethuraman's Saturday night backend session; earlier entries used Claude Code with claude-opus-5-5
-- **neatlogs:** the proxy posts one trace per sandboxed run by HTTP trace injection (`api/costcutter/proxy/recorder.py`, needs `NEATLOGS_WRITE_KEY`); Whittle's own agent client is wrapped with `neatlogs.wrap` (`api/costcutter/agent/llm.py`). No trace link captured yet
+- **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** not started
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T07:40:00+05:30
+- **Last updated:** 2026-10-11T08:55:00+05:30
 
 ## Evidence
 
@@ -30,7 +30,7 @@
 | Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | none yet | missing |
-| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper (events in `data/`, not public) | partial |
+| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
 | Built in public | none yet | missing |
 | Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
 
@@ -419,7 +419,7 @@ Recording proxy, sandbox runner, Python sample agent, and morning handover doc.
 
 Evidence rows still missing: all seven (neatlogs row needs trace URLs; agent improved, recovery, cfo.ai, built in public still open).
 
-### 2026-10-11 - working tree
+### 2026-10-11 - 4f1002c
 Merged Sethuraman's night work and built the rest of the backend on it. One
 real job ran end to end.
 
@@ -471,6 +471,47 @@ real job ran end to end.
 
 Evidence rows still missing: the agent improved, used neatlogs (links),
 used cfo.ai, built in public, written during the hackathon.
+
+### 2026-10-11 - 2f60975
+Clicked through a whole job in the UI against the real server, named the app
+Whittle AI with its mark, and found why a rerun can fail for reasons that have
+nothing to do with the fix.
+
+- **Shipped:** the app is called Whittle AI, with a mark (one shaving curling
+  off the cut, an SVG) beside the name in the rail, the landing page, the
+  favicon and the README (`396afb5`). The Start page says "mock" only when the
+  server is the mock: the sample list now carries a `mock` flag (`311ddf3`).
+  A run whose sandbox cannot reach the proxy is retried once, its dropped
+  attempt's call records discarded, and shown as "Retried" on the Fix page
+  (`dc15d8c`, `2f60975`).
+- **Measured:** job `job_1f855fd2b521` on `research-agent-py`, started from
+  the Start page at 8:30 AM IST and followed through Findings, Fix and verify,
+  Result and Diff: baseline 5 runs, 30 calls, $0.0303 per run; after, $0.0279
+  per run, 8.0% lower, 3 fixes kept, 2 reverted; quality 1.00 to 1.00. The two
+  reverts were wrong: `pytest` ran during the job, its relay test replaced the
+  `whittle-relay` container, and the agent in the sandbox died with
+  `APIConnectionError`, which the keyword check scored as a failed answer.
+  The test now uses its own relay, and the runner retries that case.
+- **Failed:** neatlogs did not finalise any trace published this morning, by
+  either path. Their own `neatlogs doctor --probe` (SDK 1.4.26) reports
+  "Ingestion: processing at pii_redaction" and times out waiting to read its
+  trace back; a `neatlogs.trace()` root with two `neatlogs.wrap`ped Anthropic
+  calls stays `pending`, or finalises with zero model calls when the root is
+  ended ten seconds later; SDK 1.4.23 gives 404s. The 50 most recent traces in
+  the project: 14 finalised, 1 pending, 35 "Trace processing failed", the agent's
+  own among them. HTTP injection never finalised, so the proxy is back on SDK
+  spans, now with input and output messages on each call. To raise with the
+  organisers.
+- **Not verified:** a full job with the retry in place; the pull request path
+  (no bot token yet); job state after a server restart (a finished job's
+  Result and Diff return 404 once the API restarts, since job state is in
+  memory).
+- **Checked:** `uv run pytest`, 21 passed; `npx tsc -b` and `npm run lint`
+  clean (three pre-existing warnings).
+- **Built with:** Claude Code, claude-fable-5-1.
+
+Evidence rows still missing: the agent improved (trace links), used neatlogs
+(links that open), used cfo.ai, built in public, written during the hackathon.
 
 ## Submission
 

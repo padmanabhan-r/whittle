@@ -934,8 +934,12 @@ keeping a competitor from building on its recording proxy.
   removed; the local copies remain. A scan of all 62 for key-shaped strings
   found none. A redacted copy of one checkpoint was tried: Entire's own tool
   read it back correctly, but Entire's website did not display it, so it was
-  taken down again and no transcript is published. The README and the Entire
-  evidence note state that the transcripts were removed for privacy.
+  taken down again. A second redacted copy, uploaded before its commit was
+  pushed, did display on Entire's website; it was then taken down as well
+  (user's decision), because redaction removes addresses and names but not the
+  private conversation itself. No transcript is published. The README and the
+  Entire evidence note state that the transcript history was removed because it
+  contains PII.
 - **Evidence:** the app is live at https://whittleai.site. At 7:53 PM IST the
   page, `/health` and `/api/samples` all answered 200 over HTTPS with a Let's
   Encrypt certificate; `http://` and `www.` redirect to it.

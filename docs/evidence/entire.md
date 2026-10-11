@@ -7,23 +7,25 @@ and the working tree after it.
 
 ## Checkpoints
 
-**Session transcripts removed for privacy.** Each checkpoint holds the whole
-coding session behind a commit: every prompt, every reply and every command's
-output. A transcript like that can contain API keys and other credentials,
-private configuration, and personal information such as email addresses and
-messages between teammates. Ours contain personal information, so on
-11 October 2026, before this repository was made public, we took them down:
+**Session transcripts removed: they contain PII.** Each checkpoint holds the
+whole coding session behind a commit: every prompt, every reply and every
+command's output. Ours contain personally identifiable information: email
+addresses, private messages between teammates, and server addresses. A
+transcript like that can also carry API keys, other credentials and private
+configuration. So on 11 October 2026, before this repository was made public,
+the whole transcript history was taken down:
 
 - Entire's automatic upload is off (`.entire/settings.json`,
   `push_sessions: false`);
-- the 62 checkpoints already on GitHub were removed;
+- every checkpoint that was on GitHub was removed, 62 at first and then one
+  redacted copy that had been tried, so none remain;
 - the originals are kept on the build machine, unchanged.
 
 What stays public is the link between each commit and its checkpoint (the
 `Entire-Checkpoint` line in the commit message) and the real output below. We
-checked all 62 transcripts for key-shaped strings before removing them and
-found none; they were taken down as a precaution and for the personal
-information. A judge who wants to see a checkpoint can ask, and we will show it.
+scanned the transcripts for key-shaped strings before removing them and found
+none; they were taken down for the personal information, and as a precaution.
+A judge who wants to see a checkpoint can ask, and we will show it.
 
 Every commit on `main` made from this machine carries an `Entire-Checkpoint`
 trailer (see `git log --format=%B`). Entire's hooks capture the agent session

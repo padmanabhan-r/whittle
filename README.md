@@ -157,11 +157,13 @@ cfo.ai, with [the monetization path](docs/accounts-and-billing.md) planned for
 after the hackathon; and
 [the submission checklist](docs/submission.md).
 
-**Session transcripts removed for privacy.** Every commit here is linked to an
-Entire checkpoint, the full coding session behind it. Those transcripts can
-contain API keys, other sensitive material and personal information, so they
-were taken down before the repository went public. The commit links remain,
-and [the Entire note](docs/evidence/entire.md) says what was removed and why.
+**Session transcripts removed: they contain PII.** Every commit here is linked
+to an Entire checkpoint, the full coding session behind it. Those transcripts
+contain personally identifiable information (email addresses, private messages
+between teammates, server addresses), and a transcript of that kind can also
+carry API keys and other sensitive material. So the whole transcript history
+was taken down before the repository went public. The commit links remain, and
+[the Entire note](docs/evidence/entire.md) says what was removed and why.
 
 ## Run it yourself
 

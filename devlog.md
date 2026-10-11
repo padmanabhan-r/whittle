@@ -932,7 +932,10 @@ keeping a competitor from building on its recording proxy.
   messages; a public repository would have made them downloadable. Automatic
   upload is off (`push_sessions: false`) and the 62 refs already on GitHub were
   removed; the local copies remain. A scan of all 62 for key-shaped strings
-  found none.
+  found none. A redacted copy of one checkpoint was tried: Entire's own tool
+  read it back correctly, but Entire's website did not display it, so it was
+  taken down again and no transcript is published. The README and the Entire
+  evidence note state that the transcripts were removed for privacy.
 - **Not verified:** the deployed app from outside. At 5:48 PM IST neither port
   answered from this machine, and `whittleai.site` did not resolve. Sethuraman
   has yet to confirm the license change as co-owner.

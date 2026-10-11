@@ -901,14 +901,17 @@ table.ledger tr[aria-selected='true'] td {
   flex-wrap: wrap;
 }
 .scan-start label {
-  flex: 1 1 380px;
+  flex: 1 1 300px;
   display: grid;
   gap: 6px;
   font-weight: 600;
   font-size: 13.5px;
 }
 .scan-start .ref {
-  flex: 0 1 190px;
+  flex: 0 1 150px;
+}
+.scan-start .btn {
+  flex: none;
 }
 details.measure-own > summary {
   cursor: pointer;
@@ -937,8 +940,8 @@ details.measure-own > summary {
 }
 
 .scan-start .or {
-  align-self: center;
-  padding-bottom: 9px;
+  align-self: flex-end;
+  padding-bottom: 11px;
   color: var(--mute);
   font-size: 13.5px;
 }

@@ -109,7 +109,8 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
         </>
       )}
 
-      {view.done && !view.error && job && <MeasureNext job={job} />}
+      {/* The job record is refetched when the stream ends; wait for it, so the form opens with the scan's command in it. */}
+      {view.done && !view.error && job && job.state === 'done' && <MeasureNext key={job.proposed_run?.command ?? 'none'} job={job} />}
     </>
   )
 }

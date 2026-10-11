@@ -11,6 +11,22 @@ export const KIND_LABEL: Record<string, string> = {
   duplicate_tool_call: 'duplicate tool call',
   oversized_model: 'oversized model',
   doomed_retry: 'doomed retry',
+  no_prompt_caching: 'no prompt caching',
+  uncapped_output: 'uncapped output',
+  paid_fallback: 'paid twice on fallback',
+  unbounded_loop: 'unbounded loop',
+  other: 'other',
+}
+
+export const PROVIDER_LABEL: Record<string, string> = {
+  anthropic: 'Anthropic',
+  openai: 'OpenAI',
+  google: 'Google',
+  'openai-compatible': 'OpenAI-compatible',
+  'ai-sdk': 'Vercel AI SDK',
+  langchain: 'LangChain',
+  litellm: 'LiteLLM',
+  bedrock: 'Amazon Bedrock',
 }
 
 export const STATE_LABEL: Record<string, string> = {
@@ -19,6 +35,7 @@ export const STATE_LABEL: Record<string, string> = {
   installing: 'Installing dependencies',
   baseline: 'Running the baseline',
   diagnosing: 'Reading the traces',
+  scanning: 'Reading the code',
   awaiting_selection: 'Waiting for you',
   fixing: 'Fixing',
   verifying: 'Verifying',

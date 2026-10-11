@@ -761,3 +761,177 @@ table.ledger tr[aria-selected='true'] td {
     font-size: 26px;
   }
 }
+
+/* --- scan --------------------------------------------------------------- */
+.section-title .tag {
+  margin-left: 12px;
+  vertical-align: 3px;
+}
+.notice.scan-summary {
+  background: var(--blue-wash);
+  border-color: #c9d8fb;
+  color: var(--ink);
+}
+.lede.small {
+  font-size: 15px;
+  margin: -4px 0 14px;
+  max-width: 78ch;
+}
+.scan-findings {
+  display: grid;
+  gap: 12px;
+}
+.scan-finding {
+  padding: 18px 20px 18px 18px;
+  border-left: 4px solid var(--line);
+}
+.scan-finding.high {
+  border-left-color: var(--red);
+}
+.scan-finding.medium {
+  border-left-color: var(--amber-line);
+}
+.scan-finding header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.scan-finding .num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font: 600 13px/26px var(--mono);
+  text-align: center;
+}
+.scan-finding .head {
+  min-width: 0;
+}
+.scan-finding h3 {
+  margin: 1px 0 6px;
+  font: 600 17px/1.3 var(--display);
+  letter-spacing: -0.01em;
+}
+.scan-finding .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+.scan-finding .meta .loc {
+  display: inline;
+  color: var(--blue-ink);
+  overflow-wrap: anywhere;
+}
+.tag.sev.high {
+  background: var(--red-wash);
+  color: var(--red);
+}
+.tag.sev.medium {
+  background: var(--amber-wash);
+  color: #6b5400;
+}
+.tag.sev.low {
+  background: var(--line-2);
+  color: var(--mute);
+}
+.scan-finding p {
+  margin: 12px 0 0 40px;
+  max-width: 82ch;
+  color: var(--ink-2);
+}
+.scan-finding .suggest strong {
+  display: inline-block;
+  margin-right: 8px;
+  font: 600 11.5px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--green);
+}
+.scan-finding .code-toggle {
+  margin: 12px 0 0 40px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+.snippet {
+  margin: 10px 0 0 40px;
+  padding: 12px 0;
+  background: #0f1124;
+  color: #e6e8f5;
+  border-radius: var(--r);
+  font: 12.5px/1.6 var(--mono);
+  overflow-x: auto;
+}
+.snippet span {
+  display: block;
+  padding-right: 16px;
+  white-space: pre;
+}
+.snippet i {
+  display: inline-block;
+  width: 52px;
+  padding-right: 14px;
+  text-align: right;
+  color: #6f7494;
+  font-style: normal;
+  user-select: none;
+}
+.form-grid .needs {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.form-grid .needs code {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 1px 6px;
+  background: var(--amber-wash);
+  border-radius: 4px;
+  font: 12.5px var(--mono);
+}
+.scan-start {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  padding: 18px;
+  flex-wrap: wrap;
+}
+.scan-start label {
+  flex: 1 1 380px;
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.scan-start .ref {
+  flex: 0 1 190px;
+}
+details.measure-own > summary {
+  cursor: pointer;
+  margin: 14px 0 10px;
+  color: var(--blue-ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+@media (max-width: 720px) {
+  .scan-finding p,
+  .scan-finding .code-toggle,
+  .snippet {
+    margin-left: 0;
+  }
+}
+
+.scan-good {
+  margin: 0;
+  padding: 14px 20px 14px 40px;
+  display: grid;
+  gap: 8px;
+  color: var(--ink-2);
+}
+.scan-good li::marker {
+  color: var(--green);
+}

@@ -14,6 +14,7 @@ import { FixSection } from './job/FixSection'
 import { Inspector } from './job/Inspector'
 import { Kpis } from './job/Kpis'
 import { ResultSection } from './job/ResultSection'
+import { ScanSection } from './job/ScanSection'
 
 const SECTIONS = [
   { id: 'calls', label: 'Calls', title: 'Model calls' },
@@ -49,8 +50,9 @@ export function JobPage() {
   const live = sectionFor(view.state)
 
   useEffect(() => {
+    if (job?.mode === 'scan' || !job) return
     if (follow && jobId && view.seq > 0 && section !== live) navigate(`/app/jobs/${jobId}/${live}`, { replace: true })
-  }, [follow, live, jobId, section, view.seq, navigate])
+  }, [follow, live, jobId, section, view.seq, navigate, job])
 
   if (loadError && !job) {
     return (
@@ -72,6 +74,7 @@ export function JobPage() {
     )
   }
 
+  const scan = job?.mode === 'scan'
   const name = job?.source.type === 'sample' ? job.source.sample_id : job?.source.type === 'github' ? job.source.repo_url.replace('https://github.com/', '') : ''
   const done = view.state === 'done'
   const failed = view.state === 'failed'
@@ -109,9 +112,16 @@ export function JobPage() {
           </>
         }
       >
-        <h2>This job</h2>
+        <h2>{scan ? 'This scan' : 'This job'}</h2>
         <nav aria-label="Job sections">
-          {SECTIONS.map((s) => (
+          {scan && (
+            <Link className="item" to={`/app/jobs/${jobId}`} aria-current="page">
+              <span className={`dot ${done ? 'done' : failed ? '' : 'live'}`} />
+              Code scan
+              {view.findings.length > 0 && <span className="count">{view.findings.length}</span>}
+            </Link>
+          )}
+          {!scan && SECTIONS.map((s) => (
             <Link key={s.id} className="item" to={`/app/jobs/${jobId}/${s.id}`} aria-current={current === s.id ? 'page' : undefined}
               onClick={() => setFollow(false)}>
               <span className={`dot ${stateDot(s.id)}`} />
@@ -126,13 +136,15 @@ export function JobPage() {
         <div className="work-head">
           <div className="titles">
             <div className="row">
-              <h1>{SECTIONS.find((s) => s.id === current)!.title}</h1>
-              <span className={`tag ${failed ? 'bad' : done ? 'ok' : 'live'}`}>{STATE_LABEL[view.state]}</span>
+              <h1>{scan ? 'Code scan' : SECTIONS.find((s) => s.id === current)!.title}</h1>
+              <span className={`tag ${failed ? 'bad' : done ? 'ok' : 'live'}`}>{STATE_LABEL[scan && view.state === 'diagnosing' ? 'scanning' : view.state]}</span>
               {job?.mock && <span className="tag mock" title="Every number on this page is invented by the mock server">mock data</span>}
             </div>
             <span className="meta mono">{name} · {jobId}</span>
           </div>
           <span className="spacer" />
+          {scan && <Link className="btn" to="/app">Scan another repo</Link>}
+          {!scan && <>
           <a className="btn" href={done && applied ? api.patchUrl(jobId!) : undefined} aria-disabled={!done || !applied}
             style={!done || !applied ? { color: '#9a9dab', pointerEvents: 'none' } : undefined}>
             <Download /> Download patch
@@ -144,6 +156,7 @@ export function JobPage() {
               <Branch /> {opening ? 'Opening…' : 'Open pull request'}
             </button>
           )}
+          </>}
         </div>
 
         {prError && <div className="notice" role="alert"><Warn /><div><strong>The pull request was not opened</strong>{prError}</div></div>}
@@ -158,13 +171,15 @@ export function JobPage() {
         )}
 
         {/* The result page states these figures itself; the strip above it would say everything twice. */}
-        {current !== 'result' && <Kpis job={job} view={view} />}
+        {scan && <ScanSection job={job} view={view} selected={selected} onSelect={setSelected} />}
 
-        {current === 'calls' && <CallsSection view={view} />}
-        {current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} />}
-        {current === 'fix' && <FixSection view={view} selected={selected} onSelect={setSelected} />}
-        {current === 'result' && <ResultSection jobId={jobId!} done={done} findings={view.findings} />}
-        {current === 'diff' && <DiffSection jobId={jobId!} done={done} />}
+        {!scan && current !== 'result' && <Kpis job={job} view={view} />}
+
+        {!scan && current === 'calls' && <CallsSection view={view} />}
+        {!scan && current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} />}
+        {!scan && current === 'fix' && <FixSection view={view} selected={selected} onSelect={setSelected} />}
+        {!scan && current === 'result' && <ResultSection jobId={jobId!} done={done} findings={view.findings} />}
+        {!scan && current === 'diff' && <DiffSection jobId={jobId!} done={done} />}
       </main>
 
       <Inspector view={view} selected={selected} />

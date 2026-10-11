@@ -25,7 +25,8 @@ before and after neatlogs traces, a diff and an optional pull request.
 - Backend map, all under `api/costcutter/`: `proxy/` (recording proxy:
   sessions named by the dummy key, call records under `data/jobs/`, neatlogs
   spans), `sandbox/` (Docker install and run steps), `analyzers/` (the five
-  detectors and the code locator), `agent/` (the fixing agent), `jobs.py` (the
+  detectors and the code locator), `agent/` (the fixing agent), `scan.py` (scan mode: call sites in any
+  language and the agent that reads them; runs nothing), `jobs.py` (the
   job runner and event log), `server.py` (the contract's endpoints),
   `delivery.py` (pull requests from the bot account), `evaluate.py` (answer
   scores). Samples live in `samples/<id>/` with a `whittle.json` manifest.

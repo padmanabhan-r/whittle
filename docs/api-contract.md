@@ -49,6 +49,20 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
   lowered the cost) or `nothing_to_fix` (no findings). The mock only produces
   `saved`.
 
+## Two modes
+
+`POST /api/jobs` takes `mode`:
+
+- **`scan`** needs only `source`. Whittle clones the repository, finds every place
+  it calls a model, in any language, and its agent reads that code and reports
+  the waste it shows. Nothing is run, so no key and no command are needed. States:
+  `queued` ▶ `cloning` ▶ `diagnosing` ▶ `done`, with `outcome` `scanned`. The job
+  then carries `scan_summary` (where the spend goes), `scan_good` (what the code
+  already does well), and, when the scan found a way to run the code,
+  `proposed_run` (`command`, `reason`, and `needs`: the environment variables it
+  will not start without). The UI uses `proposed_run` to prefill a measured job.
+- **`measure`** (the default) is the flow below: run, measure, fix, verify.
+
 ## Endpoints
 
 | Method | Path | Returns | Notes |
@@ -58,6 +72,7 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
 | GET | `/api/jobs/{id}` | `Job` | Current state and summary |
 | GET | `/api/jobs/{id}/events` | SSE stream | See "The event stream" |
 | GET | `/api/jobs/{id}/findings` | `FindingList` | Empty until `diagnosing` reports them |
+| GET | `/api/jobs/{id}/call-sites` | `CallSiteList` | Scan jobs: every place the code calls a model |
 | POST | `/api/jobs/{id}/fix` | `202` `Job` | Only from `awaiting_selection` |
 | GET | `/api/jobs/{id}/comparison` | `Comparison` | Only when `done` |
 | GET | `/api/jobs/{id}/diff` | `Diff` | Only when `done` |
@@ -150,7 +165,9 @@ A GitHub repo needs the run command, the tasks and a model key:
 
 | Field | Values |
 |---|---|
-| `kind` | `cache_prefix`, `context_bloat`, `duplicate_tool_call`, `oversized_model`, `doomed_retry` |
+| `kind` | `cache_prefix`, `context_bloat`, `duplicate_tool_call`, `oversized_model`, `doomed_retry`; from a scan also `no_prompt_caching`, `uncapped_output`, `paid_fallback`, `unbounded_loop`, `other` |
+| `measured` | `true` for a measured job. `false` for a scan: the finding was read from the code, both saving fields are 0, and `evidence` and `calls` are empty |
+| `suggestion`, `snippet` | Scan only: the change to make, and the lines of code the finding points at |
 | `severity` | `high`, `medium`, `low` |
 | `status` | `proposed` ▶ `selected` or `skipped` ▶ `applied` or `reverted` |
 
@@ -218,6 +235,7 @@ data: {"seq":9,"ts":"2026-10-10T14:10:42.514Z","job_id":"job_89b0bce57b62","type
 | `agent.step` | `step_index`, `kind` (`thought`, `tool_call`, `tool_result`), `text`, `tool`, `finding_id` | The agent's working, step by step |
 | `patch.applied` | `finding_id`, `files`, `additions`, `deletions` | A fix was written |
 | `verify.result` | `finding_id`, `passed`, cost per run before and after, `quality_before`, `quality_after`, `reason` | The check on one fix |
+| `scan.call_site` | `call_site`: `file`, `line`, `provider`, `via`, `model`, `snippet` | Scan only: one place the code calls a model |
 | `recovery` | `finding_id`, `action` (`reverted`, `retried`, `skipped`), `reason` | **The recovery moment**: a fix failed its check and was undone |
 | `job.done` | `outcome`, `summary` | Final; then fetch `/comparison` and `/diff` |
 | `job.error` | `code`, `message` | Final; the job is `failed` |

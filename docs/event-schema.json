@@ -106,6 +106,91 @@
       "title": "CallRef",
       "type": "object"
     },
+    "CallSite": {
+      "additionalProperties": false,
+      "description": "A place in the code that calls a model, found by a scan.",
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        },
+        "provider": {
+          "description": "anthropic, openai, google, an OpenAI-compatible endpoint, a framework name, or unknown",
+          "title": "Provider",
+          "type": "string"
+        },
+        "via": {
+          "description": "How the call is made: an SDK method, a framework helper, or a raw HTTP request",
+          "title": "Via",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The model name when the code states one nearby",
+          "title": "Model"
+        },
+        "snippet": {
+          "title": "Snippet",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "line",
+        "provider",
+        "via",
+        "snippet"
+      ],
+      "title": "CallSite",
+      "type": "object"
+    },
+    "CallSiteEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "scan.call_site",
+          "default": "scan.call_site",
+          "title": "Type",
+          "type": "string"
+        },
+        "call_site": {
+          "$ref": "#/$defs/CallSite"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "call_site"
+      ],
+      "title": "CallSiteEvent",
+      "type": "object"
+    },
     "CodeLocation": {
       "additionalProperties": false,
       "properties": {
@@ -249,6 +334,38 @@
           ],
           "default": null,
           "title": "Status Reason"
+        },
+        "measured": {
+          "default": true,
+          "description": "False for a scan: read from the code, with no run behind it, so the savings are 0",
+          "title": "Measured",
+          "type": "boolean"
+        },
+        "suggestion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The change that removes the waste, in a sentence or two",
+          "title": "Suggestion"
+        },
+        "snippet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The lines of code the finding points at",
+          "title": "Snippet"
         }
       },
       "required": [
@@ -306,7 +423,12 @@
         "duplicate_tool_call",
         "context_bloat",
         "oversized_model",
-        "doomed_retry"
+        "doomed_retry",
+        "no_prompt_caching",
+        "uncapped_output",
+        "paid_fallback",
+        "unbounded_loop",
+        "other"
       ],
       "title": "FindingKind",
       "type": "string"
@@ -511,6 +633,31 @@
           "default": 0,
           "title": "Findings Applied",
           "type": "integer"
+        },
+        "call_sites": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model call sites found by a scan",
+          "title": "Call Sites"
+        },
+        "files_scanned": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Files Scanned"
         }
       },
       "title": "JobSummary",
@@ -607,7 +754,8 @@
       "enum": [
         "saved",
         "nothing_to_fix",
-        "no_saving"
+        "no_saving",
+        "scanned"
       ],
       "title": "Outcome",
       "type": "string"
@@ -1000,6 +1148,7 @@
       "recovery": "#/$defs/RecoveryEvent",
       "run.completed": "#/$defs/RunCompletedEvent",
       "sandbox.log": "#/$defs/SandboxLogEvent",
+      "scan.call_site": "#/$defs/CallSiteEvent",
       "verify.result": "#/$defs/VerifyResultEvent"
     },
     "propertyName": "type"
@@ -1031,6 +1180,9 @@
     },
     {
       "$ref": "#/$defs/RecoveryEvent"
+    },
+    {
+      "$ref": "#/$defs/CallSiteEvent"
     },
     {
       "$ref": "#/$defs/JobDoneEvent"

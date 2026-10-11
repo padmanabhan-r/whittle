@@ -930,6 +930,36 @@
               }
             ],
             "title": "Status Reason"
+          },
+          "measured": {
+            "type": "boolean",
+            "title": "Measured",
+            "description": "False for a scan: read from the code, with no run behind it, so the savings are 0",
+            "default": true
+          },
+          "suggestion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestion",
+            "description": "The change that removes the waste, in a sentence or two"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snippet",
+            "description": "The lines of code the finding points at"
           }
         },
         "additionalProperties": false,
@@ -953,7 +983,12 @@
           "duplicate_tool_call",
           "context_bloat",
           "oversized_model",
-          "doomed_retry"
+          "doomed_retry",
+          "no_prompt_caching",
+          "uncapped_output",
+          "paid_fallback",
+          "unbounded_loop",
+          "other"
         ],
         "title": "FindingKind"
       },
@@ -1078,6 +1113,10 @@
           "state": {
             "$ref": "#/components/schemas/JobState"
           },
+          "mode": {
+            "$ref": "#/components/schemas/JobMode",
+            "default": "measure"
+          },
           "source": {
             "oneOf": [
               {
@@ -1168,6 +1207,37 @@
             "type": "boolean",
             "title": "Mock",
             "default": false
+          },
+          "scan_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scan Summary",
+            "description": "Where the model spend goes, in a few sentences; set when a scan ends"
+          },
+          "scan_good": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scan Good",
+            "description": "What the code already does to keep model spend down, each in a sentence"
+          },
+          "proposed_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProposedRun"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set by a scan when it finds a way to run the code"
           }
         },
         "additionalProperties": false,
@@ -1202,6 +1272,11 @@
               }
             }
           },
+          "mode": {
+            "$ref": "#/components/schemas/JobMode",
+            "description": "scan needs only the source: no run command, no model key",
+            "default": "measure"
+          },
           "run": {
             "anyOf": [
               {
@@ -1211,7 +1286,7 @@
                 "type": "null"
               }
             ],
-            "description": "Required for github sources; samples carry their own"
+            "description": "Required to measure a github source; samples carry their own"
           },
           "model_key": {
             "anyOf": [
@@ -1222,7 +1297,7 @@
                 "type": "null"
               }
             ],
-            "description": "Required for github sources"
+            "description": "Required to measure a github source"
           },
           "monthly_runs": {
             "anyOf": [
@@ -1263,6 +1338,15 @@
           "message"
         ],
         "title": "JobError"
+      },
+      "JobMode": {
+        "type": "string",
+        "enum": [
+          "measure",
+          "scan"
+        ],
+        "title": "JobMode",
+        "description": "measure: run the agent in the sandbox and measure it. scan: read the code only, run nothing."
       },
       "JobState": {
         "type": "string",
@@ -1323,6 +1407,29 @@
             "type": "integer",
             "title": "Findings Applied",
             "default": 0
+          },
+          "call_sites": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Sites",
+            "description": "Model call sites found by a scan"
+          },
+          "files_scanned": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Files Scanned"
           }
         },
         "additionalProperties": false,
@@ -1333,7 +1440,9 @@
         "type": "string",
         "enum": [
           "python",
-          "typescript"
+          "typescript",
+          "javascript",
+          "other"
         ],
         "title": "Language"
       },
@@ -1361,7 +1470,8 @@
         "enum": [
           "saved",
           "nothing_to_fix",
-          "no_saving"
+          "no_saving",
+          "scanned"
         ],
         "title": "Outcome"
       },
@@ -1393,6 +1503,35 @@
           "saving_monthly_usd"
         ],
         "title": "Projection"
+      },
+      "ProposedRun": {
+        "properties": {
+          "command": {
+            "type": "string",
+            "title": "Command",
+            "description": "With {input} where a task input goes, if the entry point takes one"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "needs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Needs",
+            "description": "Environment variables the code will not start without, by name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "command",
+          "reason"
+        ],
+        "title": "ProposedRun",
+        "description": "How Whittle thinks the code can be run once, worked out from the repository during a scan."
       },
       "Provider": {
         "type": "string",

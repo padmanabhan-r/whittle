@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from costcutter.agent.fixer import fix_finding
 from costcutter.contract import (
     TERMINAL_STATES,
+    CallSiteList,
     Comparison,
     Diff,
     ErrorBody,
@@ -26,6 +27,7 @@ from costcutter.contract import (
     FixRequest,
     Job,
     JobCreate,
+    JobMode,
     JobState,
     PullRequest,
     Sample,
@@ -137,6 +139,11 @@ def create_app() -> FastAPI:
     async def list_findings(job_id: str) -> FindingList:
         return FindingList(findings=get_job(job_id).findings)
 
+    @app.get("/api/jobs/{job_id}/call-sites", response_model=CallSiteList, responses=ERRORS)
+    async def list_call_sites(job_id: str) -> CallSiteList:
+        ctx = get_job(job_id)
+        return CallSiteList(call_sites=ctx.call_sites, files_scanned=ctx.job.summary.files_scanned or 0)
+
     @app.post("/api/jobs/{job_id}/fix", response_model=Job, status_code=202, responses=ERRORS)
     async def start_fix(job_id: str, body: FixRequest) -> Job:
         ctx = get_job(job_id)
@@ -153,6 +160,8 @@ def create_app() -> FastAPI:
     async def read_comparison(job_id: str) -> Comparison:
         ctx = get_job(job_id)
         require_done(ctx)
+        if ctx.job.mode is JobMode.SCAN:
+            raise ApiError(409, "scan_only", "This job read the code without running it, so there is no before and after to compare.")
         if "after" not in ctx.phases:
             raise ApiError(409, "job_not_done", "The job ended before any fix was tried, so there is nothing to compare.")
         return runner.comparison(ctx)

@@ -37,7 +37,10 @@ from costcutter.contract import (
     JobError,
     JobState,
     JobSummary,
+    CallSite,
+    JobMode,
     Language,
+    ProposedRun,
     TERMINAL_STATES,
     Outcome,
     Projection,
@@ -137,6 +140,7 @@ class JobContext:
         self.findings: list[Finding] = []
         self.phases: dict[str, PhaseResult] = {}
         self.kept: list[str] = []
+        self.call_sites: list[CallSite] = []
         self.base_commit = ""
         self.task: asyncio.Task | None = None
         self.steps = 0
@@ -175,6 +179,7 @@ class JobContext:
             "kept": self.kept,
             "steps": self.steps,
             "findings": [f.model_dump(mode="json") for f in self.findings],
+            "call_sites": [c.model_dump(mode="json") for c in self.call_sites],
             "phases": {name: [_run_to_dict(run) for run in phase.runs] for name, phase in self.phases.items()},
         }
         tmp = self._state_file.with_suffix(".json.tmp")
@@ -191,6 +196,7 @@ class JobContext:
         ctx.kept = list(data["kept"])
         ctx.steps = int(data.get("steps", 0))
         ctx.findings = [Finding.model_validate(f) for f in data["findings"]]
+        ctx.call_sites = [CallSite.model_validate(c) for c in data.get("call_sites", [])]
         by_id = {t.id: t for t in tasks}
         for name, runs in data["phases"].items():
             records = load_phase(job.id, name)
@@ -318,15 +324,17 @@ class JobRunner:
                 raise KeyError(body.source.sample_id)
             tasks = [Task(t["id"], t["input"], t.get("expect", [])) for t in sample["tasks"]]
             command, language, provider, key, expect_known = sample["run"]["command"], Language(sample["language"]), sample.get("provider", "anthropic"), None, True
+        elif body.mode is JobMode.SCAN:
+            tasks, command, language, provider, key, expect_known = [], "", Language.OTHER, "anthropic", None, False
         else:
             if body.run is None or body.model_key is None:
-                raise ValueError("A github source needs both run and model_key.")
+                raise ValueError("To measure a github source, give both run and model_key. To read the code without running it, use mode scan.")
             tasks = [Task(t.id or f"task-{i + 1}", t.input) for i, t in enumerate(body.run.tasks)]
             command, language, provider, key, expect_known = body.run.command, Language.PYTHON, body.model_key.provider, body.model_key.key, False
-        job = Job(id=job_id, state=JobState.QUEUED, source=body.source, language=language, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
+        job = Job(id=job_id, state=JobState.QUEUED, mode=body.mode, source=body.source, language=language, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
         ctx = JobContext(job, tasks, command, language, provider, key, expect_known)
         self.jobs[job_id] = ctx
-        ctx.task = asyncio.create_task(self._guard(ctx, self.diagnose(ctx)))
+        ctx.task = asyncio.create_task(self._guard(ctx, self.scan(ctx) if body.mode is JobMode.SCAN else self.diagnose(ctx)))
         return job
 
     async def _guard(self, ctx: JobContext, coro) -> None:
@@ -336,6 +344,52 @@ class JobRunner:
         except Exception as exc:  # the job fails; the server does not
             if ctx.job.state not in (JobState.DONE, JobState.FAILED):
                 ctx.fail("internal_error", f"{type(exc).__name__}: {exc}")
+
+    # --- scan: read the code, run nothing -----------------------------------
+
+    async def scan(self, ctx: JobContext) -> None:
+        from costcutter import scan as scanner
+
+        job = ctx.job
+        ctx.set_state(JobState.CLONING)
+        try:
+            await asyncio.to_thread(self._clone, ctx)
+        except subprocess.CalledProcessError as exc:
+            ctx.fail("clone_failed", f"The repository could not be cloned. Is it public, and is the address right? {(exc.stderr or '').strip()[-200:]}")
+            return
+        ctx.set_state(JobState.DIAGNOSING)
+        sites, files_scanned = await asyncio.to_thread(scanner.find_call_sites, ctx.repo)
+        ctx.language = job.language = scanner.detect_language(scanner.source_files(ctx.repo))
+        job.summary.files_scanned, job.summary.call_sites = files_scanned, len(sites)
+        ctx.call_sites = sites
+        ctx.step("thought", f"Read {files_scanned} source files at {ctx.base_commit[:7]}, mostly {ctx.language.value}. Found {len(sites)} place{'s' if len(sites) != 1 else ''} that call a model.")
+        for site in sites:
+            ctx.emit("scan.call_site", call_site=site)
+        if files_scanned == 0:
+            ctx.fail("nothing_to_scan", "No source files were found in this repository.")
+            return
+
+        loop = asyncio.get_running_loop()
+
+        def step(kind: str, text: str, tool: str | None = None) -> None:
+            loop.call_soon_threadsafe(ctx.step, kind, text, tool)
+
+        def on_finding(finding: Finding) -> None:
+            def add() -> None:
+                ctx.findings.append(finding)
+                job.summary.findings_total = len(ctx.findings)
+                ctx.finding_event(finding)
+            loop.call_soon_threadsafe(add)
+
+        closing = await asyncio.to_thread(scanner.scan, ctx.repo, sites, files_scanned, ctx.language, step, on_finding)
+        await asyncio.sleep(0)  # let the last findings queued from the scan thread land first
+        job.scan_summary = closing.get("summary") or None
+        job.scan_good = closing.get("good") or []
+        if closing.get("run_command"):
+            job.proposed_run = ProposedRun(command=closing["run_command"], reason=closing.get("run_reason") or "Found in the repository.", needs=closing.get("run_needs") or [])
+        job.outcome = Outcome.SCANNED if ctx.findings or sites else Outcome.NOTHING_TO_FIX
+        ctx.set_state(JobState.DONE)
+        ctx.emit("job.done", outcome=job.outcome, summary=job.summary)
 
     # --- diagnose ---------------------------------------------------------
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { api, ApiError, EVENT_TYPES } from './api'
-import type { EventOf, Finding, Job, JobEvent, JobState, Phase } from './api'
+import type { CallSite, EventOf, Finding, Job, JobEvent, JobState, Phase } from './api'
 
 export type Call = EventOf<'llm.call'>
 export type Step = EventOf<'agent.step'>
@@ -14,6 +14,7 @@ export interface RunView {
   completed: Record<Phase, EventOf<'run.completed'>[]>
   logs: LogLine[]
   findings: Finding[]
+  callSites: CallSite[]
   steps: Step[]
   patches: Record<string, EventOf<'patch.applied'>>
   verify: Record<string, EventOf<'verify.result'>>
@@ -30,6 +31,7 @@ const empty: RunView = {
   completed: { baseline: [], after: [] },
   logs: [],
   findings: [],
+  callSites: [],
   steps: [],
   patches: {},
   verify: {},
@@ -71,6 +73,8 @@ function reduce(view: RunView, event: JobEvent | { type: 'reset' }): RunView {
       return { ...next, verify: { ...view.verify, [event.finding_id]: event } }
     case 'recovery':
       return { ...next, recoveries: [...view.recoveries, event] }
+    case 'scan.call_site':
+      return { ...next, callSites: [...view.callSites, event.call_site] }
     case 'job.done':
       return { ...next, done: true }
     case 'job.error':

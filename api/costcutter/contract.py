@@ -40,15 +40,25 @@ class JobState(StrEnum):
     FAILED = "failed"
 
 
+class JobMode(StrEnum):
+    """measure: run the agent in the sandbox and measure it. scan: read the code only, run nothing."""
+
+    MEASURE = "measure"
+    SCAN = "scan"
+
+
 class Outcome(StrEnum):
     SAVED = "saved"
     NOTHING_TO_FIX = "nothing_to_fix"
     NO_SAVING = "no_saving"
+    SCANNED = "scanned"
 
 
 class Language(StrEnum):
     PYTHON = "python"
     TYPESCRIPT = "typescript"
+    JAVASCRIPT = "javascript"
+    OTHER = "other"
 
 
 class Provider(StrEnum):
@@ -67,6 +77,12 @@ class FindingKind(StrEnum):
     CONTEXT_BLOAT = "context_bloat"
     OVERSIZED_MODEL = "oversized_model"
     DOOMED_RETRY = "doomed_retry"
+    # Found by reading code in a scan; none of these needs a run to see.
+    NO_PROMPT_CACHING = "no_prompt_caching"
+    UNCAPPED_OUTPUT = "uncapped_output"
+    PAID_FALLBACK = "paid_fallback"
+    UNBOUNDED_LOOP = "unbounded_loop"
+    OTHER = "other"
 
 
 class Severity(StrEnum):
@@ -138,6 +154,33 @@ class Finding(Model):
     location: CodeLocation | None = None
     status: FindingStatus = FindingStatus.PROPOSED
     status_reason: str | None = None
+    measured: bool = Field(default=True, description="False for a scan: read from the code, with no run behind it, so the savings are 0")
+    suggestion: str | None = Field(default=None, description="The change that removes the waste, in a sentence or two")
+    snippet: str | None = Field(default=None, description="The lines of code the finding points at")
+
+
+class CallSite(Model):
+    """A place in the code that calls a model, found by a scan."""
+
+    file: str
+    line: int
+    provider: str = Field(description="anthropic, openai, google, an OpenAI-compatible endpoint, a framework name, or unknown")
+    via: str = Field(description="How the call is made: an SDK method, a framework helper, or a raw HTTP request")
+    model: str | None = Field(default=None, description="The model name when the code states one nearby")
+    snippet: str
+
+
+class ProposedRun(Model):
+    """How Whittle thinks the code can be run once, worked out from the repository during a scan."""
+
+    command: str = Field(description="With {input} where a task input goes, if the entry point takes one")
+    reason: str
+    needs: list[str] = Field(default_factory=list, description="Environment variables the code will not start without, by name")
+
+
+class CallSiteList(Model):
+    call_sites: list[CallSite]
+    files_scanned: int
 
 
 # --- Samples ---------------------------------------------------------------
@@ -193,8 +236,9 @@ class ModelKey(Model):
 
 class JobCreate(Model):
     source: Source
-    run: RunSpec | None = Field(default=None, description="Required for github sources; samples carry their own")
-    model_key: ModelKey | None = Field(default=None, description="Required for github sources")
+    mode: JobMode = Field(default=JobMode.MEASURE, description="scan needs only the source: no run command, no model key")
+    run: RunSpec | None = Field(default=None, description="Required to measure a github source; samples carry their own")
+    model_key: ModelKey | None = Field(default=None, description="Required to measure a github source")
     monthly_runs: int | None = Field(default=None, ge=1, description="For the monthly projection")
 
 
@@ -204,6 +248,8 @@ class JobSummary(Model):
     saving_pct: float | None = None
     findings_total: int = 0
     findings_applied: int = 0
+    call_sites: int | None = Field(default=None, description="Model call sites found by a scan")
+    files_scanned: int | None = None
 
 
 class JobError(Model):
@@ -214,6 +260,7 @@ class JobError(Model):
 class Job(Model):
     id: str
     state: JobState
+    mode: JobMode = JobMode.MEASURE
     source: Source
     language: Language | None = None
     base_commit: str | None = None
@@ -225,6 +272,9 @@ class Job(Model):
     error: JobError | None = None
     last_event_seq: int = 0
     mock: bool = False
+    scan_summary: str | None = Field(default=None, description="Where the model spend goes, in a few sentences; set when a scan ends")
+    scan_good: list[str] = Field(default_factory=list, description="What the code already does to keep model spend down, each in a sentence")
+    proposed_run: ProposedRun | None = Field(default=None, description="Set by a scan when it finds a way to run the code")
 
 
 class FindingList(Model):
@@ -409,6 +459,11 @@ class RecoveryEvent(EventBase):
     reason: str
 
 
+class CallSiteEvent(EventBase):
+    type: Literal["scan.call_site"] = "scan.call_site"
+    call_site: CallSite
+
+
 class JobDoneEvent(EventBase):
     type: Literal["job.done"] = "job.done"
     outcome: Outcome
@@ -431,6 +486,7 @@ Event = Annotated[
     | PatchAppliedEvent
     | VerifyResultEvent
     | RecoveryEvent
+    | CallSiteEvent
     | JobDoneEvent
     | JobErrorEvent,
     Field(discriminator="type"),

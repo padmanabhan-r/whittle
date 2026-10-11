@@ -39,7 +39,15 @@ export interface Finding {
   location: CodeLocation | null
   status: FindingStatus
   status_reason: string | null
+  /** False for a scan: read from the code, with no run behind it. */
+  measured?: boolean
+  suggestion?: string | null
+  snippet?: string | null
 }
+
+export type JobMode = 'measure' | 'scan'
+export interface CallSite { file: string; line: number; provider: string; via: string; model: string | null; snippet: string }
+export interface ProposedRun { command: string; reason: string; needs: string[] }
 
 export interface Sample {
   id: string
@@ -56,6 +64,7 @@ export type Source =
 
 export interface JobCreate {
   source: Source
+  mode?: JobMode
   run?: { command: string; tasks: { input: string }[] }
   model_key?: { provider: 'anthropic' | 'openai'; key: string }
   monthly_runs?: number
@@ -67,22 +76,28 @@ export interface JobSummary {
   saving_pct: number | null
   findings_total: number
   findings_applied: number
+  call_sites?: number | null
+  files_scanned?: number | null
 }
 
 export interface Job {
   id: string
   state: JobState
+  mode?: JobMode
   source: Source
-  language: 'python' | 'typescript' | null
+  language: 'python' | 'typescript' | 'javascript' | 'other' | null
   base_commit: string | null
   monthly_runs: number | null
   created_at: string
   updated_at: string
   summary: JobSummary
-  outcome: 'saved' | 'nothing_to_fix' | 'no_saving' | null
+  outcome: 'saved' | 'nothing_to_fix' | 'no_saving' | 'scanned' | null
   error: { code: string; message: string } | null
   last_event_seq: number
   mock: boolean
+  scan_summary?: string | null
+  scan_good?: string[]
+  proposed_run?: ProposedRun | null
 }
 
 export interface TaskRun {
@@ -140,6 +155,7 @@ export type JobEvent = EventBase &
         quality_before: number; quality_after: number; reason: string
       }
     | { type: 'recovery'; finding_id: string; action: 'reverted' | 'retried' | 'skipped'; reason: string }
+    | { type: 'scan.call_site'; call_site: CallSite }
     | { type: 'job.done'; outcome: string; summary: JobSummary }
     | { type: 'job.error'; code: string; message: string }
   )
@@ -148,7 +164,7 @@ export type EventOf<T extends JobEvent['type']> = Extract<JobEvent, { type: T }>
 
 export const EVENT_TYPES: JobEvent['type'][] = [
   'job.state', 'sandbox.log', 'llm.call', 'run.completed', 'finding', 'agent.step',
-  'patch.applied', 'verify.result', 'recovery', 'job.done', 'job.error',
+  'patch.applied', 'verify.result', 'recovery', 'scan.call_site', 'job.done', 'job.error',
 ]
 
 export class ApiError extends Error {

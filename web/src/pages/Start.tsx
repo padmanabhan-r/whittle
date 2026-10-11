@@ -48,6 +48,11 @@ export function Start() {
     }
   }
 
+  function submitScan(event: FormEvent) {
+    event.preventDefault()
+    start({ mode: 'scan', source: { type: 'github', repo_url: repo.trim(), ref: ref.trim() || null } }, 'scan')
+  }
+
   function submitRepo(event: FormEvent) {
     event.preventDefault()
     const list = tasks.split('\n').map((t) => t.trim()).filter(Boolean)
@@ -69,8 +74,8 @@ export function Start() {
       <main className="work start">
         <h1>Find what your agent wastes</h1>
         <p className="lede">
-          Whittle runs the agent in a sandbox, records every model call, and lists the waste it can prove.
-          You choose what to fix; it patches, reruns and keeps only the fixes that hold.
+          Paste a repository and Whittle reads the code to show where its model spend goes. Then it can run the agent
+          in a sandbox, measure every call, fix the waste and keep only the fixes that hold.
         </p>
 
         {loadError && (
@@ -78,7 +83,28 @@ export function Start() {
         )}
         {error && <div className="notice" role="alert"><Warn /><div><strong>The job did not start</strong>{error}</div></div>}
 
-        <h2 className="section-title" style={{ marginTop: 0 }}>Try a sample agent</h2>
+        <h2 className="section-title" style={{ marginTop: 0 }}>Scan a repository</h2>
+        <form className="panel scan-start" onSubmit={submitScan}>
+          <label>
+            Public GitHub repository
+            <input className="field" type="url" required placeholder="https://github.com/owner/repo" value={repo}
+              onChange={(e) => setRepo(e.target.value)} />
+          </label>
+          <label className="ref">
+            Branch (optional)
+            <input className="field" value={ref} onChange={(e) => setRef(e.target.value)} placeholder="default" />
+          </label>
+          <button className="btn primary" type="submit" disabled={busy !== null || mock}>
+            {busy === 'scan' ? 'Starting…' : <>Scan the code <ArrowRight /></>}
+          </button>
+        </form>
+        <p className="lede small" style={{ marginTop: 10 }}>
+          {mock
+            ? 'The mock server cannot scan. Start the real backend with ./start.sh.'
+            : 'No key and no run command. Any language: Whittle finds every place the code calls a model and reads what feeds it. Nothing is run.'}
+        </p>
+
+        <h2 className="section-title">Try a sample agent</h2>
         <div className="panel">
           <div className="toolbar">
             {mock ? (
@@ -128,7 +154,8 @@ export function Start() {
           </div>
         </div>
 
-        <h2 className="section-title">Or use your own repo</h2>
+        <details className="measure-own">
+        <summary>Already know how to run your agent? Measure it directly</summary>
         <form className="panel form-grid" onSubmit={submitRepo}>
           <label className="wide">
             Public GitHub repository
@@ -174,6 +201,7 @@ export function Start() {
             </span>
           </div>
         </form>
+        </details>
       </main>
     </div>
   )

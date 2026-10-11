@@ -36,6 +36,22 @@ that lowers answer quality, is taken back out, and you watch that happen.
 An entry for [neatHack](https://neatlogs.com/hackathon), 10 to 12 October 2026,
 by **team Attention Heads** (Padmanabhan and Sethuraman).
 
+## Two ways in
+
+**Scan.** Paste a public GitHub link. Whittle reads the code, in any language,
+finds every place it calls a model, and reports where the spend goes: what is
+wasteful, what the code already does well, and the change to make, each pinned
+to its lines. Nothing is run, so it needs no key and no run command. Scanning
+our own sample agent this way found all five of the wastes built into it, and
+scanning a TypeScript web app found its three: the largest model as the default,
+no prompt caching, and a fallback chain that pays twice.
+
+**Measure.** When the code can be run, Whittle runs it in a sandbox with your
+model key, records every call, fixes the waste and proves the saving. The scan
+proposes the run command it found, so the form is filled in for you.
+
+![A scan of a TypeScript repository](assets/screens/scan.jpg)
+
 ## A real run
 
 On 11 October the sample research agent went through Whittle AI end to end:
@@ -203,11 +219,12 @@ taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 | Web UI: landing page and app | Built |
 | Recording proxy, Docker sandbox with no internet access | Built and tested |
 | Five waste detectors and the code locator | Built and tested |
+| Scan mode: read any repository, no key, no command | Built and tested on a Python agent and a TypeScript app |
 | Fixing agent, verify and revert, job runner, API | Built; several real jobs run end to end |
 | Job state that survives a restart | Built and tested |
 | neatlogs traces of every run | Built; see the note on pending traces above |
 | Pull request delivery | Written, not yet run against a real repository |
-| Agents in TypeScript | The proxy records them; fixing them is not built |
+| Measuring repositories that are not Python | Not built: the scan reads them, the sandbox does not run them yet |
 | Deployment | In progress |
 
 Limits worth knowing: an agent that hardcodes its provider's address bypasses
@@ -221,6 +238,7 @@ repositories are accepted. One job runs at a time.
 | `web/` | The UI: landing page and app (Vite, React, TypeScript) |
 | `api/costcutter/proxy/` | The recording proxy: sessions, call records, spend cap, traces |
 | `api/costcutter/sandbox/` | The Docker install and run steps |
+| `api/costcutter/scan.py` | Scan mode: model call sites in any language, and the agent that reads them |
 | `api/costcutter/analyzers/` | The five detectors and the code locator |
 | `api/costcutter/agent/` | The fixing agent |
 | `api/costcutter/jobs.py`, `server.py` | The job runner and the API |

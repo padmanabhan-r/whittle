@@ -29,32 +29,82 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
   if (error) return <div className="notice" role="alert"><div><strong>The comparison could not be loaded</strong>{error}</div></div>
   if (!data) return <div className="panel"><div className="empty"><p>Loading the comparison…</p></div></div>
 
-  const maxCost = Math.max(...data.tasks.map((t) => t.baseline.cost_usd))
+  // The longest bar is the dearest run on either side: an after run can cost more than its baseline.
+  const maxCost = Math.max(...data.tasks.flatMap((t) => [t.baseline.cost_usd, t.after.cost_usd]), 1e-9)
   const title = (id: string) => findings.find((f) => f.id === id)?.title ?? id
   const tokens = (t: Comparison['baseline']) => t.input_tokens + t.output_tokens + t.cache_read_tokens + t.cache_write_tokens
+  // Three different endings, and only one of them is a saving.
+  const kept = data.by_finding.filter((r) => r.status === 'applied').length
+  const tried = data.by_finding.filter((r) => r.status === 'applied' || r.status === 'reverted').length
+  const unchanged = kept === 0 // every fix was reverted or skipped: both runs are of the same code
+  const worse = !unchanged && data.saving_usd_per_run <= 0
+  const gap = pct(Math.abs(data.saving_pct))
+  const more = Math.abs(data.saving_usd_per_run)
+  const few = data.tasks.length < 3
 
   return (
     <>
       <div className="verdict">
-        <div className="big">
-          <div className="label">Cost per run</div>
-          <div className="figure">{pct(data.saving_pct)} lower</div>
-          <div className="line">
-            <s>{usd(data.baseline.cost_per_run_usd)}</s> → <mark className="hl">{usd(data.after.cost_per_run_usd)}</mark>
-            {'  '}saving {usd(data.saving_usd_per_run)} on every run
+        {unchanged ? (
+          <div className="big none">
+            <div className="label">Result</div>
+            <div className="figure">No fix was kept</div>
+            <div className="line">
+              Your code is unchanged. {tried === 0 ? 'No fix was tried.' : `${tried} ${tried === 1 ? 'fix was' : 'fixes were'} tried and reverted.`} There is no saving to report.
+            </div>
           </div>
-        </div>
+        ) : worse ? (
+          <div className="big worse">
+            <div className="label">Cost per run</div>
+            <div className="figure">{gap} higher</div>
+            <div className="line">
+              {usd(data.baseline.cost_per_run_usd)} → <mark className="hl">{usd(data.after.cost_per_run_usd)}</mark>
+              {'  '}costing {usd(more)} more on every run. Do not apply this patch.
+            </div>
+          </div>
+        ) : (
+          <div className="big">
+            <div className="label">Cost per run</div>
+            <div className="figure">{pct(data.saving_pct)} lower</div>
+            <div className="line">
+              <s>{usd(data.baseline.cost_per_run_usd)}</s> → <mark className="hl">{usd(data.after.cost_per_run_usd)}</mark>
+              {'  '}saving {usd(data.saving_usd_per_run)} on every run
+            </div>
+          </div>
+        )}
         <dl className="side" style={{ margin: 0 }}>
+          {unchanged && (
+            <div className="kpi">
+              <dt>The same code, run twice</dt>
+              <dd>
+                <div className="value">{usd(data.baseline.cost_per_run_usd)} and {usd(data.after.cost_per_run_usd)}</div>
+                <div className="sub">
+                  {gap} apart with no change to the code. That is the variation between two runs, not a result.
+                </div>
+              </dd>
+            </div>
+          )}
           <div className="kpi">
             <dt>Answer quality · {data.quality.evaluator}</dt>
             <dd>
               <div className="value">{data.quality.baseline_score.toFixed(2)} → {data.quality.after_score.toFixed(2)}</div>
               <div className="sub">
-                {data.quality.passed ? 'Held' : 'Fell'} against a threshold of {data.quality.threshold.toFixed(2)}
+                {unchanged && !data.quality.passed
+                  ? `The unchanged code scored under the ${data.quality.threshold.toFixed(2)} bar against its own first answers`
+                  : `${data.quality.passed ? 'Held' : 'Fell'} against a threshold of ${data.quality.threshold.toFixed(2)}`}
               </div>
             </dd>
           </div>
-          {data.projection && (
+          {data.projection && !unchanged && worse && (
+            <div className="kpi">
+              <dt>At {int(data.projection.monthly_runs)} runs a month</dt>
+              <dd>
+                <div className="value bad">{usd2(Math.abs(data.projection.saving_monthly_usd))} more</div>
+                <div className="sub">{usd2(data.projection.baseline_monthly_usd)} → {usd2(data.projection.after_monthly_usd)} a month</div>
+              </dd>
+            </div>
+          )}
+          {data.projection && !unchanged && !worse && (
             <div className="kpi">
               <dt>At {int(data.projection.monthly_runs)} runs a month</dt>
               <dd>
@@ -68,7 +118,29 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
         </dl>
       </div>
 
-      <h2 className="section-title">Where the saving came from</h2>
+      {unchanged && tried > 0 && (
+        <div className="notice recover" role="note">
+          <div>
+            <strong>Why nothing was kept</strong>
+            {!data.quality.passed ? (
+              <p>
+                Each fix was reverted because its answers scored under the bar. But the last run used the same code as the first and
+                still scored {data.quality.after_score.toFixed(2)}, so the scoring could not tell a real loss from ordinary variation
+                in this agent's answers. The fixes were not shown to be bad; they were not measured well enough to keep.
+              </p>
+            ) : (
+              <p>Each fix was reverted after its rerun, for the reason given beside it below. Whittle keeps a fix only when the run got cheaper and the answers held.</p>
+            )}
+            <p>
+              {few
+                ? `This job ran ${data.tasks.length} ${data.tasks.length === 1 ? 'task' : 'tasks'}. Run it again with three to five tasks that have a definite answer, so one unusual answer does not decide the result.`
+                : 'Run it again with tasks that have a definite answer, so the scoring has something firm to compare.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <h2 className="section-title">{unchanged ? 'What was tried' : worse ? 'What each fix did' : 'Where the saving came from'}</h2>
       <div className="panel">
         <div className="table-wrap">
           <table className="ledger">
@@ -86,11 +158,13 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
                   <td className="why">{row.reason ?? ''}</td>
                 </tr>
               ))}
-              <tr className="total">
-                <td colSpan={2}>TOTAL SAVED PER RUN</td>
-                <td className="r"><mark className="hl">−{data.saving_usd_per_run.toFixed(4)}</mark></td>
-                <td />
-              </tr>
+              {!unchanged && (
+                <tr className="total">
+                  <td colSpan={2}>{worse ? 'TOTAL ADDED PER RUN' : 'TOTAL SAVED PER RUN'}</td>
+                  <td className="r"><mark className="hl">{worse ? '+' : '−'}{more.toFixed(4)}</mark></td>
+                  <td />
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -102,7 +176,7 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
           <table className="ledger">
             <thead>
               <tr>
-                <th>Task</th><th>Before and after</th><th className="r">Before</th><th className="r">After</th>
+                <th>Task</th><th>{unchanged ? 'First and second run' : 'Before and after'}</th><th className="r">{unchanged ? 'First' : 'Before'}</th><th className="r">{unchanged ? 'Second' : 'After'}</th>
                 <th className="r">Calls</th><th>Passed</th><th>Traces</th>
               </tr>
             </thead>
@@ -142,7 +216,7 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
               </tr>
             </thead>
             <tbody>
-              {([['Before', data.baseline], ['After', data.after]] as const).map(([name, t]) => (
+              {([[unchanged ? 'First run' : 'Before', data.baseline], [unchanged ? 'Second run' : 'After', data.after]] as const).map(([name, t]) => (
                 <tr key={name}>
                   <td>{name}</td><td className="r">{t.llm_calls}</td><td className="r">{t.tool_calls}</td>
                   <td className="r">{int(t.input_tokens)}</td><td className="r">{int(t.cache_read_tokens)}</td>

@@ -1169,3 +1169,29 @@ details.measure-own > summary {
 .panel > .btn.more {
   margin: 10px 12px 12px;
 }
+
+/* A result that is not a saving must not look like one */
+.verdict .big.none {
+  background: var(--ink);
+}
+.verdict .big.none .figure {
+  font-size: clamp(38px, 4.6vw, 60px);
+  line-height: 1.02;
+}
+.verdict .big.none .line,
+.verdict .big.worse .line {
+  font-family: var(--body);
+  color: #e6e7ee;
+}
+.verdict .big.worse {
+  background: var(--red);
+}
+.verdict .big.worse .label {
+  color: #ffd9d5;
+}
+.kpi .value.bad {
+  color: var(--red);
+}
+.notice.recover p {
+  margin: 4px 0 0;
+}

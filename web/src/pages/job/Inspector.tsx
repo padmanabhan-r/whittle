@@ -58,7 +58,7 @@ export function Inspector({ view, selected }: { view: RunView; selected: string 
                 </li>
               ))}
               {view.recoveries.length > 0 && view.done && (
-                <li><span className="who revert">revert</span><span className="text">{view.recoveries.length} fix undone after failing its check.</span></li>
+                <li><span className="who revert">revert</span><span className="text">{view.recoveries.length} {view.recoveries.length === 1 ? 'fix' : 'fixes'} undone after failing {view.recoveries.length === 1 ? 'its' : 'their'} check.</span></li>
               )}
             </ol>
           )

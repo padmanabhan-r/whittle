@@ -148,7 +148,10 @@ class SandboxRunner:
         args, source = self.python_requirements(project)
         if not args:
             return SandboxRunResult(0, "no requirements.txt or pyproject.toml dependencies; nothing to install\n", "", "")
-        result = self._run(workdir, ["pip", "install", "--quiet", "--target", "/deps", *args], network="bridge", extra_env={}, timeout_s=timeout_s,
+        # pip stages a --target install in its temporary folder before moving it into place. /tmp is a
+        # small in-memory area, so a large project ran out of space there. Stage on the volume instead.
+        script = 'mkdir -p /deps/.tmp && TMPDIR=/deps/.tmp pip install --quiet --target /deps "$@"; rc=$?; rm -rf /deps/.tmp; exit $rc'
+        result = self._run(workdir, ["sh", "-c", script, "pip", *args], network="bridge", extra_env={}, timeout_s=timeout_s,
                            kind=kind, subdir=subdir, deps_volume=self.deps_volume(job_id), deps_writable=True)
         return SandboxRunResult(result.exit_code, f"installed from {source}\n" + result.stdout[-2000:], result.stderr, result.container_id)
 
@@ -193,6 +196,17 @@ class SandboxRunner:
 
     def remove_deps(self, job_id: str) -> None:
         subprocess.run([self._docker, "volume", "rm", "-f", self.deps_volume(job_id)], capture_output=True)
+
+    def prune_deps(self) -> int:
+        """Remove every job's dependency volume. For server start, when no job is running: they only fill the disk."""
+        try:
+            listed = subprocess.run([self._docker, "volume", "ls", "-q", "--filter", "name=whittle-deps-"], capture_output=True, text=True, timeout=60)
+        except (OSError, subprocess.TimeoutExpired):
+            return 0
+        names = [n for n in listed.stdout.split() if n.startswith("whittle-deps-")]
+        if names:
+            subprocess.run([self._docker, "volume", "rm", "-f", *names], capture_output=True)
+        return len(names)
 
     def _run(
         self,

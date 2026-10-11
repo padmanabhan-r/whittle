@@ -351,6 +351,10 @@ class JobRunner:
                 ctx.fail("server_restarted", "The server restarted while this job was running. Start it again.")
             self.jobs[ctx.job.id] = ctx
             loaded += 1
+        # Nothing is running at start, so every dependency volume left behind is dead weight on the disk.
+        removed = self.sandbox.prune_deps()
+        if removed:
+            log.info("removed %d leftover dependency volumes", removed)
         return loaded
 
     def create(self, body: JobCreate) -> Job:
@@ -560,6 +564,10 @@ class JobRunner:
         except Exception as exc:  # the job fails; the server does not
             if ctx.job.state not in (JobState.DONE, JobState.FAILED):
                 ctx.fail("internal_error", f"Something went wrong inside Whittle while it ran this job, and the job was stopped. Nothing in your repository was changed. Detail for a bug report: {type(exc).__name__}: {str(exc)[:300]}")
+        finally:
+            # A finished job never runs again, and its installed dependencies can be hundreds of megabytes.
+            if ctx.job.state in TERMINAL_STATES and ctx.remote is None:
+                await asyncio.to_thread(self.sandbox.remove_deps, ctx.job.id)
 
     async def _check_with_neatlogs(self, ctx: JobContext, phase: PhaseResult) -> None:
         """Ask neatlogs what it recorded for this phase's traces and say whether it agrees with the proxy."""
@@ -753,6 +761,10 @@ class JobRunner:
         if installed.exit_code != 0:
             ctx.log("install", installed.stderr, stream="stderr")
             said = _last_line(installed.stderr) or _last_line(installed.stdout)
+            if "no space left on device" in (installed.stderr + installed.stdout).lower():
+                ctx.fail("install_failed", "This project's dependencies are too large for the sandbox: it ran out of disk space while installing them, so the code was not run and nothing was measured. "
+                         "Nothing is wrong with your repository. A scan of the same repository still works, since it reads the code without installing it, and the command-line tool measures the code on your own machine.")
+                return
             ctx.fail("install_failed", "The code's dependencies could not be installed in the sandbox, so it was not run and nothing was measured."
                      + (f" The installer said: {said}." if said else "")
                      + " This usually means the repository's lockfile, package manager or Python version needs something the sandbox does not have. A scan of the same repository still works: it reads the code without installing it.")

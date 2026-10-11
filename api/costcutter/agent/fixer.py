@@ -7,6 +7,7 @@ whether the change is kept.
 
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 from pathlib import Path
@@ -80,9 +81,10 @@ class Workspace:
         path.write_text(content, encoding="utf-8")
         self.written.add(rel)
         if path.suffix == ".py":
-            check = subprocess.run(["python3", "-m", "py_compile", str(path)], capture_output=True, text=True)
-            if check.returncode != 0:
-                return f"written, but it does not compile:\n{check.stderr[-800:]}"
+            try:
+                ast.parse(content, filename=rel)
+            except SyntaxError as exc:
+                return f"written, but it does not parse: line {exc.lineno}: {exc.msg}"
         return f"written {rel} ({len(content)} chars)"
 
     def graph(self, *args: str) -> str:

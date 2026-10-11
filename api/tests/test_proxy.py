@@ -15,6 +15,8 @@ SETTINGS = ProxySettings(
     anthropic_upstream="https://anthropic.test",
     openai_upstream="https://openai.test/v1",
     neatlogs_api_key="",
+    neatlogs_write_key="",
+    neatlogs_project="",
     neatlogs_endpoint="https://ingest.neatlogs.com",
     neatlogs_workflow_prefix="test-proxy",
     default_spend_cap_usd=1.0,
@@ -75,7 +77,7 @@ async def test_session_round_trip(proxy):
     assert created.status_code == 200, created.text
     session = created.json()
     assert session["dummy_key"].startswith("whittle-")
-    assert len(session["trace_id"]) == 32
+    assert session["trace_id"] == ""  # known once the run closes
 
     request_body = {"model": "claude-sonnet-5-5", "max_tokens": 16, "messages": [{"role": "user", "content": "ping"}]}
     r = await client.post("/v1/messages", headers={"x-api-key": session["dummy_key"]}, json=request_body)

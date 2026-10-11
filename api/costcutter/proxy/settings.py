@@ -28,6 +28,8 @@ class ProxySettings:
     anthropic_upstream: str
     openai_upstream: str
     neatlogs_api_key: str
+    neatlogs_write_key: str
+    neatlogs_project: str
     neatlogs_endpoint: str
     neatlogs_workflow_prefix: str
     default_spend_cap_usd: float
@@ -42,6 +44,8 @@ class ProxySettings:
             ),
             openai_upstream=os.environ.get("WHITTLE_OPENAI_UPSTREAM", "https://api.openai.com/v1").rstrip("/"),
             neatlogs_api_key=os.environ.get("NEATLOGS_API_KEY", "").strip(),
+            neatlogs_write_key=os.environ.get("NEATLOGS_WRITE_KEY", "").strip(),
+            neatlogs_project=os.environ.get("NEATLOGS_PROJECT", "").strip(),
             neatlogs_endpoint=os.environ.get("NEATLOGS_ENDPOINT", "https://ingest.neatlogs.com").rstrip("/"),
             neatlogs_workflow_prefix=os.environ.get("NEATLOGS_WORKFLOW_NAME", "whittle-proxy"),
             default_spend_cap_usd=float(os.environ.get("WHITTLE_PROXY_SPEND_CAP_USD", "5.0")),

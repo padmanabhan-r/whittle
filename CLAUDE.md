@@ -17,24 +17,36 @@ before and after neatlogs traces, a diff and an optional pull request.
 
 - Design: `docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`
 - Build order, Entire cadence, checks: `docs/plan.md`
-- Stack (the contract, the mock server and the UI exist; the real backend
-  does not): Python 3.13 and FastAPI in `api/`, SQLite
+- Stack: Python 3.13 and FastAPI in `api/`, SQLite
   for job state, Docker for the sandbox, the UI in `web/`, one EC2 instance in
   `us-east-1`. Python must be 3.10 to 3.13: on 3.14 pip installs an old
   neatlogs without `wrap` or `trace`.
+- Backend map, all under `api/costcutter/`: `proxy/` (recording proxy:
+  sessions named by the dummy key, call records under `data/jobs/`, neatlogs
+  spans), `sandbox/` (Docker install and run steps), `analyzers/` (the five
+  detectors and the code locator), `agent/` (the fixing agent), `jobs.py` (the
+  job runner and event log), `server.py` (the contract's endpoints),
+  `delivery.py` (pull requests from the bot account), `evaluate.py` (answer
+  scores). Samples live in `samples/<id>/` with a `whittle.json` manifest.
 - Contract with the UI: `docs/api-contract.md`, defined in code by
   `api/costcutter/contract.py`. Change the models, the document and the mock
   together, then regenerate the schemas.
 - UI: Vite, React and TypeScript in `web/`. Types in `web/src/lib/api.ts`
   mirror `contract.py`. Design tokens are at the top of
   `web/src/styles/base.css`; keep to them.
-- `./start.sh` from the root starts the API (the mock, for now) and the UI:
-  app on http://localhost:5173, API on http://localhost:8787.
+- `./start.sh` from the root starts the real API and the UI: app on
+  http://localhost:5173, API on http://localhost:8787 with the proxy mounted at
+  `/proxy`. It needs Docker running and the keys in `.env.local`.
+  `WHITTLE_MOCK=1 ./start.sh` runs the mock instead.
 - UI commands, from `web/`: `npm run dev`, `npm run build`, `npm run lint`.
 - Backend commands, all from `api/`:
   - `uv sync` installs the backend.
-  - `uv run uvicorn costcutter.mock.server:app --port 8787` starts the mock
-    server the UI is built against. Its numbers are invented.
+  - `uv run uvicorn costcutter.server:app --host 0.0.0.0 --port 8787` starts
+    the real server; `costcutter.mock.server:app` is the mock, whose numbers
+    are invented. `WHITTLE_API_PORT` must match the port when it is not 8787,
+    because the sandbox reaches the proxy at `host.docker.internal:<port>`.
+  - `uv run uvicorn costcutter.proxy.app:app --port 8790` runs the proxy alone;
+    `uv run python scripts/proxy_smoke.py` sends one call through it.
   - `uv run pytest` runs the tests.
   - `uv run python -m costcutter.export_schema` rewrites `docs/openapi.json`
     and `docs/event-schema.json`.

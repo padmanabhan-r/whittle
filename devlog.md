@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T22:15:00+05:30
+- **Last updated:** 2026-10-11T22:31:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `e3c1063` at 10:13 PM IST on 11 October. 95 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `dbb898c` at 10:31 PM IST on 11 October. 98 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1067,6 +1067,59 @@ Three things a visitor hit on the live site tonight, fixed the same hour.
   finished job with nothing to fix, built locally for the check.
 - **Not verified:** the amber waiting state on screen, and the strip on a real
   measured job on the live site.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - 71d0d58
+A follow-up to the entry above, from the same evening on the live site.
+
+- **Failed:** after the deploy of `e3c1063`, a second measured job on the live
+  site (`job_a59a449133c2`, the OpenLine repository) still showed "The
+  comparison could not be loaded". The server and the page were right: opened
+  in a fresh tab, the job read "Nothing worth fixing", 2 tasks, 2 model calls,
+  $0.0017 a run. The tab that showed the error had been open since before the
+  deploy and was still running the old page code.
+- **Shipped:** the Model calls page no longer says only "Waiting for the first
+  model call" while the code is downloaded and installed. It names the step and
+  shows the last eight lines the sandbox printed.
+- **Changed:** the neatlogs line in the agent's log no longer says "1 model
+  calls".
+- **Tests:** `uv run pytest`, 50 passed; `npx tsc --noEmit`, `npm run lint` and
+  `npm run build` in `web/`, no errors. The checks and the EC2 deploy passed in
+  GitHub Actions for `e3c1063` and `71d0d58`.
+- **Evidence:** `job_a59a449133c2` on https://whittleai.site, opened in a fresh
+  browser tab after the deploy, shows the new result page. The new install
+  text was found in the site's shipped page code after the deploy of `71d0d58`.
+- **Not verified:** the install view on screen. The mock job passes through
+  that stage in under a second, and no real job was watched through it.
+- **Not built:** a notice that a newer version of the page is available. A tab
+  kept open across a deploy runs the old page until it is reloaded.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - dbb898c
+A third failure from testing the live site on real repositories.
+
+- **Failed:** a measured job on a Python project with heavy dependencies
+  (`job_fe4df4212ae6`, live; `librosa`, `langchain` and their scientific
+  packages) stopped at install with "No space left on device".
+- **Decided:** the server's disk was not the cause. The same error was
+  reproduced on a machine with free disk. pip stages a `--target` install in
+  its temporary folder, and the sandbox's `/tmp` is a 256 MB in-memory area.
+- **Shipped:** the install stages on the job's dependency volume. The
+  repository that failed now installs, and its packages import in the sandbox.
+- **Shipped:** a measured job removes its dependency volume when it ends, and
+  the server removes leftovers when it starts. Before this they were never
+  removed: 19 volumes holding 1.2 GB had collected on the build machine.
+- **Changed:** if the sandbox does run out of space, the job says the project
+  is too large for it, without the installer's output.
+- **Tests:** `uv run pytest`, 50 passed.
+- **Not verified:** a full measured job on that repository. It is a real-time
+  audio app that expects a microphone and a database.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

@@ -1,32 +1,36 @@
-"""Publish one neatlogs trace per sandboxed run through HTTP trace injection.
-
-Calls are collected while the run is open; on close, one nested JSON trace is
-posted to ingest.neatlogs.com/v1/trace: a WORKFLOW root for the run, an LLM
-child per proxied call with its tokens, cache use and cost, and a TOOL child
-under each call for every tool the model asked for. Neatlogs returns the trace
-id, which the run's evidence links to.
-"""
+"""Emit one neatlogs trace per sandboxed run: a WORKFLOW root with an LLM span per proxied call."""
 
 from __future__ import annotations
 
-import json
-import logging
-import time
-import urllib.error
-import urllib.request
-from datetime import datetime, timezone
+import threading
 from typing import Any
 
+from opentelemetry import context as otel_context
+from opentelemetry import trace
+from opentelemetry.trace import StatusCode
+
 DASHBOARD = "https://app.neatlogs.com"
-log = logging.getLogger("whittle.recorder")
+
+_neatlogs_init_lock = threading.Lock()
+_neatlogs_ready = False
+
+
+def _ensure_neatlogs(api_key: str, endpoint: str, workflow_name: str) -> None:
+    """Initialise the SDK once per process."""
+    global _neatlogs_ready
+    if _neatlogs_ready or not api_key:
+        return
+    with _neatlogs_init_lock:
+        if _neatlogs_ready:
+            return
+        import neatlogs
+
+        neatlogs.init(api_key=api_key, endpoint=endpoint, workflow_name=workflow_name, debug=False)
+        _neatlogs_ready = True
 
 
 def trace_url(trace_id: str) -> str:
-    return f"{DASHBOARD}/traces/{trace_id}" if trace_id else ""
-
-
-def _iso(ts: float) -> str:
-    return datetime.fromtimestamp(ts, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return f"{DASHBOARD}/traces/{trace_id}"
 
 
 class JobTraceRecorder:
@@ -38,19 +42,34 @@ class JobTraceRecorder:
         job_id: str,
         phase: str,
         task_id: str,
-        write_key: str,
-        project: str,
-        endpoint: str = "https://ingest.neatlogs.com",
-        workflow_prefix: str = "whittle",
+        neatlogs_api_key: str,
+        neatlogs_endpoint: str,
+        workflow_prefix: str,
     ) -> None:
         self.job_id, self.phase, self.task_id = job_id, phase, task_id
-        self.write_key, self.project, self.endpoint = write_key.strip(), project.strip(), endpoint.rstrip("/")
-        self.enabled = bool(self.write_key and self.project)
+        self.enabled = bool(neatlogs_api_key)
         self.workflow = f"{workflow_prefix}-{job_id}-{phase}"
-        self.started = time.time()
-        self.calls: list[dict[str, Any]] = []
-        self.trace_id = ""
-        self.error: str | None = None
+        _ensure_neatlogs(neatlogs_api_key, neatlogs_endpoint, workflow_prefix)
+        if self.enabled:
+            from neatlogs._wrap_utils import get_provider_tracer
+
+            self._tracer = get_provider_tracer()
+        else:
+            self._tracer = trace.get_tracer("whittle-proxy")
+        self._workflow_span = self._tracer.start_span(
+            f"{phase}:{task_id}",
+            attributes={
+                "neatlogs.span.kind": "WORKFLOW",
+                "neatlogs.workflow_name": self.workflow,
+                "neatlogs.input.value": f"job {job_id} {phase} {task_id}",
+                "whittle.job_id": job_id,
+                "whittle.phase": phase,
+                "whittle.task_id": task_id,
+            },
+        )
+        ctx = self._workflow_span.get_span_context()
+        self.trace_id = format(ctx.trace_id, "032x")
+        self._ctx = trace.set_span_in_context(self._workflow_span)
         self._closed = False
 
     @property
@@ -68,118 +87,67 @@ class JobTraceRecorder:
         cost_usd: float,
         finish_reason: str | None = None,
         error: str | None = None,
-        request: dict[str, Any] | None = None,
-        response: dict[str, Any] | None = None,
     ) -> str | None:
-        """Queue one LLM span, with a TOOL span per tool the model asked for. Returns the call's index as its span key."""
+        """Add one LLM span under the root. Returns the span id for the detectors' evidence."""
         if self._closed:
             return None
-        inp = usage.get("input_tokens", 0)
-        cr = usage.get("cache_read_tokens", 0)
-        cw = usage.get("cache_write_tokens", 0)
-        out = usage.get("output_tokens", 0)
         name = "messages.create" if provider == "anthropic" else "chat.completions"
-        node: dict[str, Any] = {
-            "name": f"{provider}.{name}",
-            "kind": "LLM",
-            "model": model,
-            "input": _request_preview(request or {}),
-            "output": _response_preview(response or {}),
-            "tokens": {"prompt": inp + cr + cw, "completion": out, "total": inp + cr + cw + out},
-            "start": _iso(time.time() - duration_ms / 1000),
-            "duration_ms": max(1, int(duration_ms)),
-            "status": "ERROR" if error else "OK",
-            "attributes": {
-                "neatlogs.llm.provider": provider,
-                "neatlogs.llm.is_streaming": streaming,
-                "neatlogs.llm.token_count.cache_read": cr,
-                "neatlogs.llm.token_count.cache_write": cw,
-                "neatlogs.llm.cost_usd": round(cost_usd, 8),
-            },
-            "children": [],
-        }
-        if finish_reason:
-            node["attributes"]["neatlogs.llm.finish_reason"] = finish_reason
-        if error:
-            node["error"] = error[:500]
-        for block in (response or {}).get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_use":
-                node["children"].append({
-                    "name": str(block.get("name")),
-                    "kind": "TOOL",
-                    "tool_name": str(block.get("name")),
-                    "input": block.get("input"),
-                    "duration_ms": 1,
-                })
-        self.calls.append(node)
-        return str(len(self.calls))
+        token = otel_context.attach(self._ctx)
+        try:
+            span = self._tracer.start_span(
+                f"{provider}.{name}",
+                context=self._ctx,
+                attributes={
+                    "neatlogs.span.kind": "llm",
+                    "neatlogs.llm.provider": provider,
+                    "neatlogs.llm.system": provider,
+                    "neatlogs.llm.model_name": model,
+                    "neatlogs.llm.is_streaming": streaming,
+                    "neatlogs.llm.operation": name,
+                    "whittle.job_id": self.job_id,
+                    "whittle.phase": self.phase,
+                    "whittle.task_id": self.task_id,
+                },
+            )
+            inp = usage.get("input_tokens", 0)
+            out = usage.get("output_tokens", 0)
+            cr = usage.get("cache_read_tokens", 0)
+            cw = usage.get("cache_write_tokens", 0)
+            span.set_attribute("neatlogs.llm.token_count.prompt", inp + cr + cw)
+            span.set_attribute("neatlogs.llm.token_count.completion", out)
+            span.set_attribute("neatlogs.llm.token_count.total", inp + cr + cw + out)
+            span.set_attribute("neatlogs.llm.token_count.cache_read", cr)
+            span.set_attribute("neatlogs.llm.token_count.cache_write", cw)
+            span.set_attribute("neatlogs.llm.metrics.duration_ms", round(duration_ms, 3))
+            span.set_attribute("neatlogs.llm.cost_usd", cost_usd)
+            if finish_reason:
+                span.set_attribute("neatlogs.llm.finish_reason", finish_reason)
+            if error:
+                span.set_status(StatusCode.ERROR, error)
+            else:
+                span.set_status(StatusCode.OK)
+            span_id = format(span.get_span_context().span_id, "016x")
+            span.end()
+            return span_id
+        finally:
+            otel_context.detach(token)
 
     def close(self, error: str | None = None) -> None:
         if self._closed:
             return
         self._closed = True
-        if not self.enabled:
-            return
-        root = {
-            "name": self.workflow,
-            "project": self.project,
-            "kind": "WORKFLOW",
-            "input": {"job": self.job_id, "phase": self.phase, "task": self.task_id},
-            "output": {"calls": len(self.calls), "cost_usd": round(sum(c["attributes"]["neatlogs.llm.cost_usd"] for c in self.calls), 6)},
-            "start": _iso(self.started),
-            "end": _iso(time.time()),
-            "status": "ERROR" if error else "OK",
-            "attributes": {"neatlogs.workflow.name": self.workflow, "neatlogs.task.id": self.task_id, "neatlogs.task.key": f"{self.job_id}/{self.phase}/{self.task_id}"},
-            "children": self.calls,
-        }
         if error:
-            root["error"] = error[:500]
-        try:
-            req = urllib.request.Request(
-                f"{self.endpoint}/v1/trace",
-                data=json.dumps(root, default=str).encode("utf-8"),
-                headers={"Authorization": f"Bearer {self.write_key}", "Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-            self.trace_id = str(body.get("trace_id") or "")
-        except urllib.error.HTTPError as exc:
-            self.error = f"neatlogs {exc.code}: {exc.read().decode('utf-8', 'replace')[:200]}"
-            log.warning("trace not published: %s", self.error)
-        except Exception as exc:  # the run still counts; only its trace link is missing
-            self.error = f"neatlogs: {exc}"
-            log.warning("trace not published: %s", self.error)
+            self._workflow_span.set_status(StatusCode.ERROR, error)
+        else:
+            self._workflow_span.set_status(StatusCode.OK)
+        self._workflow_span.end()
+        if self.enabled:
+            try:
+                import neatlogs
 
-
-def _request_preview(request: dict[str, Any]) -> Any:
-    messages = request.get("messages") or []
-    last = messages[-1] if messages else None
-    system = request.get("system")
-    if isinstance(system, list):
-        system = " ".join(b.get("text", "") for b in system if isinstance(b, dict))
-    return {
-        "model": request.get("model"),
-        "system": (system or "")[:2000],
-        "messages": len(messages),
-        "last_message": _trim(last),
-        "tools": [t.get("name") for t in request.get("tools") or [] if isinstance(t, dict)],
-    }
-
-
-def _response_preview(response: dict[str, Any]) -> Any:
-    content = response.get("content")
-    if content is not None:
-        return {"stop_reason": response.get("stop_reason"), "content": _trim(content)}
-    choices = response.get("choices") or []
-    if choices:
-        return {"finish_reason": choices[0].get("finish_reason"), "message": _trim(choices[0].get("message"))}
-    return None
-
-
-def _trim(value: Any, limit: int = 4000) -> Any:
-    text = json.dumps(value, ensure_ascii=False, default=str)
-    return value if len(text) <= limit else text[:limit] + "…"
+                neatlogs.flush()
+            except Exception:
+                pass
 
 
 def anthropic_usage_from_body(body: dict[str, Any]) -> dict[str, int]:

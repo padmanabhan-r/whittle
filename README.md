@@ -2,7 +2,9 @@
 
 <img src="assets/banner.jpg" alt="Whittle: cut what your agent wastes, prove what you saved" width="100%">
 
-# Whittle
+<img src="assets/mark.svg" alt="" width="56" height="56">
+
+# Whittle AI
 
 ### Cut what your agent wastes. Prove what you saved.
 

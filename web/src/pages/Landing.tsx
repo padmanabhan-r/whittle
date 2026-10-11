@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from '../components/Icons'
+import { ArrowRight, Mark } from '../components/Icons'
 import '../styles/landing.css'
 
 type Line = [n: string, kind: string, call: string, tokens: string, usd: string, why?: string, why2?: string]
@@ -83,7 +83,10 @@ export function Landing() {
     <div className={`landing ${printing ? 'printing' : ''}`}>
       <div className="frame">
         <header className="nav">
-          <Link className="r-logo logo" to="/">Whittle</Link>
+          <Link className="r-logo logo" to="/">
+            <Mark />
+            Whittle AI
+          </Link>
           <nav aria-label="Main">
             <a className="r-nav-how" href="#how">How it works</a>
             <a className="r-nav-findings" href="#findings">Findings</a>
@@ -224,7 +227,10 @@ export function Landing() {
       </section>
 
       <footer className="foot">
-        <span className="logo2">Whittle</span>
+        <span className="logo2">
+          <Mark size={18} />
+          Whittle AI
+        </span>
         <span>Built for neatHack 2026 by team Attention Heads</span>
         <a href="https://github.com/padmanabhan-r/whittle">GitHub</a>
       </footer>

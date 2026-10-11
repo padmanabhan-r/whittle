@@ -19,6 +19,9 @@
   color: #fff;
 }
 .rail .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   padding: 0 12px 22px;
   font: 700 24px/1 var(--display);
   letter-spacing: -0.02em;

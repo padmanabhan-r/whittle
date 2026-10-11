@@ -63,10 +63,17 @@
 .r-card-findings { left: 70.4%; top: calc(546.9 * var(--u)); width: 26.3%; height: calc(277.5 * var(--u)); }
 
 .landing .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
   font: 700 calc(41 * var(--u)) / 1 var(--display);
   letter-spacing: -0.02em;
   color: var(--ink);
   text-decoration: none;
+}
+.landing .logo .mark {
+  width: calc(42 * var(--u));
+  height: calc(42 * var(--u));
 }
 .landing .nav nav a {
   font: 500 calc(19 * var(--u)) / 1.25 var(--body);
@@ -568,6 +575,9 @@
   color: var(--mute);
 }
 .landing .foot .logo2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font: 700 20px/1 var(--display);
   letter-spacing: -0.02em;
   color: var(--ink);

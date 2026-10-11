@@ -345,6 +345,22 @@ class JobRunner:
             if ctx.job.state not in (JobState.DONE, JobState.FAILED):
                 ctx.fail("internal_error", f"{type(exc).__name__}: {exc}")
 
+    async def _check_with_neatlogs(self, ctx: JobContext, phase: PhaseResult) -> None:
+        """Ask neatlogs what it recorded for this phase's traces and say whether it agrees with the proxy."""
+        from costcutter import neatlogs_client
+
+        ids = [run.trace_id for run in phase.runs if run.trace_id]
+        if not ids or not neatlogs_client.configured():
+            ctx.step("thought", "No neatlogs read token is set, so the proxy's own record of the calls is used without a second check.")
+            return
+        ctx.step("tool_call", f"get_trace × {len(ids)} (the {phase.phase} runs of {ctx.job.id})", tool="neatlogs.get_trace")
+        totals = phase.totals()
+        try:
+            readings = await asyncio.to_thread(neatlogs_client.read_traces, ids)
+            ctx.step("tool_result", neatlogs_client.summarise(readings, totals.llm_calls, totals.cost_usd))
+        except Exception as exc:  # the check is a second opinion; the job does not depend on it
+            ctx.step("tool_result", f"neatlogs could not be read ({type(exc).__name__}); using the proxy's own record.")
+
     # --- scan: read the code, run nothing -----------------------------------
 
     async def scan(self, ctx: JobContext) -> None:
@@ -418,9 +434,7 @@ class JobRunner:
 
         ctx.set_state(JobState.DIAGNOSING)
         ctx.step("thought", f"{len(baseline.runs)} baseline runs are traced: {baseline.totals().llm_calls} model calls, ${baseline.totals().cost_usd:.4f}. Reading them for repeated cost.")
-        ctx.step("tool_call", f"search_traces(query='{job.id} baseline', limit={len(baseline.runs)})", tool="neatlogs.search_traces")
-        cache_reads = baseline.totals().cache_read_tokens
-        ctx.step("tool_result", f"{len(baseline.runs)} traces, {baseline.totals().llm_calls} model calls, {cache_reads:,} cache-read tokens.")
+        await self._check_with_neatlogs(ctx, baseline)
         runs = {run.task.id: run.records for run in baseline.runs}
         findings = await asyncio.to_thread(analyze, runs, baseline.cost_per_run(), lambda draft, anchors: self._locate(ctx, draft, anchors))
         ctx.findings = findings

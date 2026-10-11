@@ -80,3 +80,13 @@ def test_loader_fails_a_job_that_was_running(tmp_path, monkeypatch):
     assert runner.load_saved() == 1
     assert runner.jobs["job_s"].job.state is JobState.FAILED
     assert runner.jobs["job_s"].job.error.code == "server_restarted"
+
+
+def test_neatlogs_summary_is_honest():
+    from costcutter.neatlogs_client import TraceReading, summarise
+
+    done = [TraceReading("a", "finalized", 6, 0.03), TraceReading("b", "finalized", 6, 0.03)]
+    assert "matching the proxy's record" in summarise(done, 12, 0.06)
+    assert "the proxy recorded 14 calls" in summarise(done, 14, 0.07)
+    assert "processed 1 of 2" in summarise([done[0], TraceReading("b", "pending")], 12, 0.06)
+    assert "has not finished processing" in summarise([TraceReading("a", "dlq"), TraceReading("b", "pending")], 12, 0.06)

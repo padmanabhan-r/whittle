@@ -1140,3 +1140,32 @@ details.measure-own > summary {
   font-size: 13px;
   color: var(--ink-2);
 }
+
+/* After a scan: what to do next, where it cannot be missed */
+.next-step {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--r);
+  background: var(--ink);
+  color: #fff;
+}
+.next-step > div {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.next-step span {
+  color: #c9ccd9;
+  font-size: 14px;
+}
+.next-step .btn {
+  flex: none;
+  text-decoration: none;
+}
+.panel > .btn.more {
+  margin: 10px 12px 12px;
+}

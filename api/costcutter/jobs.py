@@ -667,7 +667,7 @@ class JobRunner:
         key_env = closing.get("key_env") or ({"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}.get(provider.value) if provider else None)
         verified = bool(closing.get("_verified"))
         local = closing.get("local_reason") or None
-        if not local and not verified and closing.get("_check"):  # every try failed: the sandbox is the wrong place for it
+        if not local and not verified and closing.get("_code_failed"):  # every try failed in the code itself: the sandbox is the wrong place for it
             local = "Whittle could not get this code to make a model call in its sandbox, which usually means it needs something only your own machine has."
         return ProposedRun(
             local_reason=local,
@@ -712,21 +712,26 @@ class JobRunner:
                 return f"not finished: installing the dependencies failed in the sandbox, so the command could not be tried. Install output:\n{installed.stderr[-1200:]}\nIf another folder holds the runnable project, set run_workdir and call finish again; otherwise call finish again as it is."
         example = (closing.get("run_examples") or ["hello"])[0]
         task_id = f"try-{attempt}"
-        session = self.open_session(job_id=ctx.job.id, phase="dry-run", task_id=task_id, provider="openai", api_key=None, on_call=None, dry_run=True)
         log(f"$ {ctx.command.replace('{input}', example[:60])}")
-        try:
-            result = self.sandbox.run_agent(
-                ctx.repo, _shell_words(ctx.command.replace("{input}", example)), job_id=ctx.job.id, proxy_base_url=self.proxy_url,
-                dummy_api_key=session.dummy_key, provider="any", extra_env={"WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": "dry-run", "WHITTLE_TASK": task_id},
-                kind=kind, subdir=workdir, timeout_s=300,
-            )
-        except Exception as exc:
-            closing["_check"] = f"The sandbox could not run the command: {exc}"
-            log(closing["_check"], "stderr")
-            return None
-        finally:
-            self.close_session(session.session_id)
-        records = load_phase(ctx.job.id, "dry-run").get(task_id, [])
+        for go in (1, 2):  # a proxy that could not be reached is Whittle's own hiccup (a restart, a relay coming up): try once more
+            session = self.open_session(job_id=ctx.job.id, phase="dry-run", task_id=task_id, provider="openai", api_key=None, on_call=None, dry_run=True)
+            try:
+                result = self.sandbox.run_agent(
+                    ctx.repo, _shell_words(ctx.command.replace("{input}", example)), job_id=ctx.job.id, proxy_base_url=self.proxy_url,
+                    dummy_api_key=session.dummy_key, provider="any", extra_env={"WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": "dry-run", "WHITTLE_TASK": task_id},
+                    kind=kind, subdir=workdir, timeout_s=300,
+                )
+            except Exception as exc:
+                closing["_check"] = f"The sandbox could not run the command: {exc}"
+                log(closing["_check"], "stderr")
+                return None
+            finally:
+                self.close_session(session.session_id)
+            records = load_phase(ctx.job.id, "dry-run").get(task_id, [])
+            if records or go == 2 or not _proxy_unreachable(result.stderr):
+                break
+            log("The sandbox could not reach Whittle's proxy. Trying once more in a few seconds.", "stderr")
+            time.sleep(4)
         if records:
             closing["_provider"], closing["_verified"] = records[0].provider, True
             closing["_check"] = f"Ran in the sandbox: the code called {records[0].provider} ({records[0].model}) through Whittle's proxy."
@@ -739,6 +744,7 @@ class JobRunner:
             return None
         log(tail, "stderr")
         closing["_check"] = f"Ran in the sandbox and exited with {result.exit_code} without reaching a model call."
+        closing["_code_failed"] = True  # the code's own failure, unlike a proxy or sandbox problem on Whittle's side
         return f"not finished: the command ran in the sandbox (exit {result.exit_code}) but no model call reached the proxy. Output:\n{tail or '(nothing printed)'}\nFix the entry point or the command and call finish again."
 
     # --- diagnose ---------------------------------------------------------

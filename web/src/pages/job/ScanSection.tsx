@@ -22,6 +22,7 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
   const findings = [...view.findings].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])
   const files = new Set(view.callSites.map((c) => c.file)).size
   const filesScanned = job?.summary.files_scanned
+  const [allSites, setAllSites] = useState(false)
 
   return (
     <>
@@ -44,10 +45,20 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
         </div>
         <div className="kpi">
           <dt>Code run</dt>
-          <dd className="value">{working ? '…' : job?.proposed_run?.verified ? 'Dry run' : 'None'}</dd>
-          <dd className="sub">{working ? 'finding how to run it' : job?.proposed_run?.verified ? 'once in the sandbox, no key' : 'no key, no command'}</dd>
+          <dd className="value">{working ? '…' : job?.proposed_run?.verified ? 'Dry run' : job?.proposed_run ? 'Not confirmed' : 'None'}</dd>
+          <dd className="sub">{working ? 'finding how to run it' : job?.proposed_run?.verified ? 'once in the sandbox, no key' : job?.proposed_run ? 'a command was found, the try did not pass' : 'no command found'}</dd>
         </div>
       </dl>
+
+      {view.done && !view.error && job?.state === 'done' && (
+        <div className="next-step">
+          <div>
+            <strong>The scan is done. Next: put a price on it.</strong>
+            <span>Whittle runs this code once with your model key and shows what every call costs.</span>
+          </div>
+          <a className="btn primary" href="#measure" onClick={(e) => { e.preventDefault(); document.getElementById('measure')?.scrollIntoView({ behavior: 'smooth' }) }}>Measure it ↓</a>
+        </div>
+      )}
 
       {job?.scan_summary && (
         <div className="notice scan-summary" role="status">
@@ -67,7 +78,7 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
               {view.callSites.length === 0 && (
                 <tr><td colSpan={4}>{working ? 'Reading the source files…' : 'No model calls were found in this repository.'}</td></tr>
               )}
-              {view.callSites.map((site) => (
+              {(allSites ? view.callSites : view.callSites.slice(0, SITES_SHOWN)).map((site) => (
                 <tr key={`${site.file}:${site.line}`}>
                   <td className="mono">{site.file}:{site.line}</td>
                   <td>{site.via}</td>
@@ -78,6 +89,11 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
             </tbody>
           </table>
         </div>
+        {view.callSites.length > SITES_SHOWN && (
+          <button className="btn more" type="button" onClick={() => setAllSites(!allSites)}>
+            {allSites ? 'Show fewer' : `Show all ${view.callSites.length} call sites`}
+          </button>
+        )}
       </div>
 
       <h2 className="section-title">
@@ -116,6 +132,7 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
   )
 }
 
+const SITES_SHOWN = 12  // the rest are mostly tests and fixtures, and they push the next step off the page
 const STAGES = ['Clone', 'Find the model calls', 'Read the code', 'Work out how to run it', 'Try it in the sandbox'] as const
 
 /** Which stage a running scan is in, read from the events so far. */
@@ -244,7 +261,7 @@ function MeasureNext({ job }: { job: Job }) {
 
   return (
     <>
-      <h2 className="section-title">Measure it</h2>
+      <h2 className="section-title" id="measure">Measure it</h2>
       {proposed?.local_reason && (
         <div className="notice local" role="note">
           <div>

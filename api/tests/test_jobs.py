@@ -184,7 +184,10 @@ def test_a_scan_can_advise_measuring_on_the_owners_machine():
     closing = _closing({"summary": "s", "run_command": "python app.py", "local_reason": "It needs a microphone  and a Postgres database."})
     assert JobRunner._proposal(closing, []).local_reason == "It needs a microphone and a Postgres database."
     assert JobRunner._proposal(_closing({"summary": "s", "run_command": "python app.py"}), []).local_reason is None
-    failed = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": False, "_check": "The command ran but no model call arrived."}
+    failed = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": False, "_check": "The command ran but no model call arrived.", "_code_failed": True}
     assert "your own machine" in JobRunner._proposal(failed, []).local_reason
+    # a failure on Whittle's side (its proxy, its sandbox) is no reason to send anyone to their own machine
+    ours = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": False, "_check": "The sandbox could not reach Whittle's proxy, so the command was not confirmed."}
+    assert JobRunner._proposal(ours, []).local_reason is None
     verified = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": True, "_check": "Ran in the sandbox."}
     assert JobRunner._proposal(verified, []).local_reason is None

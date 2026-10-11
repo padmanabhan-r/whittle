@@ -118,3 +118,10 @@ The hosted service is at `https://whittleai.site`: pass it to both flags, or set
   repeat.
 
 Needs Node 18 or newer, and git for `whittle fix`. No dependencies.
+
+## License
+
+[Functional Source License 1.1](LICENSE.md) (FSL-1.1-MIT), the same as the rest
+of Whittle. Install it and use it freely, at work included. You may not build a
+competing commercial product or service from it. Each version becomes
+MIT-licensed two years after it is published.

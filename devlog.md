@@ -5,8 +5,8 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** deployed on EC2; push-to-deploy workflow is being verified
-- **Live app:** http://35.171.208.95:5173
+- **Status:** deployed on EC2; HTTPS custom-domain deployment is pending
+- **Live app:** http://35.171.208.95:5173 (custom-domain HTTPS pending)
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public on 12 October before the post)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T17:41:00+05:30
+- **Last updated:** 2026-10-11T18:50:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane | partial |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `fe4c68d` at 5:40 PM IST on 11 October. 71 commits on `main`, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `8b4ef0a` at 6:46 PM IST on 11 October. 77 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -834,7 +834,7 @@ job (`run.files`) and is excluded from the diff, so it never reaches a pull requ
   test only.
 - **Built with:** Claude Code, claude-fable-5-1.
 
-### 2026-10-11 - working tree
+### 2026-10-11 - aaef4a3
 Submission packaging, no product code. The repository now carries the
 evidence the judges ask for, in files they can open: `docs/evidence/neatlogs.md`
 with a before and after trace pair for one task (links and screenshots, since
@@ -845,9 +845,10 @@ new Evidence section and shows the trace pair. An MIT license is at the root and
 in the npm package's folder, and `cli/package.json` says MIT instead of
 UNLICENSED (the registry copy still says UNLICENSED until the next publish).
 
-- **Decision:** MIT rather than AGPL. The product's value is the hosted
-  service and the measured history, not the code, and a permissive license
-  removes every question about trying the CLI (user's decision).
+- **Decision:** MIT rather than AGPL, chosen by the coding agent when asked for
+  a suitable license. Corrected the same evening: this line first called it the
+  user's decision, which it was not, and the choice was reversed in the next
+  entry before the repository was public.
 - **Evidence:** the trace link format is `https://app.neatlogs.com/traces/<id>`,
   confirmed in the app; baseline task 1 of `job_3e1b3cc39865` is 6 calls,
   16.7 s, $0.0296, and after the kept fixes 5 calls, 12.2 s, $0.0094.
@@ -860,7 +861,7 @@ UNLICENSED (the registry copy still says UNLICENSED until the next publish).
 Evidence rows still missing: none. Built in public is marked have with four
 posts; more are planned before the submission.
 
-### 2026-10-11 - working tree
+### 2026-10-11 - d3e6dbf
 Deployed Whittle on the EC2 Elastic IP and started its API and UI with the new
 public API address; the user confirmed the landing page and tests are
 reachable. Added push-to-main CI and EC2 deployment automation in commit
@@ -870,8 +871,8 @@ permissions on `/tmp`. That helper was corrected and the user reports both
 checks and deployment succeeded. The next check found the app was no longer listening after the deploy job
 ended: the runner had cleaned up the detached tmux server it spawned. The
 domain DNS now resolves to the Elastic IP, inbound HTTP/HTTPS rules are saved,
-and Caddy was installed on EC2. The HTTPS/domain deployment changes remain in
-the local working tree and have not been pushed.
+and Caddy was installed on EC2. The custom-domain deployment changes are in
+commit `8b4ef0a`, but have not yet been pushed or verified on EC2.
 
 - **Decision:** Keep the deployment job behind passing tests, so a failed
   change does not replace the live app.
@@ -894,9 +895,54 @@ the local working tree and have not been pushed.
   deployment change, and verify Caddy's HTTPS certificate, UI/API routes, and
   app availability after the Actions job completes.
 
-Evidence rows still missing: none. Built in public is marked have with four
-posts; verify the custom domain and deployment remain available after the
-workflow exits.
+### 2026-10-11 - working tree
+The license changed before anything was published under the old one. The
+repository is now source-available under the Functional Source License 1.1
+(`LICENSE.md`, the official FSL-1.1-MIT text): anyone may read, run and modify
+the code and use it inside their own company, but not offer it as a competing
+commercial service, and each version becomes MIT two years after release. The
+command-line tool is under the same license (`cli/LICENSE.md`): it may be sold
+by subscription later, and the license lets anyone install and use it while
+keeping a competitor from building on its recording proxy.
+
+- **Decision:** FSL for the whole repository, the command-line tool included
+  (user's decision). The business plan is a hosted service at $49 a repository,
+  and the tool may go behind a subscription; MIT would have let anyone host and
+  sell the same code. The hackathon asks for a public repository with dated
+  commits, not an open-source license. The `whittle-ai` 0.1.0 already on npm
+  was published as UNLICENSED with no license file, so nothing was ever
+  released under MIT.
+- **Fixed:** the demo video held one shot on a frame captured mid-scroll, so a
+  white band showed above the sidebar from 0:16 to 0:24 (the user saw it). The
+  shot now holds on the settled frame half a second earlier; both cuts were
+  exported again and scanned every quarter-second for the band.
+- **Changed:** the video has sound effects on its reveals and a second cut on
+  another voice (Paddy 2:37, Chris 2:39); its end card names `whittleai.site`.
+- **Evidence:** the workflow added in `fe4c68d` ran on push `d1ed8bc`: checks
+  and the EC2 deploy job both succeeded (Actions run `38138672104`).
+- **Decision:** the command-line tool will sign in two ways, through the
+  browser (`whittle login`) or with a Whittle API key in the environment, and
+  the charge is enforced on the server, where the detectors, the fixing agent,
+  neatlogs and Entire run (user's decision). Designed in
+  `docs/accounts-and-billing.md`. Not built: accounts and billing stay after
+  the hackathon.
+- **Not verified:** the deployed app from outside. At 5:48 PM IST neither port
+  answered from this machine, and `whittleai.site` did not resolve. Sethuraman
+  has yet to confirm the license change as co-owner.
+- **Built with:** Claude Code, claude-fable-5-1 and claude-opus-5-5.
+
+### 2026-10-11 - 8b4ef0a
+Prepared the custom-domain deployment: Caddy serves the production UI over
+HTTPS and proxies same-origin API routes, while the deploy script installs and
+restarts the API as a systemd service. The build and deployment are wired to
+`WHITTLE_PUBLIC_URL`; EC2 deployment and external HTTPS verification remain
+pending.
+
+Evidence rows still incomplete: the agent-improved comparison, public
+failure-recovery evidence, and built-in-public evidence remain marked partial.
+The app is available by Elastic IP; verify the custom HTTPS domain after the
+domain deployment runs. The demo video and submission quote post are
+outstanding.
 
 ## Submission
 

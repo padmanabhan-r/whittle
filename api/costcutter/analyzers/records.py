@@ -69,6 +69,20 @@ def message_texts(request: dict[str, Any]) -> list[tuple[str, str]]:
     return out
 
 
+def tool_result_texts(request: dict[str, Any]) -> list[str]:
+    """The content of each tool_result block, one string per block."""
+    out = []
+    for message in request.get("messages") or []:
+        content = message.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_result":
+                    out.append(_content_text(block.get("content")))
+        elif message.get("role") == "tool":
+            out.append(_content_text(content))
+    return out
+
+
 def tool_uses(record: CallRecord) -> list[tuple[str, str]]:
     """(name, canonical input) for each tool the model asked for in this call."""
     response = record.response or {}

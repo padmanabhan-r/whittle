@@ -23,6 +23,7 @@ from costcutter.analyzers.records import (
     prefix_text,
     request_fingerprint,
     system_text,
+    tool_result_texts,
     tool_uses,
     total_input,
 )
@@ -176,16 +177,17 @@ def detect_context_bloat(runs: Runs) -> Draft | None:
             for k, record in enumerate(convo):
                 if k == 0:
                     continue
-                texts = message_texts(record.request)
-                earlier = {text for _, text in message_texts(convo[k - 1].request)} | {t for _, t in texts}
+                # Tool output already in the conversation as tool_result blocks, or in the previous request.
+                blocks = {t for t in tool_result_texts(record.request) + tool_result_texts(convo[k - 1].request) if len(t) >= 80}
+                blocks |= {t for _, t in message_texts(convo[k - 1].request) if len(t) >= 200}
                 repeated = 0
-                for role, text in texts:
-                    if role != "user" or len(text) < 200:
+                for role, text in message_texts(record.request):
+                    if role != "user" or len(text) < 200 or text in blocks:
                         continue
-                    for prior in earlier:
-                        if len(prior) >= 200 and prior in text and prior != text:
+                    for prior in blocks:
+                        if prior in text:
                             repeated += len(prior)
-                if repeated >= 400:
+                if repeated >= 300:
                     tokens = est_tokens("x" * repeated)
                     repeated_total += tokens
                     saving += tokens * _price_in(record.model)

@@ -113,5 +113,10 @@ def locate(repo: Path, query: str, anchors: list[str] | None = None) -> CodeLoca
         found = graph_search(repo, f"{query} in {rel}")
         if found and found.file == rel:
             return found
+        # The model call site in that file is the best fixed point; otherwise the first anchor.
+        text = path.read_text(encoding="utf-8", errors="replace")
+        site = CALL_SITE.search(text)
+        if site:
+            return enclosing_symbol(path, rel, text[: site.start()].count("\n") + 1)
         return enclosing_symbol(path, rel, line)
     return graph_search(repo, query) or grep_call_site(repo)

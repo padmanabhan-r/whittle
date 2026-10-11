@@ -9,10 +9,10 @@
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
-- **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`). Docker sandbox image for Python samples
+- **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
 - **Hosting:** not deployed
 - **Auth:** none
-- **External services:** none
+- **External services:** npm registry (the `whittle-ai` package)
 - **AI models (product):** Whittle's agent uses `WHITTLE_PROVIDER`/`WHITTLE_MODEL` from the environment (`api/costcutter/agent/llm.py`); the first real job ran it on `claude-sonnet-5-5`. The sample agent uses `claude-sonnet-5-5` and `claude-opus-5-5` for its classify step
 - **AI models (build):** Cursor Agent (Composer) for Sethuraman's Saturday night backend session; earlier entries used Claude Code with claude-opus-5-5
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 3
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T14:27:00+05:30
+- **Last updated:** 2026-10-11T15:34:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
 | Built in public | 3 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) and https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) | partial |
-| Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `7e76868` at 3:32 PM IST on 11 October. 66 commits on `main`, none before the start | done |
 
 ## Log
 
@@ -743,12 +743,44 @@ fix on the developer's own machine.
 Evidence rows still missing: used neatlogs (links that open), written during
 the hackathon.
 
+### 2026-10-11 - 7e76868
+The command-line tool is on npm, and the repository was tidied for readers.
+
+- **Shipped:** `whittle-ai` 0.1.0 on npm (`eece98c` points the README at it).
+  Checked from the registry in an empty folder: `npx whittle-ai --version`
+  prints 0.1.0 and `npx whittle-ai run` records a command. A full
+  `npx whittle-ai fix` on a clone of the Python sample ran from the registry
+  copy: $0.0308 to $0.0076 a run, 75.5% lower, five of five fixes kept, answers
+  1.00 to 0.87 against a bar of 0.85 (`job_6e29f318e478`).
+- **Failed:** the first publish attempts were refused. npm requires two-factor
+  authentication to publish, and with a passkey the approval needs an
+  interactive terminal. Fixed by turning it on and publishing from one.
+- **Changed:** the README is about half its length (`b46d02a`, `bb9262b`,
+  `7e76868`): two ways to use the product, the measured runs in one table, the
+  steps as a list, the sponsor tools as a table. The banner now names Whittle AI
+  and carries a real run's figures in place of illustrative ones. A still of a
+  real `whittle fix` session and the cfo.ai plan are shown.
+- **Changed:** early planning notes that are not about this application were
+  removed from the repository (`373ed29`). The `whittle-cli` branch was merged
+  into `main` and deleted.
+- **Decided:** the product is free to use for now; accounts and billing wait
+  until after the hackathon (user's decision). The package carries no
+  open-source license yet.
+- **Not verified:** the published tool against a server that is not on this
+  machine; pull request delivery; anything on EC2. These are with Sethuraman,
+  with deployment.
+- **Checked:** `uv run pytest`, 42 passed; `npm test` in `cli/`, 8 passed.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none are empty. Used neatlogs, used Entire,
+recovers from failures and built in public are marked partial.
+
 ## Submission
 
 | Item | Status |
 |---|---|
 | Team | done: Attention Heads (Padmanabhan and Sethuraman) |
-| Project name | done: Whittle |
+| Project name | done: Whittle AI |
 | Public repo link | outstanding (repository exists but is private) |
 | Demo link | outstanding |
 | Video under three minutes covering neatlogs, Entire and cfo.ai | outstanding |

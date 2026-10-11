@@ -91,9 +91,6 @@ dearer and was reverted, with the other fixes kept.
 |---|---|
 | ![Fix and verify](assets/screens/fix.jpg) | ![Diff](assets/screens/diff.jpg) |
 
-Runs before 12:30 PM on 11 October reported 77% to 82%. A pricing fault made
-those too high; it is fixed (`f41364d`) and the figures above come after it.
-
 ## How it works
 
 1. **Read the code.** Find every place that calls a model, in any language.

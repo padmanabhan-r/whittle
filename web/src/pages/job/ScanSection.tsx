@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Warn } from '../../components/Icons'
@@ -25,6 +25,7 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
 
   return (
     <>
+      {working && !view.error && <ScanProgress view={view} />}
       <dl className="kpis scan">
         <div className="kpi lead">
           <dt>Model call sites</dt>
@@ -43,8 +44,8 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
         </div>
         <div className="kpi">
           <dt>Code run</dt>
-          <dd className="value">None</dd>
-          <dd className="sub">no key, no command</dd>
+          <dd className="value">{working ? '…' : job?.proposed_run?.verified ? 'Dry run' : 'None'}</dd>
+          <dd className="sub">{working ? 'finding how to run it' : job?.proposed_run?.verified ? 'once in the sandbox, no key' : 'no key, no command'}</dd>
         </div>
       </dl>
 
@@ -81,7 +82,7 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
 
       <h2 className="section-title">
         What it wastes
-        <span className="tag idle" title="A scan reads the code and runs nothing, so no saving is measured">read from the code · not measured</span>
+        <span className="tag idle" title="A scan reads the code. Its one dry run in the sandbox reaches no model, so no cost or saving is measured">read from the code · not measured</span>
       </h2>
       {findings.length === 0 && (
         <div className="panel empty">
@@ -112,6 +113,52 @@ export function ScanSection({ job, view, selected, onSelect }: Props) {
       {/* The job record is refetched when the stream ends; wait for it, so the form opens with the scan's command in it. */}
       {view.done && !view.error && job && job.state === 'done' && <MeasureNext key={job.proposed_run?.command ?? 'none'} job={job} />}
     </>
+  )
+}
+
+const STAGES = ['Clone', 'Find the model calls', 'Read the code', 'Work out how to run it', 'Try it in the sandbox'] as const
+
+/** Which stage a running scan is in, read from the events so far. */
+function scanStage(view: RunView): number {
+  if (view.state === 'queued' || view.state === 'cloning') return 0
+  const tried = view.steps.some((s) => s.tool === 'sandbox.try') || view.logs.some((l) => l.phase === 'install')
+  if (tried) return 4
+  if (view.steps.some((s) => s.tool === 'repo.write_file')) return 3
+  // the agent's own reading starts after the call sites and their importers are listed
+  const reading = view.steps.some((s) => s.tool === 'repo.read_file' || s.tool === 'repo.grep' || s.tool === 'entire.graph_search')
+  return reading || view.findings.length > 0 ? 2 : 1
+}
+
+/** A scan that is still running says so: its stage, what it is doing this second, and for how long. */
+function ScanProgress({ view }: { view: RunView }) {
+  const [seconds, setSeconds] = useState(0)
+  useEffect(() => {
+    const started = Date.now()
+    const id = window.setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000)
+    return () => window.clearInterval(id)
+  }, [])
+  const stage = scanStage(view)
+  const last = [...view.steps].reverse().find((s) => s.kind !== 'tool_result')
+  const log = view.logs.length ? view.logs[view.logs.length - 1].line.split('\n')[0] : ''
+  const now = stage === 4 && log ? log : last?.text ?? 'Starting'
+  const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  return (
+    <div className="scan-progress" role="status" aria-live="polite">
+      <div className="head">
+        <span className="dot live" aria-hidden="true" />
+        <strong>Scan in progress</strong>
+        <span className="step">step {stage + 1} of {STAGES.length}: {STAGES[stage]}</span>
+        <span className="clock mono" title="Time since this page opened">{clock}</span>
+      </div>
+      <div className="bar" aria-hidden="true"><i style={{ width: `${((stage + 0.5) / STAGES.length) * 100}%` }} /></div>
+      <ol className="stages">
+        {STAGES.map((name, i) => (
+          <li key={name} className={i < stage ? 'done' : i === stage ? 'now' : ''} aria-current={i === stage ? 'step' : undefined}>{name}</li>
+        ))}
+      </ol>
+      <p className="now mono" title={now}>{now.slice(0, 140)}</p>
+      <p className="hint">A scan usually takes one to three minutes. This page updates by itself; the result appears below when it finishes.</p>
+    </div>
   )
 }
 

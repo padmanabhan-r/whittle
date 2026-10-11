@@ -767,6 +767,130 @@ table.ledger tr[aria-selected='true'] td {
   margin-left: 12px;
   vertical-align: 3px;
 }
+/* A scan that is still running: stage, live step and elapsed time. Gone the moment the job ends. */
+.scan-progress {
+  background: var(--blue-wash);
+  border: 1px solid var(--blue);
+  border-radius: var(--r);
+  padding: 14px 16px 12px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 10px;
+  /* pinned: the page scrolls down to follow new findings, and the strip must stay in sight */
+  position: sticky;
+  top: 12px;
+  z-index: 5;
+  box-shadow: 0 6px 18px rgba(9, 10, 27, 0.1);
+}
+.scan-progress .head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.scan-progress .head strong {
+  font-family: var(--display);
+  font-size: 17px;
+  color: var(--blue-ink);
+}
+.scan-progress .step {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.scan-progress .clock {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.scan-progress .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex: none;
+}
+.scan-progress .dot.live {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.scan-progress .bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--paper);
+  overflow: hidden;
+  position: relative;
+}
+.scan-progress .bar i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  transition: width 0.5s var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+.scan-progress .bar i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: scan-sweep 1.4s linear infinite;
+}
+@keyframes scan-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.scan-progress .stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+  color: var(--mute);
+}
+.scan-progress .stages li::before {
+  content: '○ ';
+}
+.scan-progress .stages li.done {
+  color: var(--green);
+}
+.scan-progress .stages li.done::before {
+  content: '✓ ';
+}
+.scan-progress .stages li.now {
+  color: var(--blue-ink);
+  font-weight: 600;
+}
+.scan-progress .stages li.now::before {
+  content: '● ';
+}
+.scan-progress .now {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.scan-progress .hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mute);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-progress .dot.live,
+  .scan-progress .bar i::after {
+    animation: none;
+  }
+}
+
 .notice.scan-summary {
   background: var(--blue-wash);
   border-color: #c9d8fb;

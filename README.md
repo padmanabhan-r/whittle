@@ -45,13 +45,16 @@ answers, is taken back out.
 
 An entry for [neatHack](https://neatlogs.com/hackathon), 10 to 12 October 2026,
 by **team Attention Heads** (Padmanabhan and Sethuraman).
+[Who built what](CONTRIBUTIONS.md).
 
 ## Two ways to use it
 
 **On the web**, at [whittleai.site](https://whittleai.site). Paste a public GitHub link, or upload a zip.
 
 - **Scan** reads the code in any language and reports where the spend goes,
-  pinned to lines. Nothing is run, so it needs no key and no command.
+  pinned to lines. It needs no key and no command: Whittle works out how to
+  run the code and tries that once in a locked sandbox, with no key and nothing
+  sent to the model provider.
 - **Measure and fix** runs the agent in a locked sandbox with your model key,
   then patches, reruns and scores each fix. Python, JavaScript and TypeScript.
 

@@ -123,7 +123,7 @@ export function Start() {
         <p className="lede small" style={{ marginTop: 10 }}>
           {mock
             ? 'The mock server cannot scan. Start the real backend with ./start.sh.'
-            : 'No key and no run command. Any language: Whittle finds every place the code calls a model and reads what feeds it. Nothing is run. A zip of up to 60 MB works for code that is not on GitHub.'}
+            : 'No key and no run command. Any language: Whittle finds every place the code calls a model, reads what feeds it, and works out how to run it, trying that once in a locked sandbox with no key. A zip of up to 60 MB works for code that is not on GitHub.'}
         </p>
 
         <h2 className="section-title">Try a sample agent</h2>

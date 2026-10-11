@@ -20,8 +20,11 @@ def make_tmp_path_container_traversable(path: Path) -> None:
         return
 
     path.chmod(0o755)
-    temp_root = Path(tempfile.gettempdir())
-    for parent in path.parents:
+    # Resolved on both sides: on macOS the temp folder is /var/folders/… and pytest's paths are
+    # /private/var/folders/…, the same place under two names. Compared unresolved, the loop never
+    # stopped at the temp root and tried to chmod system folders above it.
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    for parent in path.resolve().parents:
         if parent == temp_root:
             break
         parent.chmod(stat.S_IMODE(parent.stat().st_mode) | stat.S_IXOTH)

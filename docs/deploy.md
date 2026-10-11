@@ -85,9 +85,11 @@ sudo systemctl reload caddy
 sudo journalctl -u caddy -n 30 --no-pager
 ```
 
-`deploy/Caddyfile` serves `/var/www/whittle` static files, proxies `/api`, `/proxy`
-and `/health` to the backend on port 8787, keeps the event stream unbuffered,
-and redirects `www.` to the bare domain.
+`deploy/Caddyfile` routes `/api`, `/proxy` and `/health` to the backend on port
+8787 before falling back to the static UI. API and proxy routes use separate
+`handle` blocks so the SPA's `try_files` rewrite cannot swallow API requests.
+API responses are unbuffered for event streams. Caddy redirects `www.` to the
+bare domain.
 
 ## 7. Run the backend behind Caddy
 

@@ -74,8 +74,10 @@ for attempt in {1..30}; do
   if curl --fail --silent --show-error "$api_url/docs" >/dev/null 2>&1 &&
      curl --fail --silent --show-error "$api_url/proxy/health" >/dev/null 2>&1 &&
      curl --fail --silent --show-error --resolve whittleai.site:443:127.0.0.1 "$WHITTLE_PUBLIC_URL/health" >/dev/null 2>&1 &&
+     curl --fail --silent --show-error --resolve whittleai.site:443:127.0.0.1 "$WHITTLE_PUBLIC_URL/api/samples" |
+       grep '"samples"' >/dev/null &&
      curl --fail --silent --show-error --resolve whittleai.site:443:127.0.0.1 "$WHITTLE_PUBLIC_URL/" >/dev/null 2>&1; then
-    echo "Deployment is healthy: HTTPS UI and proxied API respond at $WHITTLE_PUBLIC_URL."
+    echo "Deployment is healthy: HTTPS UI, API, and proxy respond at $WHITTLE_PUBLIC_URL."
     exit 0
   fi
   sleep 2

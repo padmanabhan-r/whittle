@@ -5,21 +5,29 @@
 #   sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 
 www.whittleai.site {
-    redir https://whittleai.site{uri} permanent
+	redir https://whittleai.site{uri} permanent
 }
 
 whittleai.site {
-    encode zstd gzip
+	encode zstd gzip
 
-    # The API, its event stream and the recording proxy, all on the backend port.
-    reverse_proxy /api/*   localhost:8787 {
-        flush_interval -1       # server-sent events must not be buffered
-    }
-    reverse_proxy /proxy/* localhost:8787
-    reverse_proxy /health  localhost:8787
+	handle /api/* {
+		reverse_proxy localhost:8787 {
+			flush_interval -1
+		}
+	}
 
-    # The deploy workflow copies the production UI build here.
-    root * /var/www/whittle
-    try_files {path} /index.html
-    file_server
+	handle /proxy/* {
+		reverse_proxy localhost:8787
+	}
+
+	handle /health {
+		reverse_proxy localhost:8787
+	}
+
+	handle {
+		root * /var/www/whittle
+		try_files {path} /index.html
+		file_server
+	}
 }

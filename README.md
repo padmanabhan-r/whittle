@@ -68,23 +68,32 @@ no prompt caching, and a fallback chain that pays twice.
 model key, records every call, fixes the waste and proves the saving. The scan
 proposes the run command it found, so the form is filled in for you.
 
-**Record, on your own machine.** Some code cannot run in anyone else's sandbox:
-it needs its database, its private services, its environment. For that there is
-a command-line tool, in [`cli/`](cli/). It runs your command where it already
-works and records each model call through a proxy on localhost:
+**Record and fix, on your own machine.** Some code cannot run in anyone else's
+sandbox: it needs its database, its private services, its environment. For that
+there is a command-line tool, in [`cli/`](cli/). It runs your command where it
+already works and records each model call through a proxy on localhost:
 
 ```bash
-node cli/bin/whittle.mjs run --runs 3 -- python agent.py "your question"
-node cli/bin/whittle.mjs analyze      # send the recording for findings
+node cli/bin/whittle.mjs run --runs 3 -- python agent.py "your question"   # record, and see the cost
+node cli/bin/whittle.mjs analyze                                           # findings for the recording
+node cli/bin/whittle.mjs fix -- python agent.py "your question"            # fix, and prove each fix here
 ```
 
-Your code, data and key stay on your machine; the key is passed through and
-never written down. The summary prints at once, and `analyze` sends the recorded
-calls to Whittle, which runs the same detectors and opens the same report.
-Three recorded runs of our sample agent gave 18 calls at $0.0314 a run and the
-same five findings the sandbox finds. Run on the TypeScript web app from the
-scan above, which needs a live database and writes its provider's address in its
-code, it recorded the call with the same token counts the app itself reported.
+`run` keeps everything on your machine; the key is passed through and never
+written down. `fix` is the whole product from a terminal: it sends your tracked
+source to Whittle (never `.env` files, keys or anything git ignores), Whittle's
+agent writes a patch for each finding, and the tool applies the patch and reruns
+your command right there, with your database and your key. A patch stays only
+if that rerun was cheaper and the answers still hold; otherwise it is taken
+back out. Nothing is committed, and `fix --undo` reverses it. The job shows live
+in the same web report.
+
+Run this way on a fresh clone of our Python sample, with three reruns per fix:
+$0.0304 to $0.0091 a run, 70.1% lower, five of five fixes kept, answers 0.88
+against a bar of 0.85. On the TypeScript sample: $0.0125 to $0.0038, 69.6%,
+three of three kept. Recording alone was also run on the TypeScript web app from
+the scan above, which needs a live database and writes its provider's address in
+its code: the call was recorded with the same token counts the app reported.
 The package is named `whittle-ai` and is not yet published to npm, so for now it
 runs from this repository.
 
@@ -304,13 +313,16 @@ taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 | Pull request delivery | Written, not yet run against a real repository |
 | Measured runs in Python, JavaScript and TypeScript | Built; run end to end on a Python and a TypeScript sample agent |
 | Zip upload for code that is not on GitHub | Built and tested |
-| Command-line recorder for code that only runs on your machine (`cli/`) | Built and tested on a Python agent and a TypeScript app; not yet on npm. It records and reports; fixing from a recording is not built |
+| Command-line tool for code that only runs on your machine (`cli/`): record, findings, and fix with reruns on that machine | Built; the fix loop run end to end on a Python and a TypeScript sample. Not yet on npm |
 | Measured runs in other languages | Not built: the scan reads them, the sandbox does not run them |
 | Deployment | In progress |
 
-Limits worth knowing: an agent that hardcodes its provider's address bypasses
-the proxy, and Whittle reports that it captured no calls. Only public
-repositories are accepted. One job runs at a time.
+Limits worth knowing: in the sandbox, an agent that hardcodes its provider's
+address bypasses the proxy, and Whittle reports that it captured no calls. The
+command-line tool catches hardcoded addresses in JavaScript, TypeScript and
+Python, and not in other languages. Calls made through Amazon Bedrock or Vertex
+AI are not recorded. Only public repositories are accepted by the web app. One
+sandbox job runs at a time. There are no accounts yet.
 
 ## Repository
 

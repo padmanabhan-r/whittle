@@ -75,10 +75,14 @@ function reduce(view: RunView, event: JobEvent | { type: 'reset' }): RunView {
       return { ...next, recoveries: [...view.recoveries, event] }
     case 'scan.call_site':
       return { ...next, callSites: [...view.callSites, event.call_site] }
+    case 'run.requested':
+      return next
     case 'job.done':
       return { ...next, done: true }
     case 'job.error':
       return { ...next, done: true, error: { code: event.code, message: event.message } }
+    default:
+      return next  // an event this build does not know must not break the page
   }
 }
 

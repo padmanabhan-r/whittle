@@ -49,8 +49,10 @@ export function JobPage() {
   const [opening, setOpening] = useState(false)
 
   const recorded = job?.mode === 'recorded'
-  const sections = recorded ? SECTIONS.filter((s) => s.id === 'calls' || s.id === 'findings') : SECTIONS
-  const live = sectionFor(view.state, recorded)
+  // Without the code a recording can only be read. With it, the job is fixed like any other; its reruns happen on the owner's machine.
+  const recordedOnly = recorded && !job?.base_commit
+  const sections = recordedOnly ? SECTIONS.filter((s) => s.id === 'calls' || s.id === 'findings') : SECTIONS
+  const live = sectionFor(view.state, recordedOnly)
   const current = (sections.find((s) => s.id === section)?.id ?? live) as SectionId
 
   useEffect(() => {
@@ -149,12 +151,12 @@ export function JobPage() {
           </div>
           <span className="spacer" />
           {scan && <Link className="btn" to="/app">Scan another repo</Link>}
-          {!scan && !recorded && <>
+          {!scan && !recordedOnly && <>
           <a className="btn" href={done && applied ? api.patchUrl(jobId!) : undefined} aria-disabled={!done || !applied}
             style={!done || !applied ? { color: '#9a9dab', pointerEvents: 'none' } : undefined}>
             <Download /> Download patch
           </a>
-          {pr ? (
+          {recorded ? null : pr ? (
             <a className="btn primary" href={pr.url} target="_blank" rel="noreferrer"><Branch /> Pull request #{pr.number} <External /></a>
           ) : (
             <button className="btn primary" disabled={!done || !applied || opening} onClick={openPr}>
@@ -178,11 +180,11 @@ export function JobPage() {
         {/* The result page states these figures itself; the strip above it would say everything twice. */}
         {scan && <ScanSection job={job} view={view} selected={selected} onSelect={setSelected} />}
 
-        {!scan && current !== 'result' && <Kpis job={job} view={view} recorded={recorded} />}
+        {!scan && current !== 'result' && <Kpis job={job} view={view} recorded={recordedOnly} />}
 
-        {!scan && current === 'calls' && <CallsSection view={view} recorded={recorded} />}
-        {!scan && current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} recorded={recorded} />}
-        {!scan && current === 'fix' && <FixSection view={view} selected={selected} onSelect={setSelected} />}
+        {!scan && current === 'calls' && <CallsSection view={view} recorded={recordedOnly} />}
+        {!scan && current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} recorded={recordedOnly} remote={recorded && !recordedOnly} />}
+        {!scan && current === 'fix' && <FixSection view={view} selected={selected} onSelect={setSelected} remote={recorded} />}
         {!scan && current === 'result' && <ResultSection jobId={jobId!} done={done} findings={view.findings} />}
         {!scan && current === 'diff' && <DiffSection jobId={jobId!} done={done} />}
       </main>

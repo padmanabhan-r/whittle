@@ -5,7 +5,7 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** working end to end on the sample agent; traces, pull requests and deployment still open
+- **Status:** working end to end on the sample agents, in the sandbox and from the command-line tool on the developer's machine; pull requests and deployment still open
 - **Live app:** not deployed
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
@@ -18,9 +18,9 @@
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
-- **Built in public:** 2
+- **Built in public:** 3
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T12:52:00+05:30
+- **Last updated:** 2026-10-11T14:27:00+05:30
 
 ## Evidence
 
@@ -31,7 +31,7 @@
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
-| Built in public | 2 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction) and https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) | partial |
+| Built in public | 3 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) and https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) | partial |
 | Written during the hackathon | The first commit was made after the 12:30 PM IST start on 10 October. It holds planning and setup files only; there is no code for the entry yet | missing |
 
 ## Log
@@ -683,6 +683,60 @@ already runs.
 - **Checked:** `uv run pytest`, 37 passed; `npm test` in `cli/`, 4 passed
   against a stand-in provider; the web app builds; the packed tarball runs
   through `npx`.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: used neatlogs (links that open), written during
+the hackathon.
+
+### 2026-10-11 - fix from the terminal
+The command-line tool now does the whole job: it fixes the waste and proves each
+fix on the developer's own machine.
+
+- **Decided:** a recording that stops at findings is half a product. The fix
+  loop stays on the server, where the fixing agent, the code graph and the
+  traces already are; only the reruns move to the developer's machine. The
+  source is sent so the agent can patch it, the same way a zip upload is.
+- **Shipped:** `whittle fix`. It records a baseline, sends the tracked source
+  (never `.env` files, keys, lockfiles, binaries or anything git ignores) with
+  the recording, and starts the ordinary fix. When the server needs a rerun it
+  emits `run.requested`; the tool applies the patch to the working tree, runs
+  the command again there, and posts the calls and what was printed. A fix is
+  kept only if that rerun was cheaper and the answers hold. Nothing is
+  committed; `whittle fix --undo` and Ctrl-C put the code back.
+- **Shipped:** on the server, `run_phase` waits on the owner's machine for a
+  recorded job instead of using the sandbox, so the fix loop, the events and
+  the web report are the same for both. A recorded job does not hold the single
+  sandbox slot. New endpoints: `GET` and `POST /api/jobs/{id}/work/{request_id}`
+  and `DELETE /api/jobs/{id}/work`.
+- **Shipped:** `--input` (one run per input), a Python preload that catches a
+  provider address written in code (`requests`, `httpx`, `httpx2`, `aiohttp`,
+  `urllib`), beside the Node one; `POST /api/recordings` on the mock server.
+- **Fixed:** the report's header showed the last fix's answer score while the
+  result page showed the final rerun's. The job summary now carries both the
+  baseline and the final score, and the header uses them once the job is done.
+- **Measured:** `whittle fix` on a fresh clone of the Python sample, three
+  inputs, reruns on this machine: $0.0304 to $0.0091 a run, 70.1% lower, five
+  of five fixes kept, answers 1.00 to 0.88 against a bar of 0.85
+  (`job_13032eb17126`). On the TypeScript sample: $0.0125 to $0.0038, 69.6%,
+  three of three kept, 0.89 (`job_7e943e1ec7d5`). The fixing agent ran on
+  `claude-sonnet-5-5`; both sides of each comparison used the sample's own
+  models.
+- **Not built, by choice:** accounts, login and billing wait until after the
+  hackathon. Amazon Bedrock and Vertex AI are not recorded. A hardcoded
+  provider address in a language other than JavaScript, TypeScript or Python is
+  not caught.
+- **Not verified:** `whittle fix` on a repository with a real database (the
+  recording step alone was run on one). The fix path of the Python preload is
+  covered for `urllib` by a test and was checked by hand for `requests`,
+  `httpx` and the Anthropic SDK.
+- **Changed:** `main` now holds the command-line work (merged at `4360d91`).
+  The package is not on npm: the publish step needs to be run by Padmanabhan.
+  Entire Trails still answers "repository not found" for this repository, though
+  `entire repo view` shows its mirror as ready.
+- **Shared:** https://x.com/__padmanabhan/status/2109201036741423288, the third
+  post, on the fix Whittle reverted.
+- **Checked:** `uv run pytest`, 42 passed; `npm test` in `cli/`, 8 passed; the
+  web app builds.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: used neatlogs (links that open), written during

@@ -32,11 +32,18 @@ before and after neatlogs traces, a diff and an optional pull request.
   job runner and event log), `server.py` (the contract's endpoints),
   `delivery.py` (pull requests from the bot account), `evaluate.py` (answer
   scores). `JobRunner.record` takes calls recorded by the command-line tool
-  (`POST /api/recordings`) and runs the detectors on them; nothing is run.
+  (`POST /api/recordings`) and runs the detectors on them; nothing is run. When
+  the tool also sends the source (`upload_id`), the job is fixed by the same
+  `fix` loop, with every rerun done on the owner's machine: `run_phase` emits
+  `run.requested` and waits (`RemoteLink`, `_run_phase_remote`), and the tool
+  answers through `/api/jobs/{id}/work/{request_id}`.
 - Command-line tool: `cli/`, the `whittle-ai` npm package, Node 18 or newer, no
   dependencies. `whittle run -- <command>` records the model calls of a program
   on the developer's machine through a proxy on localhost; `whittle analyze`
-  sends the recording to the API. Tests: `npm test` in `cli/`. Its price table
+  sends the recording to the API; `whittle fix` sends the source too, applies
+  each patch the server writes to the working tree, reruns, and keeps or
+  reverses it (`cli/src/fix.mjs`). Preloads for Node (`preload.cjs`) and Python
+  (`py/sitecustomize.py`) catch provider addresses written in code. Tests: `npm test` in `cli/`. Its price table
   `cli/src/prices.json` is written from `pricing.py` by
   `uv run python -m costcutter.export_prices`; a backend test fails when the
   two differ. Samples live in `samples/<id>/` with a `whittle.json` manifest.

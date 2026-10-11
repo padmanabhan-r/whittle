@@ -63,7 +63,7 @@ export type Source =
   | { type: 'github'; repo_url: string; ref?: string | null }
   | { type: 'upload'; upload_id: string; name?: string | null }
   /** Calls recorded on the owner's machine by the command-line tool. */
-  | { type: 'recording'; name: string; command?: string | null; client?: string | null }
+  | { type: 'recording'; name: string; command?: string | null; client?: string | null; has_code?: boolean }
 
 export interface Upload { upload_id: string; name: string; files: number; bytes: number }
 
@@ -79,6 +79,9 @@ export interface JobSummary {
   baseline: RunTotals | null
   after: RunTotals | null
   saving_pct: number | null
+  /** Answer scores of the baseline and of the final rerun, once the job is done. */
+  quality_baseline?: number | null
+  quality_after?: number | null
   findings_total: number
   findings_applied: number
   call_sites?: number | null
@@ -160,6 +163,8 @@ export type JobEvent = EventBase &
         quality_before: number; quality_after: number; reason: string
       }
     | { type: 'recovery'; finding_id: string; action: 'reverted' | 'retried' | 'skipped'; reason: string }
+    /** A job whose runs happen on the owner's machine is waiting for one; the command-line tool answers it. */
+    | { type: 'run.requested'; request_id: string; phase: Phase; finding_id: string | null; runs: number }
     | { type: 'scan.call_site'; call_site: CallSite }
     | { type: 'job.done'; outcome: string; summary: JobSummary }
     | { type: 'job.error'; code: string; message: string }
@@ -169,7 +174,7 @@ export type EventOf<T extends JobEvent['type']> = Extract<JobEvent, { type: T }>
 
 export const EVENT_TYPES: JobEvent['type'][] = [
   'job.state', 'sandbox.log', 'llm.call', 'run.completed', 'finding', 'agent.step',
-  'patch.applied', 'verify.result', 'recovery', 'scan.call_site', 'job.done', 'job.error',
+  'patch.applied', 'verify.result', 'recovery', 'run.requested', 'scan.call_site', 'job.done', 'job.error',
 ]
 
 export class ApiError extends Error {

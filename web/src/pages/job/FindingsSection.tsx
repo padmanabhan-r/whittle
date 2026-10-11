@@ -21,13 +21,15 @@ interface Props {
   onSelect: (id: string) => void
   /** The calls came from the command-line tool: there is no code here to fix. */
   recorded?: boolean
+  /** The code came with the recording: the fix is started and rerun from the owner's terminal. */
+  remote?: boolean
 }
 
-export function FindingsSection({ jobId, view, selected, onSelect, recorded = false }: Props) {
+export function FindingsSection({ jobId, view, selected, onSelect, recorded = false, remote = false }: Props) {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const canPick = view.state === 'awaiting_selection'
+  const canPick = view.state === 'awaiting_selection' && !remote
 
   // Start with everything ticked: fixing all and letting the checks decide is the common case.
   useEffect(() => {
@@ -87,7 +89,9 @@ export function FindingsSection({ jobId, view, selected, onSelect, recorded = fa
         ) : (
           <span className="note">
             {recorded
-              ? 'Read from the calls recorded on your machine. Whittle holds no code for this recording, so nothing was changed.'
+              ? 'Read from the calls recorded on your machine. Whittle holds no code for this recording, so nothing was changed. To fix these and prove each fix there, run whittle fix.'
+              : remote && view.state === 'awaiting_selection'
+              ? 'The fix is started from your terminal by whittle fix. Each fix is rerun on your machine and scored.'
               : view.done ? 'Final status of each finding.' : 'Fixes are being applied one at a time.'}
           </span>
         )}

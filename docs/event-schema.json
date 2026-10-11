@@ -624,6 +624,32 @@
           "default": null,
           "title": "Saving Pct"
         },
+        "quality_baseline": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Answer score of the baseline runs, set when the job is done",
+          "title": "Quality Baseline"
+        },
+        "quality_after": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Answer score of the final rerun; the figure the result page shows",
+          "title": "Quality After"
+        },
         "findings_total": {
           "default": 0,
           "title": "Findings Total",
@@ -934,6 +960,64 @@
       "title": "RunCompletedEvent",
       "type": "object"
     },
+    "RunRequestedEvent": {
+      "additionalProperties": false,
+      "description": "A job whose runs happen on the owner's machine is waiting for one. The command-line tool\nreads the work item, runs, and posts the result; nobody else needs to act on this.",
+      "properties": {
+        "seq": {
+          "description": "Starts at 1 and rises by 1 per job; also the SSE id",
+          "title": "Seq",
+          "type": "integer"
+        },
+        "ts": {
+          "title": "Ts",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.requested",
+          "default": "run.requested",
+          "title": "Type",
+          "type": "string"
+        },
+        "request_id": {
+          "title": "Request Id",
+          "type": "string"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "finding_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finding Id"
+        },
+        "runs": {
+          "title": "Runs",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seq",
+        "ts",
+        "job_id",
+        "request_id",
+        "phase",
+        "runs"
+      ],
+      "title": "RunRequestedEvent",
+      "type": "object"
+    },
     "RunTotals": {
       "additionalProperties": false,
       "description": "Totals over every task run in one phase.",
@@ -1148,6 +1232,7 @@
       "patch.applied": "#/$defs/PatchAppliedEvent",
       "recovery": "#/$defs/RecoveryEvent",
       "run.completed": "#/$defs/RunCompletedEvent",
+      "run.requested": "#/$defs/RunRequestedEvent",
       "sandbox.log": "#/$defs/SandboxLogEvent",
       "scan.call_site": "#/$defs/CallSiteEvent",
       "verify.result": "#/$defs/VerifyResultEvent"
@@ -1181,6 +1266,9 @@
     },
     {
       "$ref": "#/$defs/RecoveryEvent"
+    },
+    {
+      "$ref": "#/$defs/RunRequestedEvent"
     },
     {
       "$ref": "#/$defs/CallSiteEvent"

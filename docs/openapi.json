@@ -113,6 +113,65 @@
         }
       }
     },
+    "/api/recordings": {
+      "post": {
+        "summary": "Create Recording",
+        "description": "Mock: the calls that were sent are ignored. The scripted baseline and its findings are\nplayed at once, as a job that was recorded on the owner's machine and only read.",
+        "operationId": "create_recording_api_recordings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/jobs/{job_id}": {
       "get": {
         "summary": "Read Job",
@@ -1415,6 +1474,30 @@
             ],
             "title": "Saving Pct"
           },
+          "quality_baseline": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Baseline",
+            "description": "Answer score of the baseline runs, set when the job is done"
+          },
+          "quality_after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality After",
+            "description": "Answer score of the final rerun; the figure the result page shows"
+          },
           "findings_total": {
             "type": "integer",
             "title": "Findings Total",
@@ -1631,6 +1714,276 @@
         ],
         "title": "Quality"
       },
+      "RecordedCall": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "anthropic",
+              "openai",
+              "gemini"
+            ],
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Model"
+          },
+          "streaming": {
+            "type": "boolean",
+            "title": "Streaming",
+            "default": false
+          },
+          "status": {
+            "type": "integer",
+            "title": "Status",
+            "default": 200
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "Duration Ms",
+            "default": 0
+          },
+          "usage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Usage"
+          },
+          "request": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Request"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider",
+          "model"
+        ],
+        "title": "RecordedCall",
+        "description": "One model call as the command-line tool recorded it. The cost is worked out here, not taken from the sender."
+      },
+      "RecordedRun": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,40}$",
+            "title": "Id"
+          },
+          "exit_code": {
+            "type": "integer",
+            "title": "Exit Code",
+            "default": 0
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms",
+            "default": 0
+          },
+          "input": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input",
+            "description": "What this run was asked, when the command takes an input"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 60000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer",
+            "description": "What the program printed. A fix is kept only if the answers still hold, so a recording to be fixed carries them"
+          },
+          "calls": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedCall"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "title": "Calls"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "calls"
+        ],
+        "title": "RecordedRun"
+      },
+      "RecordingCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command"
+          },
+          "client": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedRun"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Runs"
+          },
+          "monthly_runs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Monthly Runs"
+          },
+          "upload_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload Id",
+            "description": "The source the recording was made from, sent with PUT /api/uploads. With it the job waits for a fix instead of ending on its findings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "runs"
+        ],
+        "title": "RecordingCreate"
+      },
+      "RecordingResult": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JobState",
+            "description": "done, or awaiting_selection when the code came with the recording and there is something to fix"
+          },
+          "llm_calls": {
+            "type": "integer",
+            "title": "Llm Calls"
+          },
+          "cost_usd": {
+            "type": "number",
+            "title": "Cost Usd"
+          },
+          "cost_per_run_usd": {
+            "type": "number",
+            "title": "Cost Per Run Usd"
+          },
+          "saving_pct": {
+            "type": "number",
+            "title": "Saving Pct",
+            "description": "The findings' estimated savings together, as a share of the cost per run"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "job_id",
+          "state",
+          "llm_calls",
+          "cost_usd",
+          "cost_per_run_usd",
+          "saving_pct",
+          "findings"
+        ],
+        "title": "RecordingResult",
+        "description": "What the command-line tool prints; the job holds the rest."
+      },
       "RecordingSource": {
         "properties": {
           "type": {
@@ -1666,6 +2019,12 @@
             ],
             "title": "Client",
             "description": "The tool and version that made the recording"
+          },
+          "has_code": {
+            "type": "boolean",
+            "title": "Has Code",
+            "description": "True when the owner also sent the source, so the findings can be fixed. Reruns still happen on the owner's machine",
+            "default": false
           }
         },
         "additionalProperties": false,

@@ -240,6 +240,7 @@ class RecordingSource(Model):
     name: str = Field(description="What was recorded, for display: the project folder's name")
     command: str | None = Field(default=None, description="The command that was run")
     client: str | None = Field(default=None, description="The tool and version that made the recording")
+    has_code: bool = Field(default=False, description="True when the owner also sent the source, so the findings can be fixed. Reruns still happen on the owner's machine")
 
 
 Source = Annotated[SampleSource | GithubSource | UploadSource | RecordingSource, Field(discriminator="type")]
@@ -264,6 +265,8 @@ class RecordedRun(Model):
     id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")
     exit_code: int = 0
     duration_ms: int = 0
+    input: str | None = Field(default=None, max_length=4000, description="What this run was asked, when the command takes an input")
+    answer: str | None = Field(default=None, max_length=60000, description="What the program printed. A fix is kept only if the answers still hold, so a recording to be fixed carries them")
     calls: list[RecordedCall] = Field(max_length=2000)
 
 
@@ -273,17 +276,38 @@ class RecordingCreate(Model):
     client: str | None = Field(default=None, max_length=80)
     runs: list[RecordedRun] = Field(min_length=1, max_length=50)
     monthly_runs: int | None = Field(default=None, ge=1)
+    upload_id: str | None = Field(default=None, description="The source the recording was made from, sent with PUT /api/uploads. With it the job waits for a fix instead of ending on its findings")
 
 
 class RecordingResult(Model):
     """What the command-line tool prints; the job holds the rest."""
 
     job_id: str
+    state: JobState = Field(description="done, or awaiting_selection when the code came with the recording and there is something to fix")
     llm_calls: int
     cost_usd: float
     cost_per_run_usd: float
     saving_pct: float = Field(description="The findings' estimated savings together, as a share of the cost per run")
     findings: list["Finding"]
+
+
+class WorkRun(Model):
+    id: str
+    input: str | None = None
+
+
+class WorkItem(Model):
+    """A rerun the server needs from the owner's machine: bring the code to this state, run, send the calls back."""
+
+    request_id: str
+    phase: str = Field(description="verify-<finding id> while a fix is checked, after for the final comparison")
+    finding_id: str | None = None
+    patch: str = Field(description="Unified diff from the uploaded code to the state to run. Empty means the uploaded code as it was")
+    runs: list[WorkRun]
+
+
+class WorkResult(Model):
+    runs: list[RecordedRun] = Field(min_length=1, max_length=50)
 
 
 class Task(Model):
@@ -317,6 +341,8 @@ class JobSummary(Model):
     baseline: RunTotals | None = None
     after: RunTotals | None = None
     saving_pct: float | None = None
+    quality_baseline: float | None = Field(default=None, description="Answer score of the baseline runs, set when the job is done")
+    quality_after: float | None = Field(default=None, description="Answer score of the final rerun; the figure the result page shows")
     findings_total: int = 0
     findings_applied: int = 0
     call_sites: int | None = Field(default=None, description="Model call sites found by a scan")
@@ -530,6 +556,17 @@ class RecoveryEvent(EventBase):
     reason: str
 
 
+class RunRequestedEvent(EventBase):
+    """A job whose runs happen on the owner's machine is waiting for one. The command-line tool
+    reads the work item, runs, and posts the result; nobody else needs to act on this."""
+
+    type: Literal["run.requested"] = "run.requested"
+    request_id: str
+    phase: Phase
+    finding_id: str | None = None
+    runs: int
+
+
 class CallSiteEvent(EventBase):
     type: Literal["scan.call_site"] = "scan.call_site"
     call_site: CallSite
@@ -557,6 +594,7 @@ Event = Annotated[
     | PatchAppliedEvent
     | VerifyResultEvent
     | RecoveryEvent
+    | RunRequestedEvent
     | CallSiteEvent
     | JobDoneEvent
     | JobErrorEvent,

@@ -39,8 +39,11 @@ def extracted(upload_id: str) -> Path:
     return path
 
 
-def save(data: bytes, name: str) -> tuple[str, int, int]:
-    """Unpack a zip. Returns (upload_id, files, bytes)."""
+def save(data: bytes, name: str, unwrap: bool = True) -> tuple[str, int, int]:
+    """Unpack a zip. Returns (upload_id, files, bytes).
+
+    `unwrap` treats a zip of one folder as that folder. The command-line tool sends a repository
+    as it is and turns this off: a later patch must find every file at the path it has there."""
     if len(data) > MAX_ZIP_BYTES:
         raise UploadError(f"The zip is larger than {MAX_ZIP_BYTES // (1024 * 1024)} MB.")
     try:
@@ -76,7 +79,7 @@ def save(data: bytes, name: str) -> tuple[str, int, int]:
         raise
     # A zip of one folder: use that folder as the project.
     entries = [p for p in target.iterdir()]
-    if len(entries) == 1 and entries[0].is_dir():
+    if unwrap and len(entries) == 1 and entries[0].is_dir():
         inner = entries[0]
         staging = target.parent / "unwrapped"
         inner.rename(staging)

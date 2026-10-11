@@ -72,8 +72,27 @@ field is refused), writes the runs as the job's baseline, sends each run to
 neatlogs as a trace, and runs the same detectors as a measured job. States:
 `queued` ▶ `baseline` ▶ `diagnosing` ▶ `done`, with `outcome` `measured`, or
 `nothing_to_fix`. The job's `source` is `{type: "recording", name, command,
-client}`. Whittle holds no code for it, so findings carry no `location`, and
-`fix`, `comparison`, `diff`, `patch` and `pr` answer `409`.
+client, has_code}`. Whittle holds no code for it, so findings carry no
+`location`, and `fix`, `comparison`, `diff`, `patch` and `pr` answer `409`.
+
+**A recording with its code can be fixed.** `whittle fix` first sends the
+tracked source as a zip (`PUT /api/uploads?unwrap=false`) and names it in the
+recording as `upload_id`; each run also carries its `input` and its `answer`
+(what the command printed). The job then has a `base_commit`, its findings are
+pinned to lines, and it stops at `awaiting_selection` like a measured job. The
+tool starts the fix with the ordinary `POST /api/jobs/{id}/fix`, and from there
+the job runs exactly as a sandbox job does, with one difference: every rerun
+happens on the owner's machine. When the server needs one it emits
+`run.requested`; the tool reads the work item (`GET
+/api/jobs/{id}/work/{request_id}`: the `patch` to bring the code to, as a diff
+from the uploaded source, and the runs to make), applies it, runs, and posts the
+recorded calls (`POST` to the same path). A fix is kept only if that rerun was
+cheaper and its answers hold against the baseline's. `DELETE
+/api/jobs/{id}/work` tells the server the owner stopped the tool; the job fails
+with `cancelled`. A rerun not delivered within 45 minutes fails the job with
+`client_gone`. `comparison`, `diff` and `patch` work once such a job is done;
+`pr` answers `409`, because the kept fixes are already in the owner's working
+tree.
 
 A `source` is one of `{type: "sample", sample_id}`, `{type: "github", repo_url, ref}`
 or `{type: "upload", upload_id, name}`. To measure your own code, `run` gives the
@@ -90,9 +109,12 @@ run.
 | Method | Path | Returns | Notes |
 |---|---|---|---|
 | GET | `/api/samples` | `SampleList` | Sample agents that need no key |
-| PUT | `/api/uploads?name=` | `201` `Upload` | The body is a zip of the code, up to 60 MB. Returns `upload_id` for an `upload` source |
+| PUT | `/api/uploads?name=` | `201` `Upload` | The body is a zip of the code, up to 60 MB. Returns `upload_id` for an `upload` source. A zip of one folder is unwrapped unless `unwrap=false` |
 | POST | `/api/jobs` | `201` `Job` | Starts a job |
-| POST | `/api/recordings` | `201` `RecordingResult` | Calls recorded by the command-line tool, up to 40 MB, 50 runs and 2,000 calls a run. Returns the finished job's id, its totals and its findings |
+| POST | `/api/recordings` | `201` `RecordingResult` | Calls recorded by the command-line tool, up to 40 MB, 50 runs and 2,000 calls a run. Returns the job's id, its state, its totals and its findings |
+| GET | `/api/jobs/{id}/work/{request_id}` | `WorkItem` | For the command-line tool: the rerun a `run.requested` event asked for |
+| POST | `/api/jobs/{id}/work/{request_id}` | `202` | For the command-line tool: the calls recorded during that rerun |
+| DELETE | `/api/jobs/{id}/work` | `202` | For the command-line tool: the owner stopped it |
 | GET | `/api/jobs/{id}` | `Job` | Current state and summary |
 | GET | `/api/jobs/{id}/events` | SSE stream | See "The event stream" |
 | GET | `/api/jobs/{id}/findings` | `FindingList` | Empty until `diagnosing` reports them |
@@ -261,12 +283,13 @@ data: {"seq":9,"ts":"2026-10-10T14:10:42.514Z","job_id":"job_89b0bce57b62","type
 | `verify.result` | `finding_id`, `passed`, cost per run before and after, `quality_before`, `quality_after`, `reason` | The check on one fix |
 | `scan.call_site` | `call_site`: `file`, `line`, `provider`, `via`, `model`, `snippet` | Scan only: one place the code calls a model |
 | `recovery` | `finding_id`, `action` (`reverted`, `retried`, `skipped`), `reason` | **The recovery moment**: a fix failed its check and was undone |
+| `run.requested` | `request_id`, `phase`, `finding_id`, `runs` | A recorded job is waiting for a rerun on the owner's machine. The command-line tool answers it; the UI can ignore it |
 | `job.done` | `outcome`, `summary` | Final; then fetch `/comparison` and `/diff` |
 | `job.error` | `code`, `message` | Final; the job is `failed` |
 
 `agent.step.tool` names look like `neatlogs.search_traces`,
-`neatlogs.get_trace_context`, `entire.graph_search`, `entire.graph_impact` and
-`sandbox.run`. Treat it as a free string and show which sponsor tool is at work.
+`neatlogs.get_trace_context`, `entire.graph_search`, `entire.graph_impact`,
+`sandbox.run` and, for a rerun on the owner's machine, `cli.run`. Treat it as a free string and show which sponsor tool is at work.
 
 ## Errors
 
@@ -305,6 +328,10 @@ One scripted run, the same for both samples apart from the language of the diff:
 These figures come from a small simulation in `api/costcutter/mock/scenario.py`,
 written so the meter, the findings and the comparison agree with each other.
 They are not measurements and must not be quoted as results.
+
+`POST /api/recordings` is served too: whatever calls are sent, the mock plays
+the scripted baseline and its five findings at once as a `recorded` job that
+ends `done`. It does not play a fix; a recording with `upload_id` gets `409`.
 
 ## What may still change
 

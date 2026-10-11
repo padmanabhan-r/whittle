@@ -2,7 +2,7 @@ import { Undo } from '../../components/Icons'
 import type { RunView } from '../../lib/useJob'
 import { statusTag } from './FindingsSection'
 
-export function FixSection({ view, selected, onSelect }: { view: RunView; selected: string | null; onSelect: (id: string) => void }) {
+export function FixSection({ view, selected, onSelect, remote = false }: { view: RunView; selected: string | null; onSelect: (id: string) => void; remote?: boolean }) {
   const chosen = view.findings.filter((f) => f.status !== 'proposed' && f.status !== 'skipped')
   const liveId = view.steps[view.steps.length - 1]?.finding_id
 
@@ -12,8 +12,9 @@ export function FixSection({ view, selected, onSelect }: { view: RunView; select
         <div className="empty">
           <h2>Nothing is being fixed yet</h2>
           <p>
-            Choose findings on the Findings page. Each one is then patched, rerun and scored here, and any fix
-            that fails its check is undone.
+            {remote
+              ? 'A recording is fixed from your terminal: run whittle fix. Each finding is then patched, rerun on your machine and scored here, and any fix that fails its check is undone.'
+              : 'Choose findings on the Findings page. Each one is then patched, rerun and scored here, and any fix that fails its check is undone.'}
           </p>
         </div>
       </div>
@@ -25,13 +26,14 @@ export function FixSection({ view, selected, onSelect }: { view: RunView; select
       {view.recoveries.map((recovery) => {
         const finding = view.findings.find((f) => f.id === recovery.finding_id)
         const retried = recovery.action === 'retried'
+        const label = retried ? 'Retried' : recovery.action === 'skipped' ? 'Skipped' : 'Reverted'
         return (
           <div className="notice recover" role="status" key={recovery.seq}>
             <Undo />
             <div>
-              <strong>{retried ? 'Retried' : 'Reverted'}: {finding?.title ?? (retried ? 'a sandbox run' : recovery.finding_id)}</strong>
+              <strong>{label}: {finding?.title ?? (retried ? 'a sandbox run' : recovery.finding_id)}</strong>
               {recovery.reason}
-              {retried ? '' : ' The earlier fixes are kept.'}
+              {recovery.action === 'reverted' ? ' The earlier fixes are kept.' : ''}
             </div>
           </div>
         )
@@ -60,7 +62,7 @@ export function FixSection({ view, selected, onSelect }: { view: RunView; select
                       {patch && <span className="loc">{patch.files.join(', ')}</span>}
                       {(verify || (live && patch)) && (
                         <span className="loc" style={{ fontFamily: 'var(--body)', fontSize: 13, color: verify && !verify.passed ? 'var(--red)' : undefined }}>
-                          {verify ? verify.reason : 'Rerunning the tasks…'}
+                          {verify ? verify.reason : remote ? 'Rerunning on your machine…' : 'Rerunning the tasks…'}
                         </span>
                       )}
                     </td>

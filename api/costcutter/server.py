@@ -32,6 +32,8 @@ from costcutter.contract import (
     PullRequest,
     RecordingCreate,
     RecordingResult,
+    WorkItem,
+    WorkResult,
     Sample,
     SampleList,
     Upload,
@@ -109,8 +111,9 @@ def create_app() -> FastAPI:
         return SampleList(samples=[Sample(id=s["id"], name=s["name"], description=s["description"], language=s["language"], repo_url=f"https://github.com/padmanabhan-r/whittle/tree/main/samples/{s['id']}", task_count=len(s["tasks"])) for s in runner.samples()])
 
     @app.put("/api/uploads", response_model=Upload, status_code=201, responses=ERRORS)
-    async def upload_zip(request: Request, name: str = Query("code.zip", max_length=200)) -> Upload:
-        """The body is the zip itself. Returns an id to use as an `upload` source."""
+    async def upload_zip(request: Request, name: str = Query("code.zip", max_length=200), unwrap: bool = Query(True)) -> Upload:
+        """The body is the zip itself. Returns an id to use as an `upload` source.
+        `unwrap=false` keeps a zip of one folder as it is, which the command-line tool needs."""
         from costcutter import uploads
 
         declared = int(request.headers.get("content-length") or 0)
@@ -118,7 +121,7 @@ def create_app() -> FastAPI:
             raise ApiError(413, "upload_too_large", f"The zip is larger than {uploads.MAX_ZIP_BYTES // (1024 * 1024)} MB.")
         data = await request.body()
         try:
-            upload_id, files, size = await asyncio.to_thread(uploads.save, data, name)
+            upload_id, files, size = await asyncio.to_thread(uploads.save, data, name, unwrap)
         except uploads.UploadError as exc:
             raise ApiError(422, "bad_upload", str(exc))
         return Upload(upload_id=upload_id, name=name, files=files, bytes=size)
@@ -134,8 +137,8 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             raise ApiError(422, "invalid_request", str(exc))
 
-    def open_trace(job_id: str, run_id: str) -> JobTraceRecorder:
-        return JobTraceRecorder(job_id=job_id, phase="baseline", task_id=run_id, neatlogs_api_key=settings.neatlogs_api_key,
+    def open_trace(job_id: str, phase: str, run_id: str) -> JobTraceRecorder:
+        return JobTraceRecorder(job_id=job_id, phase=phase, task_id=run_id, neatlogs_api_key=settings.neatlogs_api_key,
                                 neatlogs_endpoint=settings.neatlogs_endpoint, workflow_prefix=settings.neatlogs_workflow_prefix)
 
     @app.post("/api/recordings", response_model=RecordingResult, status_code=201, responses=ERRORS)
@@ -147,9 +150,46 @@ def create_app() -> FastAPI:
             raise ApiError(422, "no_calls", "The recording holds no model calls.")
         if len({run.id for run in body.runs}) != len(body.runs):
             raise ApiError(422, "invalid_request", "Each run in a recording needs its own id.")
-        ctx, saving = await asyncio.to_thread(runner.record, body, open_trace)
+        try:
+            ctx, saving = await asyncio.to_thread(runner.record, body, open_trace)
+        except uploads_module.UploadError as exc:
+            raise ApiError(404, "upload_not_found", str(exc))
         totals = ctx.job.summary.baseline
-        return RecordingResult(job_id=ctx.job.id, llm_calls=totals.llm_calls, cost_usd=totals.cost_usd, cost_per_run_usd=totals.cost_per_run_usd, saving_pct=saving, findings=ctx.findings)
+        return RecordingResult(job_id=ctx.job.id, state=ctx.job.state, llm_calls=totals.llm_calls, cost_usd=totals.cost_usd, cost_per_run_usd=totals.cost_per_run_usd, saving_pct=saving, findings=ctx.findings)
+
+    def get_remote(job_id: str) -> JobContext:
+        ctx = get_job(job_id)
+        if ctx.remote is None:
+            raise ApiError(409, "not_remote", "This job's runs do not happen on the owner's machine, so it has no reruns to hand out.")
+        return ctx
+
+    @app.get("/api/jobs/{job_id}/work/{request_id}", response_model=WorkItem, responses=ERRORS)
+    async def read_work(job_id: str, request_id: str) -> WorkItem:
+        """For the command-line tool: the rerun a run.requested event asked for."""
+        ctx = get_remote(job_id)
+        if request_id not in ctx.remote.items:
+            raise ApiError(404, "work_not_found", f"No rerun with id {request_id}.")
+        return ctx.remote.items[request_id]
+
+    @app.post("/api/jobs/{job_id}/work/{request_id}", status_code=202, responses=ERRORS)
+    async def deliver_work(request: Request, job_id: str, request_id: str, body: WorkResult) -> dict[str, bool]:
+        """For the command-line tool: the calls recorded during the rerun."""
+        if int(request.headers.get("content-length") or 0) > MAX_RECORDING_BYTES:
+            raise ApiError(413, "recording_too_large", f"The rerun is larger than {MAX_RECORDING_BYTES // (1024 * 1024)} MB.")
+        ctx = get_remote(job_id)
+        try:
+            runner.deliver_work(ctx, request_id, body)
+        except KeyError:
+            raise ApiError(404, "work_not_found", f"No rerun with id {request_id}.")
+        except ValueError as exc:
+            raise ApiError(409, "work_not_wanted", str(exc))
+        return {"accepted": True}
+
+    @app.delete("/api/jobs/{job_id}/work", status_code=202, responses=ERRORS)
+    async def stop_work(job_id: str) -> dict[str, bool]:
+        """For the command-line tool: the owner stopped it, so the job should not wait for more reruns."""
+        runner.stop_remote(get_remote(job_id))
+        return {"stopped": True}
 
     @app.get("/api/jobs/{job_id}", response_model=Job, responses=ERRORS)
     async def read_job(job_id: str) -> Job:
@@ -204,14 +244,14 @@ def create_app() -> FastAPI:
         require_done(ctx)
         if ctx.job.mode is JobMode.SCAN:
             raise ApiError(409, "scan_only", "This job read the code without running it, so there is no before and after to compare.")
-        if ctx.job.mode is JobMode.RECORDED:
+        if ctx.job.mode is JobMode.RECORDED and not ctx.base_commit:
             raise ApiError(409, "recorded_only", "This job read calls recorded on your machine. Nothing was changed, so there is no before and after to compare.")
         if "after" not in ctx.phases:
             raise ApiError(409, "job_not_done", "The job ended before any fix was tried, so there is nothing to compare.")
         return runner.comparison(ctx)
 
     def require_code(ctx: JobContext) -> None:
-        if ctx.job.mode is JobMode.RECORDED:
+        if ctx.job.mode is JobMode.RECORDED and not ctx.base_commit:
             raise ApiError(409, "recorded_only", "This job read calls recorded on your machine; Whittle holds no code for it, so there is no diff or patch.")
 
     @app.get("/api/jobs/{job_id}/diff", response_model=Diff, responses=ERRORS)
@@ -232,6 +272,8 @@ def create_app() -> FastAPI:
     async def open_pull_request(job_id: str) -> PullRequest:
         ctx = get_job(job_id)
         require_done(ctx)
+        if ctx.job.mode is JobMode.RECORDED:
+            raise ApiError(409, "pr_unavailable", "The kept fixes are already in your working tree. Commit them and open the pull request from your own repository.")
         if not ctx.kept:
             raise ApiError(409, "nothing_to_deliver", "No fix was kept, so there is nothing to open a pull request for.")
         from costcutter.delivery import open_pull_request as deliver

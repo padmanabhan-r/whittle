@@ -52,6 +52,10 @@ from costcutter.contract import (
     TaskRun,
     RecordingCreate,
     RecordingSource,
+    RecordedRun,
+    WorkItem,
+    WorkResult,
+    WorkRun,
 )
 from costcutter.evaluate import TaskScore, phase_score, score_run
 from costcutter.proxy.recorder import trace_url
@@ -126,6 +130,27 @@ def _tool_uses(record: CallRecord) -> list:
     return [b for b in response.get("content") or [] if isinstance(b, dict) and b.get("type") == "tool_use"]
 
 
+REMOTE_RUN_TIMEOUT = 45 * 60  # seconds the server waits for the owner's machine to finish one rerun
+
+
+class RemoteGone(Exception):
+    """The command-line tool that was doing a job's runs stopped answering, or stopped the job."""
+
+    def __init__(self, message: str, code: str = "client_gone") -> None:
+        super().__init__(message)
+        self.code = code
+
+
+class RemoteLink:
+    """A job whose runs happen on the owner's machine. The server asks for a rerun by emitting
+    run.requested; the command-line tool reads the work item, runs, and posts the calls back."""
+
+    def __init__(self) -> None:
+        self.items: dict[str, WorkItem] = {}
+        self.waiting: dict[str, asyncio.Future] = {}
+        self.trace: Callable | None = None  # (job_id, phase, run_id) -> a neatlogs trace recorder
+
+
 class JobContext:
     """Everything one job owns: its record, events, clone, tasks and run results."""
 
@@ -147,6 +172,8 @@ class JobContext:
         self.phases: dict[str, PhaseResult] = {}
         self.kept: list[str] = []
         self.call_sites: list[CallSite] = []
+        self.remote: RemoteLink | None = None  # set when the runs happen on the owner's machine
+        self.code_upload = ""  # the upload a recording's source came from
         self.base_commit = ""
         self.task: asyncio.Task | None = None
         self.steps = 0
@@ -324,6 +351,8 @@ class JobRunner:
         return loaded
 
     def create(self, body: JobCreate) -> Job:
+        if isinstance(body.source, RecordingSource):
+            raise ValueError("A recording is sent to POST /api/recordings by the command-line tool, not started as a job.")
         job_id = f"job_{uuid.uuid4().hex[:12]}"
         stamp = now_iso()
         if isinstance(body.source, SampleSource):
@@ -355,22 +384,76 @@ class JobRunner:
     def record(self, body: RecordingCreate, trace=None) -> tuple[JobContext, float]:
         """Take calls that were recorded on the owner's machine and read them for waste.
 
-        Nothing is run and there is no code here to patch, so the job ends with its findings.
-        The cost of every call is worked out from its token counts; the sender's figure is not used.
-        `trace(job_id, run_id)` opens a neatlogs trace for one run, when tracing is set up.
+        Nothing is run here. The cost of every call is worked out from its token counts; the
+        sender's figure is never used. `trace(job_id, phase, run_id)` opens a neatlogs trace for
+        one run, when tracing is set up.
+
+        Without code the job ends on its findings. With code (`upload_id`) the findings are pinned
+        to lines and the job waits for a fix, whose reruns the owner's machine does (RemoteLink).
         """
+        if body.upload_id:
+            from costcutter import uploads
+
+            uploads.extracted(body.upload_id)  # raises a clear error now, before a job exists
         job_id = f"job_{uuid.uuid4().hex[:12]}"
         stamp = now_iso()
-        source = RecordingSource(type="recording", name=body.name, command=body.command, client=body.client)
+        source = RecordingSource(type="recording", name=body.name, command=body.command, client=body.client, has_code=bool(body.upload_id))
         job = Job(id=job_id, state=JobState.QUEUED, mode=JobMode.RECORDED, source=source, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
-        ctx = JobContext(job, [Task(run.id, body.command or "") for run in body.runs], body.command or "", Language.OTHER, "anthropic", None, False)
+        ctx = JobContext(job, [Task(run.id, run.input or "") for run in body.runs], body.command or "", Language.OTHER, "anthropic", None, False)
         self.jobs[job_id] = ctx
+        if body.upload_id:
+            from costcutter import scan as scanner
+
+            ctx.code_upload = body.upload_id
+            ctx.remote = RemoteLink()
+            ctx.remote.trace = trace
+            ctx.set_state(JobState.CLONING)
+            self._clone(ctx)
+            ctx.language = job.language = scanner.detect_language(scanner.source_files(ctx.repo))
+            ctx.log("install", f"Source received from the command-line tool at {ctx.base_commit[:7]}. Nothing is installed or run here: the runs happen on the owner's machine.")
         ctx.set_state(JobState.BASELINE)
+        baseline = self._ingest_phase(ctx, "baseline", body.runs, trace)
+        ctx.phases["baseline"] = baseline
+        job.summary.baseline = baseline.totals()
+        results = baseline.runs
+        ctx.set_state(JobState.DIAGNOSING)
+        ctx.step("thought", f"{len(results)} recorded run{'s' if len(results) != 1 else ''} received from the command-line tool: {baseline.totals().llm_calls} model calls, ${baseline.totals().cost_usd:.4f}. Reading them for repeated cost.")
+        unpriced = sorted({r.model for run in results for r in run.records if not pricing.known(r.model)})
+        if unpriced:
+            ctx.step("thought", f"No price is listed for {', '.join(unpriced)}, so those calls are charged at the top rate and their cost is an upper estimate.")
+        locate_in_code = (lambda draft, anchors: self._locate(ctx, draft, anchors)) if ctx.remote is not None else None
+        findings = analyze({run.task.id: run.records for run in results}, baseline.cost_per_run(), locate_in_code)
+        ctx.findings = findings
+        job.summary.findings_total = len(findings)
+        for finding in findings:
+            ctx.finding_event(finding)
+        per_run = baseline.cost_per_run()
+        saving = min(100.0, round(100 * sum(f.estimated_saving_usd_per_run for f in findings) / per_run, 1)) if per_run > 0 else 0.0
+        if not findings:
+            ctx.step("thought", "No waste worth fixing in these calls.")
+        if findings and ctx.remote is not None:
+            if not any((run.answer or "").strip() for run in body.runs):
+                ctx.step("thought", "The command printed nothing, so its answers cannot be compared. A fix will be judged on cost and a clean exit alone.")
+            ctx.set_state(JobState.AWAITING_SELECTION)
+            return ctx, saving
+        job.outcome = Outcome.MEASURED if findings else Outcome.NOTHING_TO_FIX
+        ctx.set_state(JobState.DONE)
+        ctx.emit("job.done", outcome=job.outcome, summary=job.summary)
+        return ctx, saving
+
+    def _ingest_phase(self, ctx: JobContext, phase: str, runs: list[RecordedRun], trace=None) -> PhaseResult:
+        """Write one phase's recorded runs as this job's own: costed here, traced, scored, and
+        announced with the same events a sandbox run sends."""
+        label = "baseline" if phase == "baseline" else "after"
+        baseline = ctx.phases.get("baseline")
+        by_id = {t.id: t for t in ctx.tasks}
         results: list[RunResult] = []
         running = 0.0
-        for run, task in zip(body.runs, ctx.tasks):
-            store = RunStore(job_id, "baseline", run.id)
-            recorder = trace(job_id, run.id) if trace else None
+        for run in runs:
+            task = by_id.get(run.id) or Task(run.id, run.input or "")
+            run_path(ctx.job.id, phase, run.id).unlink(missing_ok=True)
+            store = RunStore(ctx.job.id, phase, run.id)
+            recorder = trace(ctx.job.id, phase, run.id) if trace else None
             for call in run.calls:
                 usage = {k: max(0, int(call.usage.get(k, 0) or 0)) for k in ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens")}
                 ok = call.status < 400
@@ -381,7 +464,7 @@ class JobRunner:
                                    usage=usage if ok else {}, request=call.request, response=call.response, trace_id=recorder.trace_id if recorder else None, span_id=span_id,
                                    error=call.error, extra={"recorded_at": call.ts, "price_known": pricing.known(call.model)})
                 running = round(running + cost, 6)
-                ctx.emit("llm.call", phase="baseline", task_id=run.id, call_index=rec.seq, model=call.model, cost_usd=cost, running_cost_usd=running, duration_ms=int(call.duration_ms),
+                ctx.emit("llm.call", phase=label, task_id=run.id, call_index=rec.seq, model=call.model, cost_usd=cost, running_cost_usd=running, duration_ms=int(call.duration_ms),
                          input_tokens=usage["input_tokens"] if ok else 0, output_tokens=usage["output_tokens"] if ok else 0,
                          cache_read_tokens=usage["cache_read_tokens"] if ok else 0, cache_write_tokens=usage["cache_write_tokens"] if ok else 0)
             if recorder:
@@ -389,34 +472,81 @@ class JobRunner:
             records = store.records()
             cost = round(sum(r.cost_usd for r in records), 6)
             trace_id = recorder.trace_id if recorder else ""
-            results.append(RunResult(task, run.exit_code, "", "", records, trace_id, cost, run.duration_ms))
-            ctx.emit("run.completed", phase="baseline", task_id=run.id, cost_usd=cost, passed=run.exit_code == 0, trace_id=trace_id, trace_url=trace_url(trace_id) if trace_id else "")
-        baseline = PhaseResult("baseline", results)
-        ctx.phases["baseline"] = baseline
-        job.summary.baseline = baseline.totals()
-        ctx.set_state(JobState.DIAGNOSING)
-        ctx.step("thought", f"{len(results)} recorded run{'s' if len(results) != 1 else ''} received from the command-line tool: {baseline.totals().llm_calls} model calls, ${baseline.totals().cost_usd:.4f}. Reading them for repeated cost.")
-        unpriced = sorted({r.model for run in results for r in run.records if not pricing.known(r.model)})
-        if unpriced:
-            ctx.step("thought", f"No price is listed for {', '.join(unpriced)}, so those calls are charged at the top rate and their cost is an upper estimate.")
-        findings = analyze({run.task.id: run.records for run in results}, baseline.cost_per_run())
-        ctx.findings = findings
-        job.summary.findings_total = len(findings)
-        for finding in findings:
-            ctx.finding_event(finding)
-        if not findings:
-            ctx.step("thought", "No waste worth fixing in these calls.")
-        job.outcome = Outcome.MEASURED if findings else Outcome.NOTHING_TO_FIX
-        ctx.set_state(JobState.DONE)
-        ctx.emit("job.done", outcome=job.outcome, summary=job.summary)
-        per_run = baseline.cost_per_run()
-        saving = min(100.0, round(100 * sum(f.estimated_saving_usd_per_run for f in findings) / per_run, 1)) if per_run > 0 else 0.0
-        return ctx, saving
+            answer = (run.answer or "").strip()
+            score = None
+            if run.answer is not None:  # a recording sent only to be read carries no answers, and is not scored
+                before = next((r.answer for r in baseline.runs if r.task.id == run.id), "") if baseline and phase != "baseline" else ""
+                score = self._score_recorded(run.id, answer, run.exit_code, before, phase == "baseline")
+            results.append(RunResult(task, run.exit_code, answer, "", records, trace_id, cost, run.duration_ms, score))
+            ctx.emit("run.completed", phase=label, task_id=run.id, cost_usd=cost, passed=score.passed if score else run.exit_code == 0, trace_id=trace_id, trace_url=trace_url(trace_id) if trace_id else "")
+        return PhaseResult(phase, results)
+
+    def _score_recorded(self, run_id: str, answer: str, exit_code: int, before: str, is_baseline: bool) -> TaskScore:
+        """A recorded run's score. The baseline answers stand as the reference; a later run is
+        judged against them. A command that prints nothing gives nothing to compare, so for it a
+        clean exit is the whole test."""
+        if exit_code == 0 and not answer and (is_baseline or not before):
+            return TaskScore(run_id, 1.0, True, "the command prints nothing; judged on a clean exit")
+        return score_run(run_id, answer, exit_code, [], None if is_baseline else (before or None), self.judge)
+
+    async def _run_phase_remote(self, ctx: JobContext, phase: str) -> PhaseResult:
+        """Ask the owner's machine to bring its code to the server's current state, rerun, and send the calls back."""
+        assert ctx.remote is not None
+        ctx.git("add", "-A")
+        patch = ctx.git("diff", "--cached", "--binary", ctx.base_commit, check=False).stdout
+        request_id = uuid.uuid4().hex[:12]
+        finding_id = phase.removeprefix("verify-") if phase.startswith("verify-") else None
+        item = WorkItem(request_id=request_id, phase=phase, finding_id=finding_id, patch=patch, runs=[WorkRun(id=t.id, input=t.input or None) for t in ctx.tasks])
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
+        ctx.remote.items[request_id] = item
+        ctx.remote.waiting[request_id] = future
+        ctx.emit("run.requested", request_id=request_id, phase="after", finding_id=finding_id, runs=len(ctx.tasks))
+        try:
+            result: WorkResult = await asyncio.wait_for(future, REMOTE_RUN_TIMEOUT)
+        except asyncio.TimeoutError:
+            raise RemoteGone(f"The command-line tool did not send the rerun within {REMOTE_RUN_TIMEOUT // 60} minutes.") from None
+        finally:
+            ctx.remote.waiting.pop(request_id, None)
+        return await asyncio.to_thread(self._ingest_phase, ctx, phase, result.runs, ctx.remote.trace)
+
+    def deliver_work(self, ctx: JobContext, request_id: str, result: WorkResult) -> None:
+        """The command-line tool's answer to a run.requested. Called on the event loop."""
+        if ctx.remote is None or request_id not in ctx.remote.items:
+            raise KeyError(request_id)
+        future = ctx.remote.waiting.get(request_id)
+        if future is None or future.done():
+            raise ValueError("That rerun is no longer waited for.")
+        wanted, got = sorted(r.id for r in ctx.remote.items[request_id].runs), sorted(r.id for r in result.runs)
+        if wanted != got:
+            raise ValueError(f"The rerun must hold exactly these runs: {', '.join(wanted)}.")
+        future.set_result(result)
+
+    def stop_remote(self, ctx: JobContext) -> None:
+        """The owner stopped the command-line tool. End the job now instead of waiting for a rerun that will not come."""
+        if ctx.remote is None or ctx.job.state in TERMINAL_STATES:
+            return
+        for future in list(ctx.remote.waiting.values()):
+            if not future.done():
+                future.set_exception(RemoteGone("The job was stopped from the command-line tool before it finished.", "cancelled"))
+        if ctx.job.state is JobState.AWAITING_SELECTION:
+            ctx.fail("cancelled", "The job was stopped from the command-line tool before a fix was started.")
+        elif ctx.task is not None and not ctx.remote.waiting:
+            ctx.task.cancel()
 
     async def _guard(self, ctx: JobContext, coro) -> None:
         try:
-            async with self.semaphore:
+            if ctx.remote is not None:  # its runs happen on the owner's machine, so it does not wait for the sandbox
                 await coro
+            else:
+                async with self.semaphore:
+                    await coro
+        except RemoteGone as exc:
+            if ctx.job.state not in TERMINAL_STATES:
+                ctx.fail(exc.code, str(exc))
+        except asyncio.CancelledError:
+            if ctx.job.state not in TERMINAL_STATES:
+                ctx.fail("cancelled", "The job was stopped from the command-line tool before it finished.")
+            raise
         except Exception as exc:  # the job fails; the server does not
             if ctx.job.state not in (JobState.DONE, JobState.FAILED):
                 ctx.fail("internal_error", f"{type(exc).__name__}: {exc}")
@@ -569,10 +699,11 @@ class JobRunner:
             subprocess.run(["git", "init", "-q", "-b", "main"], cwd=ctx.repo, check=True)
             ctx.git("add", "-A")
             ctx.git("-c", "user.name=Whittle", "-c", "user.email=whittle@example.invalid", "commit", "-q", "-m", "Baseline")
-        elif isinstance(source, UploadSource):
+        elif isinstance(source, (UploadSource, RecordingSource)):
             from costcutter import uploads
 
-            shutil.copytree(uploads.extracted(source.upload_id), ctx.repo, ignore=shutil.ignore_patterns("__pycache__", ".git", "node_modules", ".venv"))
+            upload_id = source.upload_id if isinstance(source, UploadSource) else ctx.code_upload
+            shutil.copytree(uploads.extracted(upload_id), ctx.repo, ignore=shutil.ignore_patterns("__pycache__", ".git", "node_modules", ".venv"))
             subprocess.run(["git", "init", "-q", "-b", "main"], cwd=ctx.repo, check=True)
             ctx.git("add", "-A")
             ctx.git("-c", "user.name=Whittle", "-c", "user.email=whittle@example.invalid", "commit", "-q", "-m", "Uploaded code")
@@ -594,6 +725,8 @@ class JobRunner:
     # --- runs -----------------------------------------------------------
 
     async def run_phase(self, ctx: JobContext, phase: str, tasks: list[Task] | None = None) -> PhaseResult:
+        if ctx.remote is not None:
+            return await self._run_phase_remote(ctx, phase)
         results: list[RunResult] = []
         baseline = ctx.phases.get("baseline")
         for task in tasks or ctx.tasks:
@@ -687,7 +820,10 @@ class JobRunner:
             ctx.emit("patch.applied", finding_id=finding.id, files=patch["files"], additions=patch["additions"], deletions=patch["deletions"])
 
             ctx.set_state(JobState.VERIFYING)
-            ctx.step("tool_call", "Rerun the tasks and score the answers", tool="sandbox.run", finding_id=finding.id)
+            if ctx.remote is not None:
+                ctx.step("tool_call", "Rerun the command on the owner's machine and score the answers", tool="cli.run", finding_id=finding.id)
+            else:
+                ctx.step("tool_call", "Rerun the tasks and score the answers", tool="sandbox.run", finding_id=finding.id)
             phase = await self.run_phase(ctx, f"verify-{finding.id}")
             ctx.phases[f"verify-{finding.id}"] = phase
             cost, quality = phase.cost_per_run(), phase.quality()
@@ -717,6 +853,7 @@ class JobRunner:
         ctx.phases["after"] = after
         ctx.set_state(JobState.REPORTING)
         job.summary.after = after.totals()
+        job.summary.quality_baseline, job.summary.quality_after = baseline.quality(), after.quality()
         saving = baseline.cost_per_run() - after.cost_per_run()
         job.summary.saving_pct = round(100 * saving / baseline.cost_per_run(), 1) if baseline.cost_per_run() else 0.0
         job.outcome = Outcome.SAVED if saving > 0 and ctx.kept else Outcome.NO_SAVING

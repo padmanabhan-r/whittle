@@ -36,11 +36,15 @@ from costcutter.contract import (
     Job,
     JobCreate,
     JobError,
+    JobMode,
     JobState,
     JobSummary,
     Language,
     Outcome,
     PullRequest,
+    RecordingCreate,
+    RecordingResult,
+    RecordingSource,
     SampleList,
 )
 from costcutter.mock import scenario as sc
@@ -312,6 +316,8 @@ async def create_job(
     speed: float = Query(DEFAULT_SPEED, ge=0, description="Mock only: playback speed; 0 means no delays"),
     scenario: Literal["default", "no_calls"] = Query("default", description="Mock only: 'no_calls' ends in a failed job"),
 ) -> Job:
+    if isinstance(body.source, RecordingSource):
+        raise ApiError(422, "invalid_request", "A recording is sent to POST /api/recordings by the command-line tool, not started as a job.")
     if isinstance(body.source, GithubSource):
         if body.run is None or body.model_key is None:
             raise ApiError(422, "invalid_request", "A github source needs both run and model_key.")
@@ -325,6 +331,33 @@ async def create_job(
     JOBS[mock.job.id] = mock
     mock.task = asyncio.create_task(mock.diagnose())
     return mock.job
+
+
+@app.post("/api/recordings", response_model=RecordingResult, status_code=201, responses=ERRORS)
+async def create_recording(body: RecordingCreate) -> RecordingResult:
+    """Mock: the calls that were sent are ignored. The scripted baseline and its findings are
+    played at once, as a job that was recorded on the owner's machine and only read."""
+    if body.upload_id:
+        raise ApiError(409, "not_in_mock", "The mock reads a recording but does not play a fix. Use the real server for whittle fix.")
+    source = RecordingSource(type="recording", name=body.name, command=body.command, client=body.client)
+    mock = MockJob(JobCreate(source=source, mode=JobMode.RECORDED, monthly_runs=body.monthly_runs), Language.PYTHON, 0, "default")
+    mock.job.mode, mock.job.language = JobMode.RECORDED, None
+    JOBS[mock.job.id] = mock
+    await mock.state(JobState.BASELINE)
+    await mock.run_tasks("baseline", frozenset())
+    totals = mock.job.summary.baseline = sc.totals(frozenset())
+    await mock.state(JobState.DIAGNOSING)
+    # No code came with the recording, so a finding names the waste but not a line.
+    mock.findings = [f.model_copy(update={"location": None}) for f in sc.build_findings(Language.PYTHON)]
+    mock.job.summary.findings_total = len(mock.findings)
+    for finding in mock.findings:
+        await mock.emit("finding", finding=finding)
+    mock.job.outcome = Outcome.MEASURED
+    await mock.state(JobState.DONE)
+    await mock.emit("job.done", outcome=mock.job.outcome, summary=mock.job.summary)
+    saving = min(100.0, round(100 * sum(f.estimated_saving_usd_per_run for f in mock.findings) / totals.cost_per_run_usd, 1))
+    return RecordingResult(job_id=mock.job.id, state=mock.job.state, llm_calls=totals.llm_calls, cost_usd=totals.cost_usd,
+                           cost_per_run_usd=totals.cost_per_run_usd, saving_pct=saving, findings=mock.findings)
 
 
 @app.get("/api/jobs/{job_id}", response_model=Job, responses=ERRORS)

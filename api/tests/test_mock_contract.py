@@ -9,7 +9,7 @@ import httpx
 import pytest
 from pydantic import TypeAdapter
 
-from costcutter.contract import Comparison, Diff, Event, FindingList, Job, PullRequest, SampleList
+from costcutter.contract import Comparison, Diff, Event, FindingList, Job, PullRequest, RecordingResult, SampleList
 from costcutter.mock.server import app
 
 EVENTS = TypeAdapter(Event)
@@ -158,3 +158,20 @@ async def test_errors_use_one_shape(client):
     for response, status, code in cases:
         assert response.status_code == status, response.text
         assert response.json()["error"]["code"] == code
+
+
+@pytest.mark.anyio
+async def test_a_recording_is_read_and_ends_on_its_findings(client):
+    call = {"provider": "anthropic", "model": "claude-sonnet-5-5", "usage": {"input_tokens": 10, "output_tokens": 2}, "request": {"messages": []}}
+    body = {"name": "my-agent", "command": "python agent.py", "runs": [{"id": "run-1", "calls": [call]}]}
+    response = await client.post("/api/recordings", json=body)
+    assert response.status_code == 201, response.text
+    result = RecordingResult.model_validate(response.json())
+    job = Job.model_validate((await client.get(f"/api/jobs/{result.job_id}")).json())
+    assert (job.mode, job.state, job.outcome, job.source.type) == ("recorded", "done", "measured", "recording")
+    assert len(result.findings) == 5 and all(f.location is None for f in result.findings)
+    events = await read_events(client, result.job_id)
+    assert events[-1].type == "job.done" and sum(e.type == "llm.call" for e in events) == result.llm_calls
+    # the mock does not play a fix, and a recording is never started as a job
+    assert (await client.post("/api/recordings", json={**body, "upload_id": "abc"})).status_code == 409
+    assert (await client.post("/api/jobs", json={"source": {"type": "recording", "name": "x"}})).status_code == 422

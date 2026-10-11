@@ -16,8 +16,10 @@ export function Kpis({ job, view, recorded = false }: { job: Job | null; view: R
   const latest = kept[kept.length - 1]
   const now = after?.cost_per_run_usd ?? latest?.cost_per_run_after_usd ?? base
   const lower = base && now !== null && now < base ? ((base - now) / base) * 100 : null
-  const quality = latest?.quality_after ?? null
-  const baseQuality = Object.values(view.verify)[0]?.quality_before ?? null
+  // While fixes are checked this is the newest kept fix's score; once the job is done it is the
+  // final rerun's, the same figure the result page gives.
+  const quality = job?.summary.quality_after ?? latest?.quality_after ?? null
+  const baseQuality = job?.summary.quality_baseline ?? Object.values(view.verify)[0]?.quality_before ?? null
 
   const inBaseline = !baseline
   const applied = view.findings.filter((f) => f.status === 'applied').length

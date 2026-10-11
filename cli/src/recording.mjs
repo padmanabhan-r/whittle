@@ -26,3 +26,25 @@ export function load(dir) {
   const metaFile = path.join(dir, "meta.json");
   return { calls, meta: existsSync(metaFile) ? JSON.parse(readFileSync(metaFile, "utf8")) : {} };
 }
+
+const CALL_FIELDS = ["provider", "model", "streaming", "status", "duration_ms", "usage", "request", "response", "ts"];
+
+/**
+ * A recording in the shape the Whittle API takes: one entry per run, each with its calls.
+ * What a run printed is included only when `answers` is set, which a fix needs and a reading does not.
+ */
+export function toRuns(calls, runs = [], { answers = false } = {}) {
+  const byRun = new Map();
+  for (const c of calls) {
+    if (!byRun.has(c.run)) byRun.set(c.run, []);
+    byRun.get(c.run).push({ ...Object.fromEntries(CALL_FIELDS.map((k) => [k, c[k]])), error: c.error ?? null });
+  }
+  const ids = runs.length ? runs.map((r) => r.id) : [...byRun.keys()];
+  return ids.map((id) => {
+    const r = runs.find((x) => x.id === id) ?? {};
+    return { id, exit_code: r.exit_code ?? 0, duration_ms: Math.round(r.duration_ms ?? 0), ...(r.input != null ? { input: String(r.input).slice(0, 4000) } : {}),
+      ...(answers ? { answer: String(r.answer ?? "").slice(-50_000) } : {}), calls: byRun.get(id) ?? [] };
+  });
+}
+
+export const readCalls = (file) => (existsSync(file) ? readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);

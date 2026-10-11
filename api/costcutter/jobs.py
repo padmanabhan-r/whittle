@@ -996,7 +996,9 @@ class JobRunner:
         job.summary.quality_baseline, job.summary.quality_after = baseline.quality(), after.quality()
         saving = baseline.cost_per_run() - after.cost_per_run()
         job.summary.saving_pct = round(100 * saving / baseline.cost_per_run(), 1) if baseline.cost_per_run() else 0.0
-        job.outcome = Outcome.SAVED if saving > 0 and ctx.kept else Outcome.NO_SAVING
+        # A cheaper run whose answers did not hold is not a saving: it may simply be doing less.
+        held = after.quality() >= min(0.85, baseline.quality())
+        job.outcome = Outcome.SAVED if saving > 0 and ctx.kept and held else Outcome.NO_SAVING
         ctx.set_state(JobState.DONE)
         ctx.emit("job.done", outcome=job.outcome, summary=job.summary)
 

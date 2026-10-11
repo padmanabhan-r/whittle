@@ -278,8 +278,12 @@ def create_app() -> FastAPI:
             raise ApiError(409, "nothing_to_deliver", "No fix was kept, so there is nothing to open a pull request for.")
         from costcutter.delivery import open_pull_request as deliver
 
+        comparison = runner.comparison(ctx)
+        refusal = pr_refusal(comparison)
+        if refusal:
+            raise ApiError(409, *refusal)
         try:
-            return await asyncio.to_thread(deliver, ctx, runner.comparison(ctx))
+            return await asyncio.to_thread(deliver, ctx, comparison)
         except RuntimeError as exc:
             raise ApiError(409, "pr_unavailable", str(exc))
 
@@ -287,3 +291,15 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+
+def pr_refusal(comparison: Comparison) -> tuple[str, str] | None:
+    """Why this result must not go out as a pull request, if it must not. Whittle proposes only what it could show is safe."""
+    q = comparison.quality
+    if not q.passed:
+        return ("answers_not_held", f"The final rerun's answers scored {q.after_score:.2f} against {q.baseline_score:.2f} before, under the bar of {q.threshold:.2f}. "
+                "The run got cheaper, but Whittle could not show the answers are still right, so it will not open a pull request for it. "
+                "You can download the patch and check the answers yourself, or run the job again with more tasks that have a definite answer.")
+    if comparison.saving_usd_per_run <= 0:
+        return ("no_saving", "The final rerun was not cheaper than the baseline, so there is no saving to propose. No pull request was opened.")
+    return None

@@ -205,3 +205,18 @@ def test_tasks_and_their_expected_facts_come_from_the_scan():
     assert closing["run_expect"] == [["august 2025", "systemic risk"], ["lfp", "sodium"], []]
     proposal = JobRunner._proposal(closing, [])
     assert proposal.expects == closing["run_expect"] and len(proposal.examples) == len(proposal.expects)
+
+
+def test_no_pull_request_when_the_answers_did_not_hold():
+    """A cheaper run whose answers fell is refused before anything is pushed, in words a visitor can act on."""
+    from types import SimpleNamespace as NS
+
+    from costcutter.server import pr_refusal
+
+    def result(passed, after, saving):
+        return NS(quality=NS(passed=passed, after_score=after, baseline_score=1.0, threshold=0.85), saving_usd_per_run=saving)
+
+    code, message = pr_refusal(result(False, 0.30, 0.02))
+    assert code == "answers_not_held" and "0.30" in message and "download the patch" in message
+    assert pr_refusal(result(True, 1.0, -0.01))[0] == "no_saving"
+    assert pr_refusal(result(True, 0.95, 0.02)) is None

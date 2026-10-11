@@ -1195,3 +1195,16 @@ details.measure-own > summary {
 .notice.recover p {
   margin: 4px 0 0;
 }
+
+/* Cheaper, but the answers did not hold: a caution, never the blue of a saving */
+.verdict .big.caution {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.verdict .big.caution .label {
+  color: #5c4a00;
+}
+.verdict .big.caution .line {
+  font-family: var(--body);
+  color: #2a2300;
+}

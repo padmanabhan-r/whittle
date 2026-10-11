@@ -24,7 +24,7 @@ def open_pull_request(ctx, comparison: Comparison) -> PullRequest:
     kept = [f for f in ctx.findings if f.status == "applied"]
     reverted = [f for f in ctx.findings if f.status == "reverted"]
     lines = [
-        f"Whittle ran this agent on {len(comparison.tasks)} tasks before and after the changes below.",
+        f"Whittle ran this agent on {len(comparison.tasks)} {'task' if len(comparison.tasks) == 1 else 'tasks'} before and after the changes below.",
         "",
         f"- Cost per run: ${comparison.baseline.cost_per_run_usd:.4f} to ${comparison.after.cost_per_run_usd:.4f} ({comparison.saving_pct}% lower)",
         f"- Answer quality: {comparison.quality.baseline_score:.2f} to {comparison.quality.after_score:.2f} ({comparison.quality.evaluator})",

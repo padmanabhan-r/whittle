@@ -38,6 +38,7 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
   const tried = data.by_finding.filter((r) => r.status === 'applied' || r.status === 'reverted').length
   const unchanged = kept === 0 // every fix was reverted or skipped: both runs are of the same code
   const worse = !unchanged && data.saving_usd_per_run <= 0
+  const unsafe = !unchanged && !worse && !data.quality.passed // cheaper, but the answers did not hold
   const gap = pct(Math.abs(data.saving_pct))
   const more = Math.abs(data.saving_usd_per_run)
   const few = data.tasks.length < 3
@@ -60,6 +61,16 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
             <div className="line">
               {usd(data.baseline.cost_per_run_usd)} → <mark className="hl">{usd(data.after.cost_per_run_usd)}</mark>
               {'  '}costing {usd(more)} more on every run. Do not apply this patch.
+            </div>
+          </div>
+        ) : unsafe ? (
+          <div className="big caution">
+            <div className="label">Cheaper, but not shown to be safe</div>
+            <div className="figure">{pct(data.saving_pct)} lower</div>
+            <div className="line">
+              {usd(data.baseline.cost_per_run_usd)} → {usd(data.after.cost_per_run_usd)} a run, but answer quality fell from{' '}
+              {data.quality.baseline_score.toFixed(2)} to {data.quality.after_score.toFixed(2)}, under the bar of {data.quality.threshold.toFixed(2)}.
+              A run can get cheaper by doing less. Do not apply this patch without checking the answers. No pull request will be opened for it.
             </div>
           </div>
         ) : (
@@ -104,7 +115,7 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
               </dd>
             </div>
           )}
-          {data.projection && !unchanged && !worse && (
+          {data.projection && !unchanged && !worse && !unsafe && (
             <div className="kpi">
               <dt>At {int(data.projection.monthly_runs)} runs a month</dt>
               <dd>
@@ -117,6 +128,23 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
           )}
         </dl>
       </div>
+
+      {unsafe && (
+        <div className="notice recover" role="note">
+          <div>
+            <strong>Why this is not counted as a saving</strong>
+            <p>
+              Each kept fix passed its own check, but the final run of all tasks did not: its answers scored{' '}
+              {data.quality.after_score.toFixed(2)}. Whittle counts a saving only when the answers hold.
+            </p>
+            <p>
+              {data.quality.evaluator === 'answer-judge'
+                ? `These answers were scored by a model judge against the first run's answers${few ? `, on ${data.tasks.length} ${data.tasks.length === 1 ? 'task' : 'tasks'}` : ''}. That scoring varies from run to run. Run the job again with three to five tasks whose answers the repository states, so they are scored against facts.`
+                : 'Open the traces below and compare the answers before and after, task by task.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {unchanged && tried > 0 && (
         <div className="notice recover" role="note">
@@ -140,7 +168,7 @@ export function ResultSection({ jobId, done, findings, job }: { jobId: string; d
         </div>
       )}
 
-      <h2 className="section-title">{unchanged ? 'What was tried' : worse ? 'What each fix did' : 'Where the saving came from'}</h2>
+      <h2 className="section-title">{unchanged ? 'What was tried' : worse || unsafe ? 'What each fix did' : 'Where the saving came from'}</h2>
       <div className="panel">
         <div className="table-wrap">
           <table className="ledger">

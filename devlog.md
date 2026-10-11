@@ -18,7 +18,7 @@
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
-- **Built in public:** 4
+- **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
 - **Last updated:** 2026-10-11T21:55:00+05:30
 
@@ -31,7 +31,7 @@
 | Used Entire | 72 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` to `9bf3881`); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
-| Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
+| Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
 | Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `0b8a170` at 9:48 PM IST on 11 October. 92 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
@@ -562,7 +562,7 @@ Evidence rows still missing: the agent improved (trace links), used neatlogs
 ### 2026-10-11 - dae7d22
 First public post, and the business plan started.
 
-- **Shared:** https://x.com/__padmanabhan/status/2109143046889898043, the
+- **Shared:** https://x.com/limb404/status/2109143046889898043, the
   introduction post with the landing page, tagged #neatHack and naming
   neatlogs, Entire and cfo.ai.
 - **Changed:** cfo.ai account opened and briefed with the measured figures
@@ -594,7 +594,7 @@ the sample agent has a public repository of its own.
 - **Not verified:** the pull request path is still unrun; trace links from
   this morning are still pending on neatlogs' side.
 
-- **Shared:** https://x.com/__padmanabhan/status/2109159510082482614, the
+- **Shared:** https://x.com/limb404/status/2109159510082482614, the
   first measured result (cost per run before and after), 11 Oct about 11:20 AM
   IST.
 
@@ -734,7 +734,7 @@ fix on the developer's own machine.
   through `npx whittle-ai`.
   Entire Trails still answers "repository not found" for this repository, though
   `entire repo view` shows its mirror as ready.
-- **Shared:** https://x.com/__padmanabhan/status/2109201036741423288, the third
+- **Shared:** https://x.com/limb404/status/2109201036741423288, the third
   post, on the fix Whittle reverted.
 - **Checked:** `uv run pytest`, 42 passed; `npm test` in `cli/`, 8 passed; the
   web app builds.
@@ -769,7 +769,7 @@ The command-line tool is on npm, and the repository was tidied for readers.
 - **Not verified:** the published tool against a server that is not on this
   machine; pull request delivery; anything on EC2. These are with Sethuraman,
   with deployment.
-- **Shared:** https://x.com/__padmanabhan/status/2109224759393468849, the
+- **Shared:** https://x.com/limb404/status/2109224759393468849, the
   fourth post, on the kinds of waste read from the traces.
 - **Checked:** `uv run pytest`, 42 passed; `npm test` in `cli/`, 8 passed.
 - **Built with:** Claude Code, claude-opus-5-5.
@@ -1015,6 +1015,8 @@ remaining posts and the submission itself.
 - **Changed:** Entire is switched off on this machine by a local settings file
   from 9:15 PM IST, so commits from `0b8a170` on carry no checkpoint trailer.
   The 72 earlier checkpoints are unaffected.
+- **Shared:** https://x.com/limb404/status/2109304204611461438, the fifth post: the first public preview, with the
+  live site, the repository and an invitation to break it.
 - **Decided:** the deploy runner is self-hosted on the production server, so a
   workflow from a fork's pull request could run there. Workflows from all
   outside contributors now wait for approval (set straight after going public).
@@ -1031,8 +1033,8 @@ remaining posts and the submission itself.
   monthly spend limit is the only cap.
 - **Built with:** Claude Code, claude-opus-5-5.
 
-Evidence rows still missing: none. Outstanding: the remaining posts and the
-quote post on X.
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
 
 ## Submission
 

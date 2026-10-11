@@ -118,7 +118,7 @@ After posting:
 | Used Entire | `docs/evidence/entire.md`: checkpoint list, search, impact, stats. The checkpoints themselves stay on the build machine (they are full session transcripts); show one on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`, shown in the README | have |
 | Recovers from failures | fixes reverted when not cheaper (`job_1a5e1ef6b80e`); scan entry point failed, rewritten, verified (`job_2f4aac670180`) | have |
-| Built in public | four posts tagged #neatHack, links in `devlog.md` | have, add more |
+| Built in public | five posts tagged #neatHack, links in `devlog.md` | have, add more |
 | Written during the hackathon | first commit 10 Oct 12:37 IST, seven minutes after the start; the repository is public | have |
 
 ## Submission table

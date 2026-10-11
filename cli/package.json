@@ -1,13 +1,37 @@
 {
   "name": "whittle-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "See what your AI agent spends on every run, and cut it. Records each model call your code makes on your own machine, then fixes the waste and proves each fix there.",
   "type": "module",
-  "bin": { "whittle": "bin/whittle.mjs" },
-  "files": ["bin", "src", "!src/py/__pycache__", "README.md"],
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test" },
-  "keywords": ["llm", "agents", "cost", "tokens", "anthropic", "openai", "prompt-caching", "observability"],
-  "repository": { "type": "git", "url": "git+https://github.com/padmanabhan-r/whittle.git", "directory": "cli" },
+  "bin": {
+    "whittle": "bin/whittle.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "!src/py/__pycache__",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "llm",
+    "agents",
+    "cost",
+    "tokens",
+    "anthropic",
+    "openai",
+    "prompt-caching",
+    "observability"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/padmanabhan-r/whittle.git",
+    "directory": "cli"
+  },
   "license": "SEE LICENSE IN LICENSE.md"
 }

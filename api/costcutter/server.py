@@ -64,8 +64,8 @@ def create_app() -> FastAPI:
     open_session = proxy.state.open_session
     sessions = proxy.state.sessions
 
-    def open_for_job(*, job_id, phase, task_id, provider, api_key, on_call):
-        body = CreateSessionBody(job_id=job_id, phase=phase, task_id=task_id, provider=provider, api_key=api_key)
+    def open_for_job(*, job_id, phase, task_id, provider, api_key, on_call, dry_run=False):
+        body = CreateSessionBody(job_id=job_id, phase=phase, task_id=task_id, provider=provider, api_key=api_key, dry_run=dry_run)
         session = open_session(body)
         session.on_call = on_call
         return session

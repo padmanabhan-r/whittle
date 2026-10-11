@@ -1635,6 +1635,57 @@
             "type": "array",
             "title": "Needs",
             "description": "Environment variables the code will not start without, by name"
+          },
+          "files": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Files",
+            "description": "Files Whittle wrote to make the code runnable, path to contents; all under .whittle/"
+          },
+          "examples": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Examples",
+            "description": "Inputs the entry point was written to take, to prefill the tasks"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Provider"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The model provider the code called when it was tried, or the one the call sites show"
+          },
+          "key_env": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Env",
+            "description": "The environment variable the code reads its model key from, as the repository names it"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "True when the command ran in the sandbox and a model call reached the proxy",
+            "default": false
+          },
+          "check": {
+            "type": "string",
+            "title": "Check",
+            "description": "What the sandbox showed when the command was tried, in a sentence",
+            "default": ""
           }
         },
         "additionalProperties": false,
@@ -1644,7 +1695,7 @@
           "reason"
         ],
         "title": "ProposedRun",
-        "description": "How Whittle thinks the code can be run once, worked out from the repository during a scan."
+        "description": "How the code can be run once, worked out from the repository during a scan and tried in the sandbox.\n\nWhen the repository has no shell entry point that reaches a model call, Whittle writes one under\n`.whittle/` and `files` carries it, so a measured job can put it back after cloning."
       },
       "Provider": {
         "type": "string",
@@ -2071,6 +2122,14 @@
             "type": "object",
             "title": "Env",
             "description": "Other environment variables the code needs. Held in memory for the job only, like the key"
+          },
+          "files": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Files",
+            "description": "Files to write into the clone before running, path to contents; only paths under .whittle/ are accepted. They never appear in the diff"
           }
         },
         "additionalProperties": false,

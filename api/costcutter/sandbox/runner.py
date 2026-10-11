@@ -160,9 +160,9 @@ class SandboxRunner:
         base = proxy_base_url.rstrip("/")
         # The owner's own variables go in first, so a key or address of theirs can never replace the proxy's.
         env = dict(extra_env or {})
-        if provider == "openai":
+        if provider in ("openai", "any"):
             env.update({"OPENAI_BASE_URL": base + "/v1", "OPENAI_API_BASE": base + "/v1", "OPENAI_API_KEY": dummy_api_key})
-        else:
+        if provider in ("anthropic", "any"):  # "any": a dry run, before the code has shown which provider it calls
             env.update({"ANTHROPIC_BASE_URL": base, "ANTHROPIC_API_KEY": dummy_api_key})
         # "internal" (the default) lets the agent reach the proxy and nothing else.
         run_network = os.environ.get("WHITTLE_SANDBOX_RUN_NETWORK", "internal")

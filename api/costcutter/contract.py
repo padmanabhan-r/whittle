@@ -174,12 +174,21 @@ class CallSite(Model):
 
 
 class ProposedRun(Model):
-    """How Whittle thinks the code can be run once, worked out from the repository during a scan."""
+    """How the code can be run once, worked out from the repository during a scan and tried in the sandbox.
+
+    When the repository has no shell entry point that reaches a model call, Whittle writes one under
+    `.whittle/` and `files` carries it, so a measured job can put it back after cloning."""
 
     command: str = Field(description="With {input} where a task input goes, if the entry point takes one")
     workdir: str | None = Field(default=None, description="Folder to run from, when it is not the repository root")
     reason: str
     needs: list[str] = Field(default_factory=list, description="Environment variables the code will not start without, by name")
+    files: dict[str, str] = Field(default_factory=dict, description="Files Whittle wrote to make the code runnable, path to contents; all under .whittle/")
+    examples: list[str] = Field(default_factory=list, description="Inputs the entry point was written to take, to prefill the tasks")
+    provider: Provider | None = Field(default=None, description="The model provider the code called when it was tried, or the one the call sites show")
+    key_env: str | None = Field(default=None, description="The environment variable the code reads its model key from, as the repository names it")
+    verified: bool = Field(default=False, description="True when the command ran in the sandbox and a model call reached the proxy")
+    check: str = Field(default="", description="What the sandbox showed when the command was tried, in a sentence")
 
 
 class CallSiteList(Model):
@@ -320,6 +329,7 @@ class RunSpec(Model):
     tasks: list[Task] = Field(min_length=1, max_length=10)
     workdir: str | None = Field(default=None, description="Folder inside the repository to install and run from; the root if omitted")
     env: dict[str, str] = Field(default_factory=dict, description="Other environment variables the code needs. Held in memory for the job only, like the key")
+    files: dict[str, str] = Field(default_factory=dict, description="Files to write into the clone before running, path to contents; only paths under .whittle/ are accepted. They never appear in the diff")
 
 
 class ModelKey(Model):

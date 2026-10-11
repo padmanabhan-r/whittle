@@ -24,8 +24,10 @@ SKIP_NAME = re.compile(r"(\.min\.|\.bundle\.|\.d\.ts$|\.lock$|-lock\.)")
 TEST_PATH = re.compile(r"(^|/)(tests?|__tests__|spec|fixtures?|mocks?|e2e)(/|$)|(\.|_)(test|spec)\.[a-z]+$", re.I)
 MAX_BYTES = 400_000
 MAX_SITES = 60
-MAX_TURNS = 22
+MAX_TURNS = 36
 MAX_FINDINGS = 8
+MAX_TRIES = 3  # dry runs of a proposed command in the sandbox before the proposal is kept unverified
+HARNESS_DIR = ".whittle"  # the only place the scan agent may write: an entry point it builds for the code
 
 
 @dataclass(frozen=True)
@@ -120,9 +122,10 @@ How to work:
 - Start with read_file on the files that hold call sites. Follow the prompt, the model choice, the retry and the loop back to where they are set: use graph_search to find a definition and grep to find a name.
 - Then read the files listed as "imported by" under each call site, at least the part that calls in. They tell you which feature pays for the call and how often it runs (per request, per item in a loop, on a schedule). A call inside a loop over many items matters more than one made once; say so in the finding. Use graph_search or grep when a caller is not listed.
 - You must not finish before you have read at least one caller of each call-site file, when one is listed.
-- Before finishing, decide whether the code can be run once from a shell. A script among the importers, or one of the declared run scripts, that reaches the model call is the answer; read it to learn its arguments.
 - Report with report_finding as soon as you are sure of one. Report at most 8, the most expensive first. Prefer a few findings you have verified to many guesses.
-- When you have reported what the code shows, call finish. Its summary is two or three sentences on where this code's model spend goes overall. In good, list what the code already does to keep model spend down (an output cap, a cheap model for a simple step, a bounded retry, caching, a spend limit), each as one short sentence naming the file; leave it empty if there is nothing. If you can see how to run the model-calling code once from a shell (a script in the package manifest, a command-line entry point, a documented command), give it as run_command, with {input} where a task input goes, say in run_reason where you found it, and list in run_needs the environment variables the code will not start without. Leave run_command empty when the model is only reached through a server or a scheduled job.
+- Before finishing, work out how to run the model-calling code once from a shell, because Whittle will run it in a sandbox to measure what it costs. Always give a run_command; never leave it to the reader. Prefer what the repository already has: a script in the package manifest, a command-line entry point, a documented command; read it to learn its arguments. When the model is only reached through a server, a web page, a queue or a scheduled job, build the entry point yourself with write_file, under .whittle/ (for example .whittle/run.ts or .whittle/run.py): a short script that imports the function that makes the model call, builds that function's input from the first command-line argument, calls it once and prints the result. Import the narrowest function that still makes the real call with the real prompt and model; do not copy the prompt or call the SDK yourself. The sandbox can reach only the model provider: where the function needs a database, object storage, a web framework's request context or another service, pass the smallest fake or fixture instead, or pick a call site that needs none. The code's own environment variables are not set in the sandbox except the model key; set in the script what it will not start without. A TypeScript file runs with `npx tsx .whittle/run.ts "{input}"` from the folder that holds package.json and tsconfig.json (tsconfig paths work); a Python file with `python .whittle/run.py "{input}"` from the folder its imports resolve from. Mention the entry point in run_reason.
+- When you call finish with a run_command, Whittle installs the repository's dependencies in the sandbox from its lockfile and runs your command once with the first of run_examples, with the provider's address and key pointed at Whittle. The result of finish tells you what happened. If the run did not reach a model call, read the output, fix the script or the command with write_file, and call finish again. You have three tries; the finding list is kept between them.
+- finish also reports: summary, two or three sentences on where this code's model spend goes overall. In good, list what the code already does to keep model spend down (an output cap, a cheap model for a simple step, a bounded retry, caching, a spend limit), each as one short sentence naming the file; leave it empty if there is nothing. run_command with {input} where a task input goes; run_workdir, the folder to run from when it is not the repository root; run_reason, where the command comes from; run_needs, the environment variables the code will not start without, by name; run_examples, two or three realistic inputs for this code's task, each one line; provider, the model provider the code calls (anthropic, openai, google, other), and key_env, the environment variable it reads its model key from, as the code names it.
 
 What counts as waste you can see in code:
 - no_prompt_caching: a long, stable system prompt or tool list is sent on every call with no caching (Anthropic: no cache_control; OpenAI and Google cache automatically only when the stable part comes first and is long enough).
@@ -157,11 +160,32 @@ TOOLS: list[dict[str, Any]] = [
         "suggestion": {"type": "string"}, "severity": {"type": "string", "enum": ["high", "medium", "low"]},
         "file": {"type": "string"}, "line_start": {"type": "integer"}, "line_end": {"type": "integer"}, "symbol": {"type": "string", "description": "The function or class the lines are in, if any"}},
         "required": ["kind", "title", "summary", "suggestion", "severity", "file", "line_start", "line_end"], "additionalProperties": False}},
-    {"name": "finish", "description": "Stop: everything the code shows has been reported.", "input_schema": {"type": "object", "properties": {"summary": {"type": "string"}, "good": {"type": "array", "items": {"type": "string"}}, "run_command": {"type": "string"}, "run_reason": {"type": "string"}, "run_needs": {"type": "array", "items": {"type": "string"}}}, "required": ["summary"], "additionalProperties": False}},
+    {"name": "write_file", "description": "Write a file under .whittle/: an entry point that runs the model-calling code once from a shell. Nothing else in the repository may be changed.", "input_schema": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}, "required": ["path", "content"], "additionalProperties": False}, "strict": True},
+    {"name": "finish", "description": "Report the summary and how to run the code once. Whittle tries the command in its sandbox and answers with what happened; call finish again after fixing a failed run.", "input_schema": {"type": "object", "properties": {
+        "summary": {"type": "string"}, "good": {"type": "array", "items": {"type": "string"}},
+        "run_command": {"type": "string", "description": "With {input} where a task input goes"}, "run_workdir": {"type": "string", "description": "Folder to run from; empty for the repository root"},
+        "run_reason": {"type": "string"}, "run_needs": {"type": "array", "items": {"type": "string"}}, "run_examples": {"type": "array", "items": {"type": "string"}},
+        "provider": {"type": "string", "enum": ["anthropic", "openai", "google", "other"]}, "key_env": {"type": "string", "description": "The environment variable the code reads its model key from"}},
+        "required": ["summary", "run_command"], "additionalProperties": False}},
 ]
 
 
 class ScanWorkspace(Workspace):
+    def write_harness(self, rel: str, content: str) -> str:
+        """The scan may add an entry point under .whittle/ and touch nothing else."""
+        rel = rel.strip()
+        while rel.startswith("./"):
+            rel = rel[2:]
+        try:
+            path = self._path(rel)
+        except ValueError:
+            return "error: path is outside the repository"
+        if not rel.startswith(HARNESS_DIR + "/") or len(rel) <= len(HARNESS_DIR) + 1:
+            return f"error: the scan may only write under {HARNESS_DIR}/ (for example {HARNESS_DIR}/run.ts); the repository's own files stay as they are"
+        if len(content) > 40_000:
+            return "error: an entry point should be short; keep it under 40,000 characters"
+        return self.write_file(str(path.relative_to(self.repo)), content)
+
     def read_range(self, rel: str, start: int | None, end: int | None) -> str:
         path = self._path(rel)
         if not path.is_file():
@@ -262,19 +286,43 @@ def manifest_scripts(repo: Path) -> str:
     return "\n".join(out[:40])
 
 
-def scan(repo: Path, sites: list[CallSite], files_scanned: int, language: Language, step: Callable[..., None], on_finding: Callable[[Finding], None]) -> dict[str, Any]:
-    """Run the agent over the repository. Calls on_finding for each finding; returns {summary, run_command, run_reason, run_needs}."""
+TryRun = Callable[[dict[str, Any]], str | None]  # tries a proposed run; None accepts it, a string is sent back to the agent
+
+
+def scan(repo: Path, sites: list[CallSite], files_scanned: int, language: Language, step: Callable[..., None], on_finding: Callable[[Finding], None], try_run: TryRun | None = None) -> dict[str, Any]:
+    """Run the agent over the repository. Calls on_finding for each finding. Returns the closing report:
+    summary, good, run_command, run_workdir, run_reason, run_needs, run_examples, provider, key_env, and
+    files (the entry point the agent wrote under .whittle/, path to contents). `try_run` is called with the
+    closing report each time the agent proposes a command; whatever it returns besides None goes back to the
+    agent as the result of finish, and the agent gets MAX_TRIES attempts."""
     if ensure_neatlogs():
         import neatlogs
 
         traced = neatlogs.span(kind="WORKFLOW", name="whittle-scan")(_scan_body)
-        result = traced(repo, sites, files_scanned, language, step, on_finding)
+        result = traced(repo, sites, files_scanned, language, step, on_finding, try_run)
         neatlogs.flush()
         return result
-    return _scan_body(repo, sites, files_scanned, language, step, on_finding)
+    return _scan_body(repo, sites, files_scanned, language, step, on_finding, try_run)
 
 
-def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: Language, step: Callable[..., None], on_finding: Callable[[Finding], None]) -> dict[str, Any]:
+def _closing(args: dict[str, Any]) -> dict[str, Any]:
+    good = args.get("good") or []
+    if isinstance(good, str):  # a model may send one string where a list was asked for
+        good = [line.strip(" -•\t") for line in re.split(r"\n+|(?<=\.)\s+(?=[A-Za-z_./]+\S* )", good)]
+    strings = lambda key, width, n: [str(x).strip()[:width] for x in (args.get(key) if isinstance(args.get(key), list) else []) if str(x).strip()][:n]  # noqa: E731
+    return {
+        "good": [str(g).strip()[:240] for g in good if len(str(g).strip()) > 8][:6],
+        "run_command": str(args.get("run_command") or "").strip()[:400],
+        "run_workdir": str(args.get("run_workdir") or "").strip().strip("/")[:200],
+        "run_reason": str(args.get("run_reason") or "").strip()[:400],
+        "run_needs": strings("run_needs", 60, 12),
+        "run_examples": strings("run_examples", 400, 3),
+        "provider": str(args.get("provider") or "").strip().lower()[:20],
+        "key_env": re.sub(r"[^A-Za-z0-9_]", "", str(args.get("key_env") or ""))[:80],
+    }
+
+
+def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: Language, step: Callable[..., None], on_finding: Callable[[Finding], None], try_run: TryRun | None = None) -> dict[str, Any]:
     llm = LLM()
     ws = ScanWorkspace(repo)
     used_by = {file: importers(repo, file) for file in dict.fromkeys(s.file for s in sites[:20])}
@@ -283,7 +331,7 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
             step("tool_call", f"who imports {file}", tool="repo.importers")
             step("tool_result", ", ".join(users))
     messages: list[Any] = [{"role": "user", "content": brief(sites, files_scanned, language, manifest_scripts(repo), used_by)}]
-    summary, count = "", 0
+    summary, count, tries, nudged = "", 0, 0, False
     closing: dict[str, Any] = {}
     seen: set[tuple[str, str, int]] = set()
     for _ in range(MAX_TURNS):
@@ -299,10 +347,23 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
             name, args = call["name"], call["input"] or {}
             if name == "finish":
                 summary = str(args.get("summary", ""))
-                good = args.get("good") or []
-                if isinstance(good, str):  # a model may send one string where a list was asked for
-                    good = [line.strip(" -•\t") for line in re.split(r"\n+|(?<=\.)\s+(?=[A-Za-z_./]+\S* )", good)]
-                closing = {"good": [str(g).strip()[:240] for g in good if len(str(g).strip()) > 8][:6], "run_command": str(args.get("run_command") or "").strip(), "run_reason": str(args.get("run_reason") or "").strip(), "run_needs": [str(n)[:60] for n in (args.get("run_needs") if isinstance(args.get("run_needs"), list) else [])][:12]}
+                closing = _closing(args)
+                if not closing["run_command"] and not nudged and try_run is not None:
+                    nudged = True
+                    step("thought", "The scan proposed no way to run the code. Asking it to build one.")
+                    results.append((call["id"], f"not finished: give a run_command. If the repository has no shell entry point that reaches the model call, write one under {HARNESS_DIR}/ with write_file and call finish again."))
+                    continue
+                if closing["run_command"] and try_run is not None and tries < MAX_TRIES:
+                    tries += 1
+                    step("tool_call", f"try in the sandbox: {closing['run_command']}", tool="sandbox.try")
+                    verdict = try_run(closing)
+                    if verdict is not None:
+                        step("tool_result", verdict[:300].replace("\n", " "))
+                        results.append((call["id"], verdict + (f"\nThis was try {tries} of {MAX_TRIES}." if tries < MAX_TRIES else "\nThat was the last try; the proposal is kept as it stands.")))
+                        if tries < MAX_TRIES:
+                            continue
+                    else:
+                        step("tool_result", str(closing.get("_check") or "The command ran in the sandbox."))
                 results.append((call["id"], "ok"))
                 done = True
                 continue
@@ -321,6 +382,8 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
                 out = ws.read_range(str(args.get("path", "")), args.get("start"), args.get("end"))
             elif name == "grep":
                 out = ws.grep(str(args.get("pattern", "")))
+            elif name == "write_file":
+                out = ws.write_harness(str(args.get("path", "")), str(args.get("content", "")))
             elif name == "graph_search":
                 out = ws.graph("search", "--profile", "full", "--query", str(args.get("query", "")), "--format", "text", "--top-k", "4")
             else:
@@ -331,7 +394,8 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
         if done or count >= MAX_FINDINGS:
             break
     step("thought", f"{summary or 'Scan finished.'} (model {llm.model}: {llm.usage.calls} calls, {llm.usage.input_tokens:,} in, {llm.usage.cache_read_tokens:,} cached, {llm.usage.output_tokens:,} out)")
-    return {"summary": summary, **closing}
+    files = {rel: (ws.repo / rel).read_text(encoding="utf-8", errors="replace") for rel in sorted(ws.written) if (ws.repo / rel).is_file()}
+    return {"summary": summary, **closing, "files": files}
 
 
 def _accept(ws: ScanWorkspace, args: dict[str, Any], count: int, seen: set[tuple[str, str, int]], on_finding: Callable[[Finding], None]) -> str:

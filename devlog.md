@@ -6,7 +6,7 @@
 - **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
 - **Status:** working end to end on the sample agents, in the sandbox and from the command-line tool on the developer's machine; pull requests and deployment still open
-- **Live app:** not deployed
+- **Live app:** not deployed yet; the domain is https://whittleai.site (bought 11 Oct, deployment with Sethuraman, steps in `docs/deploy.md`)
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public before submission)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T15:41:00+05:30
+- **Last updated:** 2026-10-11T16:36:00+05:30
 
 ## Evidence
 
@@ -30,7 +30,7 @@
 | Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
-| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Events in `data/`, not public; the UI shows them on the Fix page | partial |
+| Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane | partial |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
 | Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `7e76868` at 3:32 PM IST on 11 October. 66 commits on `main`, none before the start | done |
 
@@ -773,6 +773,66 @@ The command-line tool is on npm, and the repository was tidied for readers.
   fourth post, on the kinds of waste read from the traces.
 - **Checked:** `uv run pytest`, 42 passed; `npm test` in `cli/`, 8 passed.
 - **Built with:** Claude Code, claude-opus-5-5.
+
+### 2026-10-11 - working tree
+The scan now works out how to run the code itself, and tries it. Before this,
+a repository whose model calls sit behind a server, such as a Next.js app, ended
+the scan with "enter the command if you know it". Now the agent must arrive at a
+command: it reads the manifest and the callers, and when nothing reaches the
+model from a shell it writes an entry point under `.whittle/` with a new
+`write_file` tool that can touch nothing else (`api/costcutter/scan.py`).
+Whittle then installs the project in the sandbox and runs the command once
+against a dry-run proxy session, which records that a model call arrived and for
+which provider, with no key and nothing forwarded (`api/costcutter/proxy/app.py`,
+`api/costcutter/jobs.py`). What the sandbox showed goes back to the agent as the
+result of `finish`, up to three tries. Only then does the UI ask for a key, and
+it asks for the variable the code reads, `OPENAI_API_KEY` for OpenLine, with the
+command, the entry point and an example task already filled in
+(`web/src/pages/job/ScanSection.tsx`). The entry point travels with the measured
+job (`run.files`) and is excluded from the diff, so it never reaches a pull request.
+
+- **Decision:** the provider and key name come from the repository, never from
+  a fixed list (user's decision): the dry run's record names the provider the
+  code actually spoke to, the call sites are the fallback, and the agent reports
+  the variable name it saw in the code.
+- **Decision:** a repeated install failure no longer costs the agent a try; it
+  is a sandbox matter, so the proposal is kept and marked unverified.
+- **Failed:** two scans of https://github.com/padmanabhan-r/OpenLine
+  (`job_99070b0031c2`, `job_5a68673d4a56`) could not install the project: pnpm 9
+  in the sandbox image refused a `pnpm-workspace.yaml` that holds only settings,
+  and pnpm 10 then tried to download the exact version named in
+  `packageManager` into a folder the sandbox user cannot write. Both proposals
+  were kept as unverified with that reason shown.
+- **Fixed:** the node image carries pnpm 10 with package-manager version
+  switching off (`sandbox/node.Dockerfile`); the install step then finished in
+  six seconds on the OpenLine clone.
+- **Evidence:** `job_2f4aac670180`, a scan of OpenLine (Next.js 16, three
+  gpt-4o-mini call sites behind server actions). The agent wrote
+  `.whittle/run.ts` calling the override parser; the first sandbox run failed
+  on a top-level await that tsx compiles as CommonJS; the agent rewrote the
+  script with an `async main`, and the second run reached OpenAI through the
+  proxy. The dry-run record holds no key, status 400, cost 0. The proposal came
+  back verified, provider `openai`, key `OPENAI_API_KEY`. Events in `data/`.
+- **Measured:** the verified scan used claude-sonnet-5-5 for 6 calls, 86,089
+  cached input tokens, 2,805 output tokens (from the job's closing step).
+- **Changed:** `ProposedRun` gained `files`, `examples`, `provider`,
+  `key_env`, `verified` and `check`; `RunSpec` gained `files`
+  (`api/costcutter/contract.py`, `docs/api-contract.md`, `docs/openapi.json`).
+- **Changed:** a Caddy configuration and deployment steps for the domain
+  `whittleai.site`, chosen today, so the app is served over HTTPS and the model
+  key no longer crosses the internet in cleartext (`deploy/Caddyfile`,
+  `docs/deploy.md`). The deployment itself is Sethuraman's and not done yet.
+  The README, its banner's "on the web" pill (`assets/banner.jpg`, re-rendered
+  in the same font), the CLI README and the plan now name the domain. The
+  terminal screenshot in the README still shows a localhost report link from
+  the real session it records; it is retaken once the site is up.
+- **Tests:** `uv run pytest`, 47 passed (four new: dry-run sessions, the
+  refuse-to-finish loop, the last-try fallback, the entry point put back after a
+  clone); `npm test` in `cli/`, 8 passed; `npx tsc --noEmit` in `web/`, clean.
+- **Not verified:** a measured job started from a verified proposal with a real
+  key; the entry point files reaching the sandbox in that job is covered by a
+  test only.
+- **Built with:** Claude Code, claude-fable-5-1.
 
 Evidence rows still missing: none are empty. Used neatlogs, used Entire,
 recovers from failures and built in public are marked partial.

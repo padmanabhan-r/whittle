@@ -58,3 +58,71 @@ def test_findings_must_point_at_real_lines(tmp_path):
     assert finding.measured is False and finding.estimated_saving_usd_per_run == 0
     assert (finding.location.line_start, finding.location.line_end) == (2, 3)
     assert finding.snippet == "two\nthree"
+
+
+# --- the agent must arrive at a way to run the code, and gets the sandbox's verdict back ------------
+
+from costcutter.agent.llm import Turn, Usage
+from costcutter import scan as scan_module
+
+
+class ScriptedLLM:
+    """Plays a fixed sequence of turns; records what came back as tool results."""
+
+    def __init__(self, turns):
+        self.turns = list(turns)
+        self.provider, self.model, self.usage = "anthropic", "scripted", Usage()
+        self.results: list[list[tuple[str, str]]] = []
+
+    def turn(self, system, tools, messages):
+        calls = self.turns.pop(0)
+        return Turn(text="", tool_calls=[{"id": f"c{i}", "name": n, "input": a} for i, (n, a) in enumerate(calls)], assistant_message={"role": "assistant", "content": []}, stop_reason="tool_use")
+
+    def tool_results_message(self, results):
+        self.results.append(results)
+        return [{"role": "user", "content": [{"type": "tool_result", "tool_use_id": i, "content": c} for i, c in results]}]
+
+
+def test_scan_refuses_to_finish_without_a_run_command(tmp_path, monkeypatch):
+    write(tmp_path, "app/llm.py", "x = 1\n")
+    script = ScriptedLLM([
+        [("finish", {"summary": "s", "run_command": ""})],  # gives up: pushed back once
+        [("write_file", {"path": "app/llm.py", "content": "pwned"}), ("write_file", {"path": ".whittle/run.py", "content": "print('hi')\n"})],
+        [("finish", {"summary": "s", "run_command": "python .whittle/run.py {input}", "run_examples": ["a task"], "provider": "openai", "key_env": "OPENAI_API_KEY"})],
+        [("finish", {"summary": "s", "run_command": "python .whittle/run.py {input}", "run_examples": ["a task"], "provider": "openai", "key_env": "OPENAI_API_KEY"})],
+    ])
+    monkeypatch.setattr(scan_module, "LLM", lambda: script)
+    monkeypatch.setattr(scan_module, "ensure_neatlogs", lambda: False)
+    tried: list[str] = []
+
+    def try_run(closing):
+        tried.append(closing["run_command"])
+        if len(tried) == 1:
+            return "not finished: exit 1, no model call reached the proxy"
+        closing["_verified"], closing["_check"] = True, "Ran in the sandbox: the code called openai (gpt-4o-mini) through Whittle's proxy."
+        return None
+
+    steps: list[tuple[str, str]] = []
+    out = scan_module.scan(tmp_path, [], 1, Language.PYTHON, lambda kind, text, tool=None: steps.append((kind, text)), lambda f: None, try_run)
+    assert "give a run_command" in script.results[0][0][1]
+    assert script.results[1][0][1].startswith("error: the scan may only write under .whittle/")
+    assert (tmp_path / "app" / "llm.py").read_text() == "x = 1\n"  # the repository was not touched
+    assert script.results[1][1][1].startswith("written .whittle/run.py")
+    assert "try 1 of 3" in script.results[2][0][1] and "no model call" in script.results[2][0][1]
+    assert script.results[3][0][1] == "ok"
+    assert tried == ["python .whittle/run.py {input}"] * 2
+    assert out["run_command"] == "python .whittle/run.py {input}" and out["run_examples"] == ["a task"]
+    assert out["provider"] == "openai" and out["key_env"] == "OPENAI_API_KEY" and out["_verified"] is True
+    assert out["files"] == {".whittle/run.py": "print('hi')\n"}
+    assert ("tool_call", "try in the sandbox: python .whittle/run.py {input}") in steps
+
+
+def test_scan_keeps_an_unverified_proposal_after_the_last_try(tmp_path, monkeypatch):
+    finish = ("finish", {"summary": "s", "run_command": "python run.py {input}"})
+    script = ScriptedLLM([[finish], [finish], [finish], [finish]])
+    monkeypatch.setattr(scan_module, "LLM", lambda: script)
+    monkeypatch.setattr(scan_module, "ensure_neatlogs", lambda: False)
+    out = scan_module.scan(tmp_path, [], 1, Language.PYTHON, lambda *a, **k: None, lambda f: None, lambda closing: "not finished: still broken")
+    assert len(script.results) == 3 and "last try" in script.results[2][0][1]
+    assert out["run_command"] == "python run.py {input}" and not out.get("_verified")
+    assert script.turns == [[finish]]  # the agent was not asked again

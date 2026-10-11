@@ -47,7 +47,21 @@ export interface Finding {
 
 export type JobMode = 'measure' | 'scan' | 'recorded'
 export interface CallSite { file: string; line: number; provider: string; via: string; model: string | null; snippet: string }
-export interface ProposedRun { command: string; workdir?: string | null; reason: string; needs: string[] }
+export interface ProposedRun {
+  command: string
+  workdir?: string | null
+  reason: string
+  /** Environment variables the code will not start without, the model key excluded. */
+  needs: string[]
+  /** The entry point Whittle wrote under .whittle/ when the repository had none; sent back with the run. */
+  files?: Record<string, string>
+  examples?: string[]
+  provider?: 'anthropic' | 'openai' | null
+  /** The variable the code reads its model key from, as the repository names it. */
+  key_env?: string | null
+  verified?: boolean
+  check?: string
+}
 
 export interface Sample {
   id: string
@@ -70,7 +84,7 @@ export interface Upload { upload_id: string; name: string; files: number; bytes:
 export interface JobCreate {
   source: Source
   mode?: JobMode
-  run?: { command: string; tasks: { input: string }[]; workdir?: string | null; env?: Record<string, string> }
+  run?: { command: string; tasks: { input: string }[]; workdir?: string | null; env?: Record<string, string>; files?: Record<string, string> }
   model_key?: { provider: 'anthropic' | 'openai'; key: string }
   monthly_runs?: number
 }

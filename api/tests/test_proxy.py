@@ -121,3 +121,20 @@ async def test_spend_cap(proxy):
     key = created.json()["dummy_key"]
     r = await client.post("/v1/messages", headers={"x-api-key": key}, json={"model": "claude-opus-5-5", "messages": []})
     assert r.status_code == 429
+
+
+@pytest.mark.anyio
+async def test_dry_run_session_records_the_call_and_forwards_nothing(proxy):
+    """A dry run checks that a run command reaches a model call. No key, no upstream request, and the
+    record names the provider the code actually spoke to, even when the session guessed another."""
+    client, seen, calls = proxy
+    created = await client.post("/_whittle/sessions", json={"job_id": "job_d", "phase": "dry-run", "task_id": "try-1", "provider": "anthropic", "dry_run": True})
+    assert created.status_code == 200, created.text
+    dummy = created.json()["dummy_key"]
+    r = await client.post("/v1/chat/completions", headers={"authorization": f"Bearer {dummy}"}, json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": "hi"}]})
+    assert r.status_code == 400
+    assert "dry run" in r.json()["error"]["message"]
+    assert "url" not in seen  # nothing went upstream
+    records = store_module.load_phase("job_d", "dry-run")["try-1"]
+    assert len(records) == 1 and records[0].provider == "openai" and records[0].error == "dry run: not forwarded" and records[0].cost_usd == 0
+    assert len(calls) == 1

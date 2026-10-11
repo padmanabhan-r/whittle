@@ -55,12 +55,26 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
 
 - **`scan`** needs only `source`. Whittle clones the repository, finds every place
   it calls a model, in any language, and its agent reads that code and reports
-  the waste it shows. Nothing is run, so no key and no command are needed. States:
+  the waste it shows. No key and no command are needed. States:
   `queued` ▶ `cloning` ▶ `diagnosing` ▶ `done`, with `outcome` `scanned`. The job
   then carries `scan_summary` (where the spend goes), `scan_good` (what the code
-  already does well), and, when the scan found a way to run the code,
-  `proposed_run` (`command`, `reason`, and `needs`: the environment variables it
-  will not start without). The UI uses `proposed_run` to prefill a measured job.
+  already does well), and `proposed_run`: how to run the code once. The agent
+  must arrive at a command. When the repository has no shell entry point that
+  reaches a model call (the model sits behind a server, a page or a queue), it
+  writes one under `.whittle/` and `proposed_run.files` carries it. Whittle then
+  installs the project in the sandbox and runs the command once against a
+  dry-run proxy session, which records whether a model call arrived and for which
+  provider, without a key and without forwarding anything; a failed try goes back
+  to the agent, up to three times (`sandbox.log` lines with phase `install`, and
+  `agent.step` entries with tool `sandbox.try`). `proposed_run` has `command`
+  (with `{input}`), `workdir`, `reason`, `needs` (environment variables the code
+  will not start without, the key excluded), `files`, `examples` (inputs to
+  prefill the tasks), `provider` and `key_env` (whose key to ask for and the
+  variable the code reads it from, as the repository names it), `verified`
+  (a model call reached the proxy) and `check` (what the sandbox showed, in a
+  sentence). The UI prefills a measured job from it and asks for that key, not a
+  fixed one; `run.files` sends the entry point back so the measured job's clone
+  gets it. Those files never appear in the diff or a pull request.
 - **`measure`** (the default) is the flow below: run, measure, fix, verify.
 
 A third mode, **`recorded`**, is never asked for through `POST /api/jobs`. It is

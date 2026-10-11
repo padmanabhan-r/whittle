@@ -22,7 +22,7 @@ superseded by this section.
 | Job runner and real server | **Done; one real job ran end to end** | `api/costcutter/jobs.py`, `server.py` |
 | Pull request delivery | Written, untested; needs the bot token | `api/costcutter/delivery.py` |
 | TypeScript sample and image | Not started; cut unless time remains | |
-| Deployment to EC2 | Not started (Sethuraman) | |
+| Deployment to EC2 | In progress (Sethuraman): instance up on a bare IP; domain `whittleai.site` bought 11 Oct, HTTPS via Caddy per `docs/deploy.md` | |
 | cfo.ai business plan | Not started (Padmanabhan) | `business/` |
 
 **Measured on the first real job** (11 October, 7:26 to 7:34 AM IST, sample

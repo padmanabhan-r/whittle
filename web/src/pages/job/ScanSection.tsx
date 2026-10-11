@@ -155,8 +155,10 @@ function MeasureNext({ job }: { job: Job }) {
   const [command, setCommand] = useState(proposed?.command ?? '')
   const [workdir, setWorkdir] = useState(proposed?.workdir ?? '')
   const [envText, setEnvText] = useState((proposed?.needs ?? []).filter((n) => !/API_KEY$|_BASE_URL$/.test(n)).map((n) => `${n}=`).join('\n'))
-  const [tasks, setTasks] = useState('')
-  const [provider, setProvider] = useState<'anthropic' | 'openai'>('openai')
+  const [tasks, setTasks] = useState((proposed?.examples ?? []).join('\n'))
+  const [provider, setProvider] = useState<'anthropic' | 'openai'>(proposed?.provider ?? 'openai')
+  const keyEnv = proposed?.key_env ?? (provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'OPENAI_API_KEY')
+  const harness = Object.keys(proposed?.files ?? {})
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -178,7 +180,7 @@ function MeasureNext({ job }: { job: Job }) {
       const created = await api.createJob({
         source: job.source,
         mode: 'measure',
-        run: { command: command.trim(), tasks: (list.length ? list : ['run']).slice(0, 10).map((input) => ({ input })), workdir: workdir.trim() || null, env },
+        run: { command: command.trim(), tasks: (list.length ? list : ['run']).slice(0, 10).map((input) => ({ input })), workdir: workdir.trim() || null, env, files: proposed?.files ?? {} },
         model_key: { provider, key },
         monthly_runs: job.monthly_runs ?? undefined,
       })
@@ -213,8 +215,8 @@ function MeasureNext({ job }: { job: Job }) {
           Command to run the code once
           <small>
             {proposed
-              ? `Found by the scan: ${proposed.reason}`
-              : 'The scan did not find a command that runs the model-calling code from a shell. Enter one if you know it.'}
+              ? `${proposed.reason} ${proposed.verified ? 'Verified: ' : 'Not confirmed: '}${proposed.check ?? ''}`
+              : 'The scan did not arrive at a command that runs the model-calling code. Enter one if you know it.'}
           </small>
           <input className="field mono" required value={command} onChange={(e) => setCommand(e.target.value)} placeholder='python -m agent "{input}"' />
         </label>
@@ -226,6 +228,12 @@ function MeasureNext({ job }: { job: Job }) {
           Other environment variables <small>One NAME=value per line. Held in memory for the run only.</small>
           <textarea className="field mono" rows={2} value={envText} onChange={(e) => setEnvText(e.target.value)} placeholder="FEATURE_FLAG=on" />
         </label>
+        {harness.length > 0 && (
+          <p className="wide needs">
+            The repository has no shell entry point that reaches the model, so Whittle wrote one: {harness.map((f) => <code key={f}>{f}</code>)}
+            It is sent with the run and never appears in the diff or a pull request.
+          </p>
+        )}
         {proposed && proposed.needs.length > 0 && (
           <p className="wide needs">
             The scan found that the code reads these: {proposed.needs.map((n) => <code key={n}>{n}</code>)}
@@ -238,13 +246,14 @@ function MeasureNext({ job }: { job: Job }) {
         </label>
         <label>
           Model provider
+          {proposed?.provider && <small>{proposed.verified ? 'The code called this provider when the scan tried it.' : 'What the call sites show.'}</small>}
           <select className="pick" value={provider} onChange={(e) => setProvider(e.target.value as 'anthropic' | 'openai')}>
             <option value="openai">OpenAI compatible</option>
             <option value="anthropic">Anthropic</option>
           </select>
         </label>
         <label>
-          Your API key <small>Held in memory for the run only. Never stored, logged or shown again.</small>
+          <span>Your <code>{keyEnv}</code></span> <small>The variable this code reads its key from. Held in memory for the run only. Never stored, logged or shown again.</small>
           <input className="field mono" type="password" required autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
         </label>
         <div className="actions">

@@ -32,6 +32,7 @@ class ProxySession:
     on_call: OnCall | None = field(default=None, repr=False)
     spent_usd: float = 0.0
     call_count: int = 0
+    dry_run: bool = False  # record that a call arrived, answer it with an error, forward nothing
     created_at: float = field(default_factory=time.time)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
@@ -80,6 +81,7 @@ class SessionStore:
         spend_cap_usd: float,
         recorder: JobTraceRecorder,
         on_call: OnCall | None = None,
+        dry_run: bool = False,
     ) -> ProxySession:
         session_id = secrets.token_urlsafe(18)
         session = ProxySession(
@@ -93,6 +95,7 @@ class SessionStore:
             recorder=recorder,
             store=RunStore(job_id, phase, task_id),
             on_call=on_call,
+            dry_run=dry_run,
         )
         with self._lock:
             self._sessions[session_id] = session

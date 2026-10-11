@@ -38,6 +38,7 @@ class CreateSessionBody(BaseModel):
     provider: str = Field(pattern="^(anthropic|openai)$")
     api_key: str | None = Field(default=None, min_length=8, description="Omit to use the proxy's own key")
     spend_cap_usd: float | None = Field(default=None, ge=0.0, le=500.0, description="0 refuses every call")
+    dry_run: bool = Field(default=False, description="No key: any call that arrives is recorded, answered with an error and never forwarded. Used to check that a run command reaches a model call")
 
 
 class SessionResponse(BaseModel):
@@ -70,7 +71,9 @@ def create_app(settings: ProxySettings | None = None, on_call: OnCall | None = N
 
     def open_session(body: CreateSessionBody) -> ProxySession:
         key = body.api_key
-        if not key:
+        if body.dry_run:
+            key = "dry-run"  # never sent anywhere: a dry-run call is answered by the proxy itself
+        elif not key:
             if not settings.allow_env_upstream_keys:
                 raise HTTPException(400, detail="api_key is required")
             key = settings.anthropic_key_from_env() if body.provider == "anthropic" else settings.openai_key_from_env()
@@ -94,6 +97,7 @@ def create_app(settings: ProxySettings | None = None, on_call: OnCall | None = N
             spend_cap_usd=cap,
             recorder=recorder,
             on_call=on_call,
+            dry_run=body.dry_run,
         )
 
     app.state.open_session = open_session
@@ -133,7 +137,7 @@ def create_app(settings: ProxySettings | None = None, on_call: OnCall | None = N
             session = store.by_dummy_key(_incoming_key(request.headers))
         if session is None:
             raise HTTPException(401, detail="unknown whittle session: pass the dummy key the sandbox was given")
-        if session.provider != provider:
+        if session.provider != provider and not session.dry_run:  # a dry run is there to learn the provider
             raise HTTPException(400, detail="session provider mismatch")
         return session
 
@@ -265,6 +269,8 @@ async def _forward(request: Request, provider: str, url: str, resolve) -> Respon
         raise HTTPException(400, detail="invalid json body") from None
     model = str(payload.get("model") or "unknown")
     streaming = bool(payload.get("stream"))
+    if session.dry_run:
+        return _answer_dry_run(session, provider, model, payload, streaming)
     headers = _forward_headers(request.headers, session.api_key)
     started = time.perf_counter()
 
@@ -287,6 +293,17 @@ async def _forward(request: Request, provider: str, url: str, resolve) -> Respon
     _record(session, provider=provider, model=model, payload=payload, data=data, status=upstream.status_code,
             usage=usage, duration_ms=duration_ms, streaming=False)
     return Response(content=upstream.content, status_code=upstream.status_code, headers=_client_headers(upstream.headers))
+
+
+DRY_RUN_ERROR = "Whittle dry run: the model call reached the proxy. No key was used and nothing was sent to the provider."
+
+
+def _answer_dry_run(session: ProxySession, provider: str, model: str, payload: dict[str, Any], streaming: bool) -> Response:
+    """A dry-run session proves the run command reaches a model call; the call itself is refused here.
+    The record carries the provider the code spoke to, which is how Whittle learns whose key to ask for."""
+    _record(session, provider=provider, model=model, payload=payload, data=None, status=400, usage={}, duration_ms=0.0, streaming=streaming, error="dry run: not forwarded")
+    body = {"type": "error", "error": {"type": "invalid_request_error", "message": DRY_RUN_ERROR}} if provider == "anthropic" else {"error": {"message": DRY_RUN_ERROR, "type": "invalid_request_error", "code": "whittle_dry_run"}}
+    return Response(content=json.dumps(body), status_code=400, media_type="application/json")
 
 
 class _AnthropicStreamAssembler:

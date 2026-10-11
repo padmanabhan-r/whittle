@@ -90,3 +90,39 @@ def test_neatlogs_summary_is_honest():
     assert "the proxy recorded 14 calls" in summarise(done, 14, 0.07)
     assert "processed 1 of 2" in summarise([done[0], TraceReading("b", "pending")], 12, 0.06)
     assert "has not finished processing" in summarise([TraceReading("a", "dlq"), TraceReading("b", "pending")], 12, 0.06)
+
+
+def test_proposal_names_the_provider_and_key_from_the_code(tmp_path):
+    from costcutter.contract import CallSite, Provider
+    from costcutter.jobs import harness_files
+
+    sites = [CallSite(file="a.ts", line=1, provider="openai", via="sdk", snippet=""), CallSite(file="b.ts", line=1, provider="google", via="sdk", snippet="")]
+    closing = {"run_command": "npx tsx .whittle/run.ts {input}", "run_reason": "built", "run_needs": ["OPENAI_API_KEY", "DATABASE_URL"], "files": {".whittle/run.ts": "x"}, "run_examples": ["one"]}
+    # Nothing ran: the provider comes from the call sites, the key variable from the provider.
+    proposal = JobRunner._proposal(closing, sites)
+    assert proposal.provider is Provider.OPENAI and proposal.key_env == "OPENAI_API_KEY" and proposal.verified is False
+    assert proposal.needs == ["DATABASE_URL"] and proposal.files == {".whittle/run.ts": "x"} and proposal.examples == ["one"]
+    # The dry run saw the code call anthropic: that wins, and the agent's key name is kept.
+    proposal = JobRunner._proposal({**closing, "_provider": "anthropic", "_verified": True, "_check": "ran", "key_env": "MY_CLAUDE_KEY"}, sites)
+    assert proposal.provider is Provider.ANTHROPIC and proposal.key_env == "MY_CLAUDE_KEY" and proposal.verified is True
+    # Only entry point files under .whittle/ may be put back into a clone.
+    assert harness_files({".whittle/run.py": "a", "./.whittle/lib/x.py": "b", "src/app.py": "c", ".whittle/../x": "d", ".whittle": "e"}) == {".whittle/run.py": "a", ".whittle/lib/x.py": "b"}
+
+
+def test_clone_puts_the_entry_point_back_and_keeps_it_out_of_the_diff(tmp_path, monkeypatch):
+    from costcutter.contract import GithubSource
+
+    monkeypatch.setattr(store_module, "DATA_ROOT", tmp_path / "data")
+    monkeypatch.setattr(jobs_module, "DATA_ROOT", tmp_path / "data")
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    (origin / "agent.py").write_text("print('hi')\n")
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=origin, check=True)
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", "add", "-A"], cwd=origin, check=True)
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", "init"], cwd=origin, check=True)
+    job = Job(id="job_h", state=JobState.QUEUED, source=GithubSource(type="github", repo_url=str(origin)), created_at="", updated_at="", summary=JobSummary())
+    ctx = JobContext(job, [Task("task-1", "q", [])], "python .whittle/run.py {input}", Language.PYTHON, "openai", "sk-x", False)
+    ctx.files = {".whittle/run.py": "import agent\n"}
+    JobRunner(open_session=None, close_session=None)._clone(ctx)
+    assert (ctx.repo / ".whittle" / "run.py").read_text() == "import agent\n"
+    assert ctx.git("status", "--porcelain").stdout.strip() == ""  # untracked but excluded: never in a commit or the diff

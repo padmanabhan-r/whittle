@@ -100,6 +100,8 @@ report, with every call, patch and verdict.
 `WHITTLE_APP` where its reports open. Both default to a server on this machine
 (`http://localhost:8787` and `http://localhost:5173`), started from the
 [Whittle repository](https://github.com/padmanabhan-r/whittle) with `./start.sh`.
+The hosted service is at `https://whittleai.site`: pass it to both flags, or set
+`WHITTLE_API=https://whittleai.site` and `WHITTLE_APP=https://whittleai.site`.
 
 ## Limits
 

@@ -12,6 +12,7 @@
 [![neatHack 2026](https://img.shields.io/badge/neatHack-2026-090a1b?style=flat-square)](https://neatlogs.com/hackathon)
 ![Status](https://img.shields.io/badge/status-working_end_to_end-ffe45c?style=flat-square&labelColor=090a1b)
 [![npm](https://img.shields.io/npm/v/whittle-ai?style=flat-square&label=npx%20whittle-ai&color=0a48dc&labelColor=090a1b)](https://www.npmjs.com/package/whittle-ai)
+[![Live](https://img.shields.io/badge/live-whittleai.site-0a48dc?style=flat-square&labelColor=090a1b)](https://whittleai.site)
 
 <br />
 
@@ -47,7 +48,7 @@ by **team Attention Heads** (Padmanabhan and Sethuraman).
 
 ## Two ways to use it
 
-**On the web.** Paste a public GitHub link, or upload a zip.
+**On the web**, at [whittleai.site](https://whittleai.site). Paste a public GitHub link, or upload a zip.
 
 - **Scan** reads the code in any language and reports where the spend goes,
   pinned to lines. Nothing is run, so it needs no key and no command.
@@ -137,8 +138,9 @@ Take any one away and part of the product stops working.
 
 ## Run it yourself
 
-You need Docker running, [uv](https://docs.astral.sh/uv/) and Node.js 20 or
-newer.
+The hosted app is at [whittleai.site](https://whittleai.site). To run your own
+copy you need Docker running, [uv](https://docs.astral.sh/uv/) and Node.js 20
+or newer.
 
 ```bash
 git clone https://github.com/padmanabhan-r/whittle.git

@@ -41,6 +41,7 @@ from costcutter.contract import (
     JobMode,
     Language,
     ProposedRun,
+    Provider,
     TERMINAL_STATES,
     Outcome,
     Projection,
@@ -62,6 +63,7 @@ from costcutter.proxy.recorder import trace_url
 from costcutter import pricing
 from costcutter.proxy.store import DATA_ROOT, CallRecord, RunStore, load_phase, run_path
 from costcutter.sandbox.runner import SandboxRunner
+from costcutter.scan import HARNESS_DIR
 
 EVENTS: TypeAdapter[Event] = TypeAdapter(Event)
 log = logging.getLogger("whittle.jobs")
@@ -158,6 +160,7 @@ class JobContext:
         self.job = job
         self.workdir = ""  # folder inside the repository to install and run from
         self.env: dict[str, str] = {}  # the owner's other variables; in memory only, never saved
+        self.files: dict[str, str] = {}  # entry point files to put back under .whittle/ after cloning
         self.tasks = tasks
         self.command = command
         self.language = language
@@ -377,6 +380,7 @@ class JobRunner:
         if body.run is not None and body.mode is not JobMode.SCAN:
             ctx.workdir = (body.run.workdir or "").strip().strip("/")
             ctx.env = {k: v for k, v in body.run.env.items() if k and not k.upper().endswith(("_BASE_URL", "_API_BASE"))}
+            ctx.files = harness_files(body.run.files)
         self.jobs[job_id] = ctx
         ctx.task = asyncio.create_task(self._guard(ctx, self.scan(ctx) if body.mode is JobMode.SCAN else self.diagnose(ctx)))
         return job
@@ -618,15 +622,105 @@ class JobRunner:
                 ctx.finding_event(finding)
             loop.call_soon_threadsafe(add)
 
-        closing = await asyncio.to_thread(scanner.scan, ctx.repo, sites, files_scanned, ctx.language, step, on_finding)
+        def log(line: str, stream: str = "stdout") -> None:
+            loop.call_soon_threadsafe(ctx.log, "install", line, None, stream)
+
+        tries: dict[str, Any] = {"n": 0, "installed": {}}
+
+        def try_run(closing: dict[str, Any]) -> str | None:
+            return self._try_proposal(ctx, closing, tries, log)
+
+        try:
+            closing = await asyncio.to_thread(scanner.scan, ctx.repo, sites, files_scanned, ctx.language, step, on_finding, try_run)
+        finally:
+            if tries["installed"]:
+                await asyncio.to_thread(self.sandbox.remove_deps, job.id)
         await asyncio.sleep(0)  # let the last findings queued from the scan thread land first
         job.scan_summary = closing.get("summary") or None
         job.scan_good = closing.get("good") or []
         if closing.get("run_command"):
-            job.proposed_run = ProposedRun(command=closing["run_command"], reason=closing.get("run_reason") or "Found in the repository.", needs=closing.get("run_needs") or [])
+            job.proposed_run = self._proposal(closing, sites)
+            where = "verified in the sandbox" if job.proposed_run.verified else "not confirmed in the sandbox"
+            ctx.step("thought", f"To measure this code, run `{job.proposed_run.command}` ({where}). It calls {job.proposed_run.provider or 'an unknown provider'}; the key goes in {job.proposed_run.key_env or 'the provider\'s usual variable'}.")
         job.outcome = Outcome.SCANNED if ctx.findings or sites else Outcome.NOTHING_TO_FIX
         ctx.set_state(JobState.DONE)
         ctx.emit("job.done", outcome=job.outcome, summary=job.summary)
+
+    @staticmethod
+    def _proposal(closing: dict[str, Any], sites: list[CallSite]) -> ProposedRun:
+        """The run the UI prefills: the command, the entry point files, and whose key to ask for."""
+        provider = _provider(closing.get("_provider")) or _provider(closing.get("provider")) or _provider_from_sites(sites)
+        key_env = closing.get("key_env") or ({"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}.get(provider.value) if provider else None)
+        return ProposedRun(
+            command=closing["run_command"], workdir=closing.get("run_workdir") or None, reason=closing.get("run_reason") or "Found in the repository.",
+            needs=[n for n in closing.get("run_needs") or [] if n != key_env], files=closing.get("files") or {}, examples=closing.get("run_examples") or [],
+            provider=provider, key_env=key_env, verified=bool(closing.get("_verified")), check=str(closing.get("_check") or "Not tried in the sandbox."),
+        )
+
+    def _try_proposal(self, ctx: JobContext, closing: dict[str, Any], tries: dict[str, Any], log: Callable[..., None]) -> str | None:
+        """Install the project and run the proposed command once in the sandbox, against a dry-run proxy session
+        that records whether a model call arrived and for which provider. Runs in the scan thread. Returns None
+        when the proposal is accepted (verified, or not the agent's fault) and otherwise what to tell the agent."""
+        tries["n"] += 1
+        attempt = tries["n"]
+        workdir = closing.get("run_workdir") or ""
+        if workdir and not (ctx.repo / workdir).is_dir():
+            closing["_check"] = f"The folder {workdir} is not in the repository."
+            return f"not finished: run_workdir {workdir!r} is not a folder in the repository."
+        ctx.workdir, ctx.command = workdir, closing["run_command"]
+        language = self._runtime_language(ctx)
+        if language is Language.OTHER:
+            closing["_check"] = "The sandbox runs Python, JavaScript and TypeScript; the command starts with none of them."
+            return "not finished: Whittle's sandbox runs Python, JavaScript and TypeScript, so the command must start with python, node, npx, tsx, npm, pnpm or yarn, from a folder that holds the project's manifest."
+        kind = ctx.kind = "node" if language in (Language.TYPESCRIPT, Language.JAVASCRIPT) else "python"
+        cached = tries["installed"].get((kind, workdir))
+        if cached is False:  # the same folder failed before: a sandbox matter the agent cannot fix, so its proposal is kept unverified
+            closing["_check"] = "The project's dependencies did not install in the sandbox."
+            return None
+        if cached is None:
+            log(f"Installing the {language.value} project's dependencies in the sandbox to try the command{' from ' + workdir if workdir else ''}")
+            try:
+                installed = self.sandbox.install(ctx.repo, ctx.job.id, kind=kind, subdir=workdir)
+            except Exception as exc:  # docker missing, a bad folder: not the agent's doing
+                log(f"The sandbox could not install the project: {exc}", "stderr")
+                closing["_check"] = "The sandbox could not install the project, so the command was not tried."
+                return None
+            tries["installed"][(kind, workdir)] = installed.exit_code == 0
+            log(installed.stdout.strip() or "Install finished")
+            if installed.exit_code != 0:
+                log(installed.stderr[-1500:], "stderr")
+                closing["_check"] = "The project's dependencies did not install in the sandbox."
+                return f"not finished: installing the dependencies failed in the sandbox, so the command could not be tried. Install output:\n{installed.stderr[-1200:]}\nIf another folder holds the runnable project, set run_workdir and call finish again; otherwise call finish again as it is."
+        example = (closing.get("run_examples") or ["hello"])[0]
+        task_id = f"try-{attempt}"
+        session = self.open_session(job_id=ctx.job.id, phase="dry-run", task_id=task_id, provider="openai", api_key=None, on_call=None, dry_run=True)
+        log(f"$ {ctx.command.replace('{input}', example[:60])}")
+        try:
+            result = self.sandbox.run_agent(
+                ctx.repo, _shell_words(ctx.command.replace("{input}", example)), job_id=ctx.job.id, proxy_base_url=self.proxy_url,
+                dummy_api_key=session.dummy_key, provider="any", extra_env={"WHITTLE_JOB": ctx.job.id, "WHITTLE_PHASE": "dry-run", "WHITTLE_TASK": task_id},
+                kind=kind, subdir=workdir, timeout_s=300,
+            )
+        except Exception as exc:
+            closing["_check"] = f"The sandbox could not run the command: {exc}"
+            log(closing["_check"], "stderr")
+            return None
+        finally:
+            self.close_session(session.session_id)
+        records = load_phase(ctx.job.id, "dry-run").get(task_id, [])
+        if records:
+            closing["_provider"], closing["_verified"] = records[0].provider, True
+            closing["_check"] = f"Ran in the sandbox: the code called {records[0].provider} ({records[0].model}) through Whittle's proxy."
+            log(closing["_check"])
+            return None
+        tail = (result.stderr.strip() or result.stdout.strip())[-1500:]
+        if _proxy_unreachable(result.stderr):
+            closing["_check"] = "The sandbox could not reach Whittle's proxy, so the command was not confirmed."
+            log(closing["_check"], "stderr")
+            return None
+        log(tail, "stderr")
+        closing["_check"] = f"Ran in the sandbox and exited with {result.exit_code} without reaching a model call."
+        return f"not finished: the command ran in the sandbox (exit {result.exit_code}) but no model call reached the proxy. Output:\n{tail or '(nothing printed)'}\nFix the entry point or the command and call finish again."
 
     # --- diagnose ---------------------------------------------------------
 
@@ -713,11 +807,15 @@ class JobRunner:
             subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
             if source.ref:
                 ctx.git("checkout", "-q", source.ref)
-        # Build output must never land in the diff, whatever the repository ignores.
+        # Build output and Whittle's own entry point must never land in the diff, whatever the repository ignores.
         exclude = ctx.repo / ".git" / "info" / "exclude"
         exclude.parent.mkdir(parents=True, exist_ok=True)
         with exclude.open("a", encoding="utf-8") as handle:
-            handle.write("\n__pycache__/\n*.pyc\nnode_modules/\n.venv/\n")
+            handle.write(f"\n__pycache__/\n*.pyc\nnode_modules/\n.venv/\n{HARNESS_DIR}/\n")
+        for rel, content in ctx.files.items():  # the entry point a scan built, back where its command expects it
+            target = ctx.repo / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
         ctx.base_commit = ctx.git("rev-parse", "HEAD").stdout.strip()
         ctx.job.base_commit = ctx.base_commit
         ctx.git("checkout", "-q", "-b", "whittle/cut-agent-cost")
@@ -895,6 +993,38 @@ class JobRunner:
 
 def _task_run(run: RunResult) -> TaskRun:
     return TaskRun(cost_usd=run.cost_usd, total_tokens=run.total_tokens, llm_calls=len(run.records), duration_ms=run.duration_ms, passed=bool(run.score and run.score.passed), trace_id=run.trace_id, trace_url=trace_url(run.trace_id))
+
+
+def _provider(name: Any) -> Provider | None:
+    try:
+        return Provider(str(name or "").lower())
+    except ValueError:
+        return None
+
+
+def _provider_from_sites(sites: list[CallSite]) -> Provider | None:
+    """The provider most call sites name, when it is one Whittle can proxy."""
+    counts: dict[str, int] = {}
+    for site in sites:
+        counts[site.provider] = counts.get(site.provider, 0) + 1
+    for name, _ in sorted(counts.items(), key=lambda kv: -kv[1]):
+        if _provider(name):
+            return _provider(name)
+    return None
+
+
+def harness_files(files: dict[str, str]) -> dict[str, str]:
+    """Only entry point files under .whittle/, with sane paths; anything else is dropped."""
+    out: dict[str, str] = {}
+    for rel, content in (files or {}).items():
+        rel = rel.strip()
+        while rel.startswith("./"):
+            rel = rel[2:]
+        parts = rel.split("/")
+        if parts[0] != HARNESS_DIR or len(parts) < 2 or any(p in ("", ".", "..") for p in parts) or len(content) > 40_000:
+            continue
+        out[rel] = content
+    return out
 
 
 def _proxy_unreachable(stderr: str) -> bool:

@@ -3,7 +3,7 @@
 - **Project:** Whittle AI
 - **Event:** neatHack
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
-- **What it does:** Runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
+- **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
 - **Status:** working end to end on the sample agent; traces, pull requests and deployment still open
 - **Live app:** not deployed
@@ -20,13 +20,13 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 2
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T10:47:00+05:30
+- **Last updated:** 2026-10-11T12:52:00+05:30
 
 ## Evidence
 
 | Claim | Evidence | Status |
 |---|---|---|
-| The agent improved | The product's agent on the sample: $0.0303 to $0.0068 per run (77.6%) on job `job_af31fed04311`, quality held. Whittle's own agent on the same fix, caching off then on: 10,945 uncached input tokens and $0.0440 against 8 uncached, 6,697 cache-read, 4,405 cache-write tokens and $0.0359 (18% lower on a 3-call fix); measured 11 Oct 7:40 AM IST, numbers from the SDK's usage fields, no trace link yet | partial |
+| The agent improved | Measured after the cost fix: the Python sample $0.0300 to $0.0095 per run, 68.2% lower, 5 fixes kept (`job_3e1b3cc39865`); the TypeScript sample $0.0128 to $0.0039, 69.4% (`job_166ea0202321`); answer quality 1.00 on both sides. Earlier figures of 77% to 82% were overstated by a pricing fault, see the 12:50 entry. Whittle's own agent, caching off then on: $0.0440 against $0.0359 on one fix | partial |
 | Used neatlogs | Finalised traces of the first real job (project `af5685c0…`): baseline task-2 `e7207ea46404b10276ba21067e992559`, 3 calls, $0.0295; after the kept fixes, task-2 `2857565ee53d2fc4a9b2ae953027f6d0`, 3 calls, $0.0120. Link format unconfirmed (`https://app.neatlogs.com/traces/<id>`) | partial |
 | Used Entire | checkpoints from `f4d5dcb` on; graph used at runtime by the locator and the agent | partial |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
@@ -600,6 +600,50 @@ the sample agent has a public repository of its own.
 
 Evidence rows still missing: the agent improved (trace links), used neatlogs
 (links that open), written during the hackathon.
+
+### 2026-10-11 - 3cfd69b
+Scan mode, TypeScript in the sandbox, zip upload, and a pricing fault that had
+overstated every saving.
+
+- **Shipped:** scan mode (`77e6395`). A public GitHub link is enough: Whittle
+  finds every place the code calls a model in any language, its agent reads
+  them and their callers, and reports the waste, the change to make and what
+  the code does well. Nothing is run. It also proposes a run command and the
+  variables the code needs.
+- **Shipped:** JavaScript and TypeScript run in the sandbox on a Node image;
+  Python installs from `pyproject.toml` too; a run can name a folder and extra
+  environment variables; code can be uploaded as a zip, unpacked safely; the
+  proxy records OpenAI's Responses and embeddings endpoints; code without
+  expected answers is scored by a model judge (`3cfd69b`).
+- **Fixed:** the cost formula subtracted cached tokens from an input count that
+  was already the uncached part, so uncached input cost nothing on a cache hit
+  (`f41364d`). Baselines were right; every "after" was low. Recomputed from the
+  stored records, the five full jobs saved 67.0% to 75.8%, not the 77.4% to
+  82.4% logged above and posted publicly.
+- **Fixed:** the app showed a step labelled as a neatlogs query that did not
+  call neatlogs. It now reads each baseline trace back from neatlogs and
+  reports the calls and cost it holds beside the proxy's count (`988add5`).
+- **Fixed:** the changing-prefix detector ignored the stable text after a
+  varying first line, so it missed the TypeScript sample's main waste.
+- **Measured:** after the fix, Python sample `job_3e1b3cc39865`: 30 calls and
+  $0.0300 a run before; 25 calls and $0.0095 after; 68.2% lower; five fixes
+  kept; quality 1.00 to 1.00; $600 to $191 a month at 20,000 runs. TypeScript
+  sample `job_166ea0202321`: $0.0128 to $0.0039, 69.4%, three fixes kept.
+- **Measured:** scans, with nothing run: Dynasty-Clash (a TypeScript web app,
+  147 files) 4 call sites, 3 findings; the Python sample, all 5 of its planted
+  wastes; the TypeScript sample uploaded as a zip, all 3.
+- **Evidence:** neatlogs is processing traces again: it held 4 of the 5
+  baseline traces of `job_3e1b3cc39865` as finalised, 24 model calls. It prices
+  them at $0.1793 where the proxy's record gives about $0.12 for the same four
+  runs; the two price lists differ and that is not reconciled.
+- **Not verified:** a measured run on a stranger's repository (only the two
+  samples have run); OpenAI prices come from third-party listings; the pull
+  request path; the cfo.ai model still holds the 77.6% input.
+- **Checked:** `uv run pytest`, 34 passed; `npx tsc -b` and lint clean.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: used neatlogs (links that open, now possible
+again), written during the hackathon.
 
 ## Submission
 

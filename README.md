@@ -72,32 +72,37 @@ proposes the run command it found, so the form is filled in for you.
 
 ## A real run
 
-On 11 October the sample research agent went through Whittle AI end to end:
-five tasks before, five after, with Whittle's own fixing agent on
-`claude-sonnet-5-5`. Nothing in this section is scripted.
+On 11 October the Python sample agent went through Whittle AI end to end: five
+tasks before, five after, with Whittle's own fixing agent on `claude-sonnet-5-5`.
+Nothing in this section is scripted.
 
-![Result of a real run: 77.6% lower cost per run](assets/screens/result.jpg)
+![Result of a real run: 68.2% lower cost per run](assets/screens/result.jpg)
 
 | | Before | After |
 |---|---|---|
-| Cost per run | $0.0303 | $0.0068 (77.6% lower) |
+| Cost per run | $0.0300 | $0.0095 (68.2% lower) |
 | Model calls over 5 runs | 30 | 25 |
-| Input tokens | 57,869 | 7,220 |
+| Uncached input tokens | 57,159 | 7,195 |
 | Cache-read tokens | 0 | 37,560 |
 | Answer quality (keyword check) | 1.00 | 1.00 |
-| At 20,000 runs a month | $606 | $136 |
+| At 20,000 runs a month | $600 | $191 |
 
 The whole saving is 30 added and 16 removed lines in two files of the agent.
 
-The same sample run again an hour later kept four fixes and reverted the fifth:
-its rerun cost $0.0069 a run against $0.0068 before, so the patch was not worth
-keeping. That is the recovery path working on a real run, not a staged one.
+![Fix and verify: each fix rerun and scored](assets/screens/fix.jpg)
 
-![Fix and verify: four fixes kept, one reverted](assets/screens/fix.jpg)
+The TypeScript sample agent, the same day: $0.0128 to $0.0039 per run, 69.4%
+lower, three fixes kept, answers unchanged.
 
-Three runs of the same sample on the same day gave 82.3%, 77.6% and 77.6%. The
-spread comes from the fixing agent writing a slightly different patch each
-time; every figure is measured from the recorded calls of that run.
+Each fix is kept only if the rerun is cheaper and the answers still pass. On an
+earlier run of the Python sample one fix made the run a little dearer and was
+reverted, with the earlier fixes kept. That is the recovery path on a real run.
+
+**A correction.** Runs before 12:30 PM on 11 October reported savings of 77% to
+82%. Those were too high. The cost formula priced uncached input at zero on any
+call that read the cache, so every "after" figure was low. It is fixed
+(`f41364d`), and recomputed from their stored call records those same runs saved
+67% to 76%. The figures above are from runs made after the fix.
 
 ## What it looks like
 

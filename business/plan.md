@@ -17,7 +17,7 @@ These are measured, or decided by us:
 | Input | Value | Source |
 |---|---|---|
 | Cost per run of the sample agent, before | $0.0303 | job `job_af31fed04311`, 11 October |
-| Cost per run, after | $0.0068 (77.6% lower) | same job |
+| Cost per run, after | $0.0068 (77.6% lower) | same job, **as reported at the time; see the correction below** |
 | Saving for that customer at 20,000 runs a month | about $470 a month | computed from the two figures |
 | Our model cost per job, customer brings the key | about $0.20 | fixing agent's recorded calls |
 | Our model cost per job, we pay for the runs | about $0.60 | a full sample job |
@@ -109,10 +109,20 @@ free trial per repository; paid overages; no unlimited jobs at $49. For savings
 deals, agree the baseline, the quality threshold and the billing period first,
 and never charge twice for the same saving.
 
+## Correction to the inputs
+
+The plan was built on a saving of 77.6% ($0.0303 to $0.0068 a run, about $470 a
+month at 20,000 runs). A fault in our cost formula made that too high. The
+corrected figure for the same sample is 68.2%: $0.0300 to $0.0095 a run, about
+$409 a month. The plan's conclusions hold or get slightly stronger for the flat
+price: 10% of the corrected saving is $41 a month, so the $49 flat price now
+earns more than the savings fee on our sample, not slightly less. The model in
+cfo.ai has not been rebuilt with the corrected figure.
+
 ## What this plan does not show
 
 No demand has been tested. The customer mix, conversion and churn are
-assumptions. The 77.6% saving is one sample agent with waste built in; the
+assumptions. The saving (68.2% once corrected) is one sample agent with waste built in; the
 forecast deliberately assumes a lower saving (20% attainable, 75% of that
 realised) for real customers. Tax, legal, security review and compliance costs
 are not included.

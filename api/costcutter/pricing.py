@@ -28,11 +28,37 @@ RATES: dict[str, ModelRates] = {
     "claude-sonnet-4-20250514": ModelRates(3.0, 15.0, 0.30, 3.75),
 }
 
+# OpenAI: list prices as published in mid-2026, taken from third-party price listings
+# and not yet checked against OpenAI's own page. OpenAI charges no surcharge to write
+# a cache entry, so cache write is the input price.
+RATES.update({
+    "gpt-5.5": ModelRates(5.0, 30.0, 0.50, 5.0),
+    "gpt-5.4": ModelRates(2.5, 15.0, 0.25, 2.5),
+    "gpt-5.4-mini": ModelRates(0.75, 4.5, 0.075, 0.75),
+    "gpt-5.4-nano": ModelRates(0.20, 1.25, 0.02, 0.20),
+    "gpt-5-mini": ModelRates(0.25, 2.0, 0.025, 0.25),
+    "gpt-5-nano": ModelRates(0.05, 0.40, 0.005, 0.05),
+})
+
 DEFAULT_RATES = ModelRates(4.0, 20.0, 0.20, 5.0)
 
 
+def known(model: str) -> bool:
+    """Whether this model has a price here. An unknown model is charged at the top rate, so its cost is an upper estimate."""
+    return _match(model) is not None
+
+
+def _match(model: str) -> str | None:
+    if model in RATES:
+        return model
+    # A dated or suffixed id ("gpt-5.4-mini-2026-03-01") prices as the longest name it starts with.
+    best = max((name for name in RATES if model.startswith(name + "-")), key=len, default=None)
+    return best
+
+
 def rates_for(model: str) -> ModelRates:
-    return RATES.get(model, DEFAULT_RATES)
+    name = _match(model)
+    return RATES[name] if name else DEFAULT_RATES
 
 
 def cost_usd(
@@ -43,10 +69,11 @@ def cost_usd(
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
 ) -> float:
+    """`input_tokens` is the uncached input only, as both providers' usage is recorded here:
+    cache reads and writes are counted in their own fields and priced at their own rates."""
     r = rates_for(model)
-    billable_input = max(0, input_tokens - cache_read_tokens - cache_write_tokens)
     cost = (
-        billable_input * r.input_per_million
+        input_tokens * r.input_per_million
         + output_tokens * r.output_per_million
         + cache_read_tokens * (r.cache_read_per_million or r.input_per_million * 0.1)
         + cache_write_tokens * (r.cache_write_per_million or r.input_per_million * 1.25)

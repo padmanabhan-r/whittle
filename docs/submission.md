@@ -44,12 +44,12 @@ Padmanabhan:
 
 Sethuraman:
 
-- [ ] Deploy on **whittleai.site** with HTTPS, per `deploy.md` (the same
+- [x] Deploy on **whittleai.site** with HTTPS, per `deploy.md` (the same
       steps are in the PDF): Elastic IP, GoDaddy A records, Caddy, the UI
       built with `VITE_API_URL=""`, the API on localhost only.
-- [ ] Check `https://whittleai.site/health` answers, the padlock shows, and a
+- [x] Check `https://whittleai.site/health` answers, the padlock shows, and a
       scan of a public repository streams its events.
-- [ ] Tell Padmanabhan when it is up, so the README screenshot and the devlog
+- [x] Tell Padmanabhan when it is up, so the README screenshot and the devlog
       header (`Live app`, `Hosting`, `Status`) can be updated.
 
 Either:
@@ -126,7 +126,7 @@ After posting:
 | Web check-in | done |
 | cfo.ai signup, subscription cancelled after | done |
 | Public repository link | outstanding: private until Monday |
-| Live app | outstanding: whittleai.site, with Sethuraman |
+| Live app | done: https://whittleai.site, live with a Let's Encrypt certificate since 11 Oct, 7:30 PM; a full scan through the live site still to be run |
 | Demo video under three minutes, all three tools | two cuts with sound effects rendered 11 Oct 17:36 (Paddy 2:37, Chris 2:39); to be watched, one chosen and uploaded |
 | Business plan in the repository | done |
 | Quote post on X | outstanding: window opens Monday 7:00 PM |

@@ -5,8 +5,8 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** deployed on EC2; HTTPS custom-domain deployment is pending
-- **Live app:** http://35.171.208.95:5173 (custom-domain HTTPS pending)
+- **Status:** deployed
+- **Live app:** https://whittleai.site
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public on 12 October before the post)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T18:50:00+05:30
+- **Last updated:** 2026-10-11T19:55:00+05:30
 
 ## Evidence
 
@@ -936,9 +936,11 @@ keeping a competitor from building on its recording proxy.
   read it back correctly, but Entire's website did not display it, so it was
   taken down again and no transcript is published. The README and the Entire
   evidence note state that the transcripts were removed for privacy.
-- **Not verified:** the deployed app from outside. At 5:48 PM IST neither port
-  answered from this machine, and `whittleai.site` did not resolve. Sethuraman
-  has yet to confirm the license change as co-owner.
+- **Evidence:** the app is live at https://whittleai.site. At 7:53 PM IST the
+  page, `/health` and `/api/samples` all answered 200 over HTTPS with a Let's
+  Encrypt certificate; `http://` and `www.` redirect to it.
+- **Not verified:** a full scan or fix job run through the live site.
+  Sethuraman has yet to confirm the license change as co-owner.
 - **Built with:** Claude Code, claude-fable-5-1 and claude-opus-5-5.
 
 ### 2026-10-11 - 8b4ef0a

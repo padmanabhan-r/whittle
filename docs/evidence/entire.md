@@ -19,7 +19,11 @@ the whole transcript history was taken down:
   `push_sessions: false`);
 - every checkpoint that was on GitHub was removed, 62 at first and then one
   redacted copy that had been tried, so none remain;
-- the originals are kept on the build machine, unchanged.
+- the originals are kept on the build machine, unchanged;
+- from 11 October, Entire's own PII redaction is on for every new checkpoint
+  (`redaction.pii` in `.entire/settings.json`): email addresses, phone numbers,
+  IP addresses, home folder names and host names are replaced before a
+  checkpoint is written, even on the machine that made it.
 
 What stays public is the link between each commit and its checkpoint (the
 `Entire-Checkpoint` line in the commit message) and the real output below. We

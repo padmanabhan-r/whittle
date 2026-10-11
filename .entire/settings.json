@@ -6,6 +6,19 @@
   },
   "commit_linking": "always",
   "enabled": true,
+  "redaction": {
+    "pii": {
+      "address": false,
+      "custom_patterns": {
+        "home": "(?:/Users/|/home/|[A-Za-z]:\\\\Users\\\\)[A-Za-z0-9._-]+",
+        "host": "\\bip-\\d{1,3}-\\d{1,3}-\\d{1,3}-\\d{1,3}\\b",
+        "ip": "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b"
+      },
+      "email": true,
+      "enabled": true,
+      "phone": true
+    }
+  },
   "strategy_options": {
     "push_sessions": false
   }

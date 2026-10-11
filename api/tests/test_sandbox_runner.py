@@ -93,3 +93,16 @@ def test_run_step_reaches_only_the_relay(runner, tmp_path, monkeypatch):
     subprocess.run(["docker", "rm", "-f", "whittle-relay-test"], capture_output=True)
     assert result.exit_code == 0, result.stderr + result.stdout
     assert "internet blocked" in result.stdout
+
+
+def test_a_changed_dockerfile_is_a_different_image(tmp_path, monkeypatch):
+    """The image tag follows the Dockerfile's contents, so a machine holding an old image builds the new one."""
+    from costcutter.sandbox import runner as runner_module
+
+    dockerfile = tmp_path / "node.Dockerfile"
+    dockerfile.write_text("FROM node:22\nRUN npm i -g pnpm@9\n")
+    monkeypatch.setitem(runner_module.IMAGES, "node", ("whittle-sandbox-node", dockerfile))
+    before = runner_module.image_tag("node")
+    assert before == runner_module.image_tag("node") and before.startswith("whittle-sandbox-node:")
+    dockerfile.write_text("FROM node:22\nRUN npm i -g pnpm@10\n")
+    assert runner_module.image_tag("node") != before

@@ -7,6 +7,7 @@ and the agent's directory is never written to.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 import uuid
@@ -15,11 +16,20 @@ from pathlib import Path
 from typing import Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-PYTHON_IMAGE = "whittle-sandbox-python:local"
 DOCKERFILE = REPO_ROOT / "sandbox" / "python.Dockerfile"
-NODE_IMAGE = "whittle-sandbox-node:local"
 NODE_DOCKERFILE = REPO_ROOT / "sandbox" / "node.Dockerfile"
-IMAGES = {"python": (PYTHON_IMAGE, DOCKERFILE), "node": (NODE_IMAGE, NODE_DOCKERFILE)}
+IMAGES = {"python": ("whittle-sandbox-python", DOCKERFILE), "node": ("whittle-sandbox-node", NODE_DOCKERFILE)}
+
+
+def image_tag(kind: str) -> str:
+    """The sandbox image for a kind of project, named by the contents of its Dockerfile.
+
+    The tag used to be fixed (":local") and the image was built only when it was missing, so a
+    machine that already had one kept it for ever: the live server went on installing with the
+    old package manager after the Dockerfile was changed. A tag made from the file's hash means
+    a changed Dockerfile is a different image, and it is built the first time it is needed."""
+    name, dockerfile = IMAGES[kind]
+    return f"{name}:{hashlib.sha256(dockerfile.read_bytes()).hexdigest()[:12]}"
 INTERNAL_NETWORK = "whittle-internal"
 RELAY = "whittle-relay"
 RELAY_IMAGE = "alpine/socat:1.8.0.0"
@@ -45,7 +55,7 @@ class SandboxRunner:
         if not DOCKERFILE.is_file():
             raise FileNotFoundError(f"missing Dockerfile at {DOCKERFILE}")
         subprocess.run(
-            [self._docker, "build", "-q", "-t", PYTHON_IMAGE, "-f", str(DOCKERFILE), str(REPO_ROOT / "sandbox")],
+            [self._docker, "build", "-q", "-t", image_tag("python"), "-f", str(DOCKERFILE), str(REPO_ROOT / "sandbox")],
             check=True,
             capture_output=True,
             text=True,
@@ -53,7 +63,7 @@ class SandboxRunner:
 
     def ensure_image(self, kind: str) -> str:
         """Build the sandbox image for a kind of project if it is not there yet. Returns its tag."""
-        image, dockerfile = IMAGES[kind]
+        image, dockerfile = image_tag(kind), IMAGES[kind][1]
         have = subprocess.run([self._docker, "image", "inspect", image], capture_output=True)
         if have.returncode != 0:
             subprocess.run([self._docker, "build", "-q", "-t", image, "-f", str(dockerfile), str(dockerfile.parent)], check=True, capture_output=True, text=True, timeout=900)

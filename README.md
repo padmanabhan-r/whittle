@@ -54,7 +54,7 @@ that lowers answer quality, is taken back out, and you watch that happen.
 An entry for [neatHack](https://neatlogs.com/hackathon), 10 to 12 October 2026,
 by **team Attention Heads** (Padmanabhan and Sethuraman).
 
-## Two ways in
+## Three ways in
 
 **Scan.** Paste a public GitHub link, or upload a zip. Whittle reads the code, in any language,
 finds every place it calls a model, and reports where the spend goes: what is
@@ -67,6 +67,26 @@ no prompt caching, and a fallback chain that pays twice.
 **Measure.** When the code can be run, Whittle runs it in a sandbox with your
 model key, records every call, fixes the waste and proves the saving. The scan
 proposes the run command it found, so the form is filled in for you.
+
+**Record, on your own machine.** Some code cannot run in anyone else's sandbox:
+it needs its database, its private services, its environment. For that there is
+a command-line tool, in [`cli/`](cli/). It runs your command where it already
+works and records each model call through a proxy on localhost:
+
+```bash
+node cli/bin/whittle.mjs run --runs 3 -- python agent.py "your question"
+node cli/bin/whittle.mjs analyze      # send the recording for findings
+```
+
+Your code, data and key stay on your machine; the key is passed through and
+never written down. The summary prints at once, and `analyze` sends the recorded
+calls to Whittle, which runs the same detectors and opens the same report.
+Three recorded runs of our sample agent gave 18 calls at $0.0314 a run and the
+same five findings the sandbox finds. Run on the TypeScript web app from the
+scan above, which needs a live database and writes its provider's address in its
+code, it recorded the call with the same token counts the app itself reported.
+The package is named `whittle-ai` and is not yet published to npm, so for now it
+runs from this repository.
 
 ![A scan of a TypeScript repository](assets/screens/scan.jpg)
 
@@ -284,6 +304,7 @@ taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 | Pull request delivery | Written, not yet run against a real repository |
 | Measured runs in Python, JavaScript and TypeScript | Built; run end to end on a Python and a TypeScript sample agent |
 | Zip upload for code that is not on GitHub | Built and tested |
+| Command-line recorder for code that only runs on your machine (`cli/`) | Built and tested on a Python agent and a TypeScript app; not yet on npm. It records and reports; fixing from a recording is not built |
 | Measured runs in other languages | Not built: the scan reads them, the sandbox does not run them |
 | Deployment | In progress |
 

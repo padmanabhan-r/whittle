@@ -45,7 +45,7 @@ export interface Finding {
   snippet?: string | null
 }
 
-export type JobMode = 'measure' | 'scan'
+export type JobMode = 'measure' | 'scan' | 'recorded'
 export interface CallSite { file: string; line: number; provider: string; via: string; model: string | null; snippet: string }
 export interface ProposedRun { command: string; workdir?: string | null; reason: string; needs: string[] }
 
@@ -62,6 +62,8 @@ export type Source =
   | { type: 'sample'; sample_id: string }
   | { type: 'github'; repo_url: string; ref?: string | null }
   | { type: 'upload'; upload_id: string; name?: string | null }
+  /** Calls recorded on the owner's machine by the command-line tool. */
+  | { type: 'recording'; name: string; command?: string | null; client?: string | null }
 
 export interface Upload { upload_id: string; name: string; files: number; bytes: number }
 
@@ -94,7 +96,7 @@ export interface Job {
   created_at: string
   updated_at: string
   summary: JobSummary
-  outcome: 'saved' | 'nothing_to_fix' | 'no_saving' | 'scanned' | null
+  outcome: 'saved' | 'nothing_to_fix' | 'no_saving' | 'scanned' | 'measured' | null
   error: { code: string; message: string } | null
   last_event_seq: number
   mock: boolean

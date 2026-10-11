@@ -14,7 +14,7 @@ except ImportError:  # Python 3.10
 
     class StrEnum(str, Enum):
         pass
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -41,10 +41,12 @@ class JobState(StrEnum):
 
 
 class JobMode(StrEnum):
-    """measure: run the agent in the sandbox and measure it. scan: read the code only, run nothing."""
+    """measure: run the agent in the sandbox and measure it. scan: read the code only, run nothing.
+    recorded: the calls were recorded on the owner's machine by the command-line tool and sent in."""
 
     MEASURE = "measure"
     SCAN = "scan"
+    RECORDED = "recorded"
 
 
 class Outcome(StrEnum):
@@ -52,6 +54,7 @@ class Outcome(StrEnum):
     NOTHING_TO_FIX = "nothing_to_fix"
     NO_SAVING = "no_saving"
     SCANNED = "scanned"
+    MEASURED = "measured"
 
 
 class Language(StrEnum):
@@ -230,7 +233,57 @@ class GithubSource(Model):
     ref: str | None = Field(default=None, description="Branch, tag or commit; default branch if omitted")
 
 
-Source = Annotated[SampleSource | GithubSource | UploadSource, Field(discriminator="type")]
+class RecordingSource(Model):
+    """Calls recorded on the owner's machine by `whittle run`. There is no code on the server to fix."""
+
+    type: Literal["recording"]
+    name: str = Field(description="What was recorded, for display: the project folder's name")
+    command: str | None = Field(default=None, description="The command that was run")
+    client: str | None = Field(default=None, description="The tool and version that made the recording")
+
+
+Source = Annotated[SampleSource | GithubSource | UploadSource | RecordingSource, Field(discriminator="type")]
+
+
+class RecordedCall(Model):
+    """One model call as the command-line tool recorded it. The cost is worked out here, not taken from the sender."""
+
+    provider: Literal["anthropic", "openai", "gemini"]
+    model: str = Field(max_length=200)
+    streaming: bool = False
+    status: int = 200
+    duration_ms: float = 0
+    usage: dict[str, int] = Field(default_factory=dict)
+    request: dict[str, Any] = Field(default_factory=dict)
+    response: dict[str, Any] | None = None
+    error: str | None = None
+    ts: float | None = None
+
+
+class RecordedRun(Model):
+    id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,40}$")
+    exit_code: int = 0
+    duration_ms: int = 0
+    calls: list[RecordedCall] = Field(max_length=2000)
+
+
+class RecordingCreate(Model):
+    name: str = Field(min_length=1, max_length=120)
+    command: str | None = Field(default=None, max_length=2000)
+    client: str | None = Field(default=None, max_length=80)
+    runs: list[RecordedRun] = Field(min_length=1, max_length=50)
+    monthly_runs: int | None = Field(default=None, ge=1)
+
+
+class RecordingResult(Model):
+    """What the command-line tool prints; the job holds the rest."""
+
+    job_id: str
+    llm_calls: int
+    cost_usd: float
+    cost_per_run_usd: float
+    saving_pct: float = Field(description="The findings' estimated savings together, as a share of the cost per run")
+    findings: list["Finding"]
 
 
 class Task(Model):

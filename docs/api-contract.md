@@ -49,7 +49,7 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
   lowered the cost) or `nothing_to_fix` (no findings). The mock only produces
   `saved`.
 
-## Two modes
+## Three modes
 
 `POST /api/jobs` takes `mode`:
 
@@ -62,6 +62,18 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
   `proposed_run` (`command`, `reason`, and `needs`: the environment variables it
   will not start without). The UI uses `proposed_run` to prefill a measured job.
 - **`measure`** (the default) is the flow below: run, measure, fix, verify.
+
+A third mode, **`recorded`**, is never asked for through `POST /api/jobs`. It is
+what `POST /api/recordings` creates: the command-line tool (`cli/`, the
+`whittle-ai` package) ran the owner's code on the owner's machine, recorded each
+model call through a proxy on localhost, and sent the calls in. The server works
+out each call's cost from its token counts (a sender cannot name a price; the
+field is refused), writes the runs as the job's baseline, sends each run to
+neatlogs as a trace, and runs the same detectors as a measured job. States:
+`queued` ▶ `baseline` ▶ `diagnosing` ▶ `done`, with `outcome` `measured`, or
+`nothing_to_fix`. The job's `source` is `{type: "recording", name, command,
+client}`. Whittle holds no code for it, so findings carry no `location`, and
+`fix`, `comparison`, `diff`, `patch` and `pr` answer `409`.
 
 A `source` is one of `{type: "sample", sample_id}`, `{type: "github", repo_url, ref}`
 or `{type: "upload", upload_id, name}`. To measure your own code, `run` gives the
@@ -80,6 +92,7 @@ run.
 | GET | `/api/samples` | `SampleList` | Sample agents that need no key |
 | PUT | `/api/uploads?name=` | `201` `Upload` | The body is a zip of the code, up to 60 MB. Returns `upload_id` for an `upload` source |
 | POST | `/api/jobs` | `201` `Job` | Starts a job |
+| POST | `/api/recordings` | `201` `RecordingResult` | Calls recorded by the command-line tool, up to 40 MB, 50 runs and 2,000 calls a run. Returns the finished job's id, its totals and its findings |
 | GET | `/api/jobs/{id}` | `Job` | Current state and summary |
 | GET | `/api/jobs/{id}/events` | SSE stream | See "The event stream" |
 | GET | `/api/jobs/{id}/findings` | `FindingList` | Empty until `diagnosing` reports them |

@@ -1127,6 +1127,9 @@
               },
               {
                 "$ref": "#/components/schemas/UploadSource"
+              },
+              {
+                "$ref": "#/components/schemas/RecordingSource"
               }
             ],
             "title": "Source",
@@ -1134,6 +1137,7 @@
               "propertyName": "type",
               "mapping": {
                 "github": "#/components/schemas/GithubSource",
+                "recording": "#/components/schemas/RecordingSource",
                 "sample": "#/components/schemas/SampleSource",
                 "upload": "#/components/schemas/UploadSource"
               }
@@ -1268,6 +1272,9 @@
               },
               {
                 "$ref": "#/components/schemas/UploadSource"
+              },
+              {
+                "$ref": "#/components/schemas/RecordingSource"
               }
             ],
             "title": "Source",
@@ -1275,6 +1282,7 @@
               "propertyName": "type",
               "mapping": {
                 "github": "#/components/schemas/GithubSource",
+                "recording": "#/components/schemas/RecordingSource",
                 "sample": "#/components/schemas/SampleSource",
                 "upload": "#/components/schemas/UploadSource"
               }
@@ -1351,10 +1359,11 @@
         "type": "string",
         "enum": [
           "measure",
-          "scan"
+          "scan",
+          "recorded"
         ],
         "title": "JobMode",
-        "description": "measure: run the agent in the sandbox and measure it. scan: read the code only, run nothing."
+        "description": "measure: run the agent in the sandbox and measure it. scan: read the code only, run nothing.\nrecorded: the calls were recorded on the owner's machine by the command-line tool and sent in."
       },
       "JobState": {
         "type": "string",
@@ -1479,7 +1488,8 @@
           "saved",
           "nothing_to_fix",
           "no_saving",
-          "scanned"
+          "scanned",
+          "measured"
         ],
         "title": "Outcome"
       },
@@ -1620,6 +1630,52 @@
           "passed"
         ],
         "title": "Quality"
+      },
+      "RecordingSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "recording",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "What was recorded, for display: the project folder's name"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command",
+            "description": "The command that was run"
+          },
+          "client": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client",
+            "description": "The tool and version that made the recording"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "name"
+        ],
+        "title": "RecordingSource",
+        "description": "Calls recorded on the owner's machine by `whittle run`. There is no code on the server to fix."
       },
       "RunSpec": {
         "properties": {

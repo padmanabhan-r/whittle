@@ -28,8 +28,10 @@ type SectionId = (typeof SECTIONS)[number]['id']
 const ORDER: JobState[] = ['queued', 'cloning', 'installing', 'baseline', 'diagnosing', 'awaiting_selection', 'fixing', 'verifying', 'reporting', 'done']
 
 /** The section that shows what is happening in a given state. */
-function sectionFor(state: JobState): SectionId {
+function sectionFor(state: JobState, recorded = false): SectionId {
   const at = ORDER.indexOf(state)
+  // A recording was made on the owner's machine: there is nothing to fix here, so it ends on its findings.
+  if (recorded) return at >= ORDER.indexOf('diagnosing') ? 'findings' : 'calls'
   if (state === 'done') return 'result'
   if (at >= ORDER.indexOf('fixing')) return 'fix'
   if (at >= ORDER.indexOf('diagnosing')) return 'findings'
@@ -46,8 +48,10 @@ export function JobPage() {
   const [prError, setPrError] = useState<string | null>(null)
   const [opening, setOpening] = useState(false)
 
-  const current = (SECTIONS.find((s) => s.id === section)?.id ?? sectionFor(view.state)) as SectionId
-  const live = sectionFor(view.state)
+  const recorded = job?.mode === 'recorded'
+  const sections = recorded ? SECTIONS.filter((s) => s.id === 'calls' || s.id === 'findings') : SECTIONS
+  const live = sectionFor(view.state, recorded)
+  const current = (sections.find((s) => s.id === section)?.id ?? live) as SectionId
 
   useEffect(() => {
     if (job?.mode === 'scan' || !job) return
@@ -75,7 +79,7 @@ export function JobPage() {
   }
 
   const scan = job?.mode === 'scan'
-  const name = job?.source.type === 'sample' ? job.source.sample_id : job?.source.type === 'github' ? job.source.repo_url.replace('https://github.com/', '') : job?.source.type === 'upload' ? (job.source.name ?? 'uploaded code') : ''
+  const name = job?.source.type === 'sample' ? job.source.sample_id : job?.source.type === 'github' ? job.source.repo_url.replace('https://github.com/', '') : job?.source.type === 'upload' ? (job.source.name ?? 'uploaded code') : job?.source.type === 'recording' ? job.source.name : ''
   const done = view.state === 'done'
   const failed = view.state === 'failed'
   const applied = view.findings.filter((f) => f.status === 'applied').length
@@ -112,7 +116,7 @@ export function JobPage() {
           </>
         }
       >
-        <h2>{scan ? 'This scan' : 'This job'}</h2>
+        <h2>{scan ? 'This scan' : recorded ? 'This recording' : 'This job'}</h2>
         <nav aria-label="Job sections">
           {scan && (
             <Link className="item" to={`/app/jobs/${jobId}`} aria-current="page">
@@ -121,7 +125,7 @@ export function JobPage() {
               {view.findings.length > 0 && <span className="count">{view.findings.length}</span>}
             </Link>
           )}
-          {!scan && SECTIONS.map((s) => (
+          {!scan && sections.map((s) => (
             <Link key={s.id} className="item" to={`/app/jobs/${jobId}/${s.id}`} aria-current={current === s.id ? 'page' : undefined}
               onClick={() => setFollow(false)}>
               <span className={`dot ${stateDot(s.id)}`} />
@@ -138,13 +142,14 @@ export function JobPage() {
             <div className="row">
               <h1>{scan ? 'Code scan' : SECTIONS.find((s) => s.id === current)!.title}</h1>
               <span className={`tag ${failed ? 'bad' : done ? 'ok' : 'live'}`}>{STATE_LABEL[scan && view.state === 'diagnosing' ? 'scanning' : view.state]}</span>
+              {recorded && <span className="tag idle" title="These calls were recorded on your own machine by the whittle command-line tool">recorded on your machine</span>}
               {job?.mock && <span className="tag mock" title="Every number on this page is invented by the mock server">mock data</span>}
             </div>
             <span className="meta mono">{name} · {jobId}</span>
           </div>
           <span className="spacer" />
           {scan && <Link className="btn" to="/app">Scan another repo</Link>}
-          {!scan && <>
+          {!scan && !recorded && <>
           <a className="btn" href={done && applied ? api.patchUrl(jobId!) : undefined} aria-disabled={!done || !applied}
             style={!done || !applied ? { color: '#9a9dab', pointerEvents: 'none' } : undefined}>
             <Download /> Download patch
@@ -173,10 +178,10 @@ export function JobPage() {
         {/* The result page states these figures itself; the strip above it would say everything twice. */}
         {scan && <ScanSection job={job} view={view} selected={selected} onSelect={setSelected} />}
 
-        {!scan && current !== 'result' && <Kpis job={job} view={view} />}
+        {!scan && current !== 'result' && <Kpis job={job} view={view} recorded={recorded} />}
 
-        {!scan && current === 'calls' && <CallsSection view={view} />}
-        {!scan && current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} />}
+        {!scan && current === 'calls' && <CallsSection view={view} recorded={recorded} />}
+        {!scan && current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} recorded={recorded} />}
         {!scan && current === 'fix' && <FixSection view={view} selected={selected} onSelect={setSelected} />}
         {!scan && current === 'result' && <ResultSection jobId={jobId!} done={done} findings={view.findings} />}
         {!scan && current === 'diff' && <DiffSection jobId={jobId!} done={done} />}

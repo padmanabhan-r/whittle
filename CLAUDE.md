@@ -31,7 +31,15 @@ before and after neatlogs traces, a diff and an optional pull request.
   language and the agent that reads them; runs nothing), `jobs.py` (the
   job runner and event log), `server.py` (the contract's endpoints),
   `delivery.py` (pull requests from the bot account), `evaluate.py` (answer
-  scores). Samples live in `samples/<id>/` with a `whittle.json` manifest.
+  scores). `JobRunner.record` takes calls recorded by the command-line tool
+  (`POST /api/recordings`) and runs the detectors on them; nothing is run.
+- Command-line tool: `cli/`, the `whittle-ai` npm package, Node 18 or newer, no
+  dependencies. `whittle run -- <command>` records the model calls of a program
+  on the developer's machine through a proxy on localhost; `whittle analyze`
+  sends the recording to the API. Tests: `npm test` in `cli/`. Its price table
+  `cli/src/prices.json` is written from `pricing.py` by
+  `uv run python -m costcutter.export_prices`; a backend test fails when the
+  two differ. Samples live in `samples/<id>/` with a `whittle.json` manifest.
 - Contract with the UI: `docs/api-contract.md`, defined in code by
   `api/costcutter/contract.py`. Change the models, the document and the mock
   together, then regenerate the schemas.

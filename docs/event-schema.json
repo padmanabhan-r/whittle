@@ -755,7 +755,8 @@
         "saved",
         "nothing_to_fix",
         "no_saving",
-        "scanned"
+        "scanned",
+        "measured"
       ],
       "title": "Outcome",
       "type": "string"

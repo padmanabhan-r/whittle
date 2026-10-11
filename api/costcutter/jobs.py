@@ -50,10 +50,13 @@ from costcutter.contract import (
     UploadSource,
     TaskComparison,
     TaskRun,
+    RecordingCreate,
+    RecordingSource,
 )
 from costcutter.evaluate import TaskScore, phase_score, score_run
 from costcutter.proxy.recorder import trace_url
-from costcutter.proxy.store import DATA_ROOT, CallRecord, load_phase, run_path
+from costcutter import pricing
+from costcutter.proxy.store import DATA_ROOT, CallRecord, RunStore, load_phase, run_path
 from costcutter.sandbox.runner import SandboxRunner
 
 EVENTS: TypeAdapter[Event] = TypeAdapter(Event)
@@ -348,6 +351,67 @@ class JobRunner:
         self.jobs[job_id] = ctx
         ctx.task = asyncio.create_task(self._guard(ctx, self.scan(ctx) if body.mode is JobMode.SCAN else self.diagnose(ctx)))
         return job
+
+    def record(self, body: RecordingCreate, trace=None) -> tuple[JobContext, float]:
+        """Take calls that were recorded on the owner's machine and read them for waste.
+
+        Nothing is run and there is no code here to patch, so the job ends with its findings.
+        The cost of every call is worked out from its token counts; the sender's figure is not used.
+        `trace(job_id, run_id)` opens a neatlogs trace for one run, when tracing is set up.
+        """
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+        stamp = now_iso()
+        source = RecordingSource(type="recording", name=body.name, command=body.command, client=body.client)
+        job = Job(id=job_id, state=JobState.QUEUED, mode=JobMode.RECORDED, source=source, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
+        ctx = JobContext(job, [Task(run.id, body.command or "") for run in body.runs], body.command or "", Language.OTHER, "anthropic", None, False)
+        self.jobs[job_id] = ctx
+        ctx.set_state(JobState.BASELINE)
+        results: list[RunResult] = []
+        running = 0.0
+        for run, task in zip(body.runs, ctx.tasks):
+            store = RunStore(job_id, "baseline", run.id)
+            recorder = trace(job_id, run.id) if trace else None
+            for call in run.calls:
+                usage = {k: max(0, int(call.usage.get(k, 0) or 0)) for k in ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens")}
+                ok = call.status < 400
+                cost = round(pricing.cost_usd(call.model, **usage), 8) if ok else 0.0
+                span_id = recorder.record_call(provider=call.provider, model=call.model, usage=usage, duration_ms=call.duration_ms, streaming=call.streaming,
+                                               cost_usd=cost, error=call.error, request=call.request, response=call.response) if recorder else None
+                rec = store.append(provider=call.provider, model=call.model, streaming=call.streaming, status=call.status, duration_ms=call.duration_ms, cost_usd=cost,
+                                   usage=usage if ok else {}, request=call.request, response=call.response, trace_id=recorder.trace_id if recorder else None, span_id=span_id,
+                                   error=call.error, extra={"recorded_at": call.ts, "price_known": pricing.known(call.model)})
+                running = round(running + cost, 6)
+                ctx.emit("llm.call", phase="baseline", task_id=run.id, call_index=rec.seq, model=call.model, cost_usd=cost, running_cost_usd=running, duration_ms=int(call.duration_ms),
+                         input_tokens=usage["input_tokens"] if ok else 0, output_tokens=usage["output_tokens"] if ok else 0,
+                         cache_read_tokens=usage["cache_read_tokens"] if ok else 0, cache_write_tokens=usage["cache_write_tokens"] if ok else 0)
+            if recorder:
+                recorder.close()
+            records = store.records()
+            cost = round(sum(r.cost_usd for r in records), 6)
+            trace_id = recorder.trace_id if recorder else ""
+            results.append(RunResult(task, run.exit_code, "", "", records, trace_id, cost, run.duration_ms))
+            ctx.emit("run.completed", phase="baseline", task_id=run.id, cost_usd=cost, passed=run.exit_code == 0, trace_id=trace_id, trace_url=trace_url(trace_id) if trace_id else "")
+        baseline = PhaseResult("baseline", results)
+        ctx.phases["baseline"] = baseline
+        job.summary.baseline = baseline.totals()
+        ctx.set_state(JobState.DIAGNOSING)
+        ctx.step("thought", f"{len(results)} recorded run{'s' if len(results) != 1 else ''} received from the command-line tool: {baseline.totals().llm_calls} model calls, ${baseline.totals().cost_usd:.4f}. Reading them for repeated cost.")
+        unpriced = sorted({r.model for run in results for r in run.records if not pricing.known(r.model)})
+        if unpriced:
+            ctx.step("thought", f"No price is listed for {', '.join(unpriced)}, so those calls are charged at the top rate and their cost is an upper estimate.")
+        findings = analyze({run.task.id: run.records for run in results}, baseline.cost_per_run())
+        ctx.findings = findings
+        job.summary.findings_total = len(findings)
+        for finding in findings:
+            ctx.finding_event(finding)
+        if not findings:
+            ctx.step("thought", "No waste worth fixing in these calls.")
+        job.outcome = Outcome.MEASURED if findings else Outcome.NOTHING_TO_FIX
+        ctx.set_state(JobState.DONE)
+        ctx.emit("job.done", outcome=job.outcome, summary=job.summary)
+        per_run = baseline.cost_per_run()
+        saving = min(100.0, round(100 * sum(f.estimated_saving_usd_per_run for f in findings) / per_run, 1)) if per_run > 0 else 0.0
+        return ctx, saving
 
     async def _guard(self, ctx: JobContext, coro) -> None:
         try:

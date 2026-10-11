@@ -19,9 +19,11 @@ interface Props {
   view: RunView
   selected: string | null
   onSelect: (id: string) => void
+  /** The calls came from the command-line tool: there is no code here to fix. */
+  recorded?: boolean
 }
 
-export function FindingsSection({ jobId, view, selected, onSelect }: Props) {
+export function FindingsSection({ jobId, view, selected, onSelect, recorded = false }: Props) {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,10 +59,11 @@ export function FindingsSection({ jobId, view, selected, onSelect }: Props) {
     return (
       <div className="panel">
         <div className="empty">
-          <h2>{view.state === 'diagnosing' ? 'Reading the traces' : 'No findings yet'}</h2>
+          <h2>{recorded && view.done ? 'No repeated waste in this recording' : view.state === 'diagnosing' ? 'Reading the traces' : 'No findings yet'}</h2>
           <p>
-            After the baseline, Whittle reads every traced call and lists the waste it can prove, with the
-            evidence and the place in the code. You then choose what to fix.
+            {recorded
+              ? 'Whittle read every recorded call for prompts that never hit the cache, repeated requests, duplicate tool calls, oversized models and growing context, and found none worth fixing. Recording several runs shows waste that repeats between them.'
+              : 'After the baseline, Whittle reads every traced call and lists the waste it can prove, with the evidence and the place in the code. You then choose what to fix.'}
           </p>
         </div>
       </div>
@@ -83,7 +86,9 @@ export function FindingsSection({ jobId, view, selected, onSelect }: Props) {
           </>
         ) : (
           <span className="note">
-            {view.done ? 'Final status of each finding.' : 'Fixes are being applied one at a time.'}
+            {recorded
+              ? 'Read from the calls recorded on your machine. Whittle holds no code for this recording, so nothing was changed.'
+              : view.done ? 'Final status of each finding.' : 'Fixes are being applied one at a time.'}
           </span>
         )}
         <span className="spacer" />
@@ -96,7 +101,7 @@ export function FindingsSection({ jobId, view, selected, onSelect }: Props) {
             <tr>
               {canPick && <th><span className="visually-hidden">Fix</span></th>}
               <th>#</th><th>Finding</th><th>Kind</th><th className="r">Est. per run</th>
-              <th className="r">Share</th><th>Status</th>
+              <th className="r">Share</th>{!recorded && <th>Status</th>}
             </tr>
           </thead>
           <tbody>
@@ -125,7 +130,7 @@ export function FindingsSection({ jobId, view, selected, onSelect }: Props) {
                 <td>{KIND_LABEL[finding.kind] ?? finding.kind}</td>
                 <td className="r">−{finding.estimated_saving_usd_per_run.toFixed(4)}</td>
                 <td className="r">{pct(finding.estimated_saving_pct)}</td>
-                <td>{statusTag(finding, liveId === finding.id && !view.done)}</td>
+                {!recorded && <td>{statusTag(finding, liveId === finding.id && !view.done)}</td>}
               </tr>
             ))}
           </tbody>

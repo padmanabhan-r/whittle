@@ -3,7 +3,7 @@ import type { Phase } from '../../lib/api'
 import { int, KIND_LABEL, usd } from '../../lib/format'
 import type { RunView } from '../../lib/useJob'
 
-export function CallsSection({ view }: { view: RunView }) {
+export function CallsSection({ view, recorded = false }: { view: RunView; recorded?: boolean }) {
   const [phase, setPhase] = useState<Phase>('baseline')
   const [task, setTask] = useState('all')
   const [onlyFlagged, setOnlyFlagged] = useState(false)
@@ -40,12 +40,12 @@ export function CallsSection({ view }: { view: RunView }) {
   return (
     <div className="panel">
       <div className="toolbar">
-        <div className="seg" role="group" aria-label="Run">
+        {!recorded && <div className="seg" role="group" aria-label="Run">
           <button aria-pressed={phase === 'baseline'} onClick={() => setPhase('baseline')}>Baseline</button>
           <button aria-pressed={phase === 'after'} onClick={() => setPhase('after')} disabled={view.calls.after.length === 0}>After</button>
-        </div>
+        </div>}
         <select className="pick" aria-label="Task" value={task} onChange={(e) => setTask(e.target.value)}>
-          <option value="all">All tasks</option>
+          <option value="all">{recorded ? 'All runs' : 'All tasks'}</option>
           {tasks.map((t) => <option key={t} value={t}>{t.replace('task-', 'Task ')}</option>)}
         </select>
         {phase === 'baseline' && view.findings.length > 0 && (

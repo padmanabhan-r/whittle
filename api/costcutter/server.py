@@ -30,6 +30,8 @@ from costcutter.contract import (
     JobMode,
     JobState,
     PullRequest,
+    RecordingCreate,
+    RecordingResult,
     Sample,
     SampleList,
     Upload,
@@ -38,10 +40,12 @@ from costcutter import uploads as uploads_module
 from costcutter.evaluate import model_judge
 from costcutter.jobs import JobContext, JobRunner
 from costcutter.proxy.app import CreateSessionBody, create_app as create_proxy
+from costcutter.proxy.recorder import JobTraceRecorder
 from costcutter.proxy.settings import ProxySettings
 
 PORT = int(os.environ.get("WHITTLE_API_PORT", "8787"))
 HEARTBEAT_SECONDS = 15
+MAX_RECORDING_BYTES = 40 * 1024 * 1024
 
 
 class ApiError(HTTPException):
@@ -130,6 +134,23 @@ def create_app() -> FastAPI:
         except ValueError as exc:
             raise ApiError(422, "invalid_request", str(exc))
 
+    def open_trace(job_id: str, run_id: str) -> JobTraceRecorder:
+        return JobTraceRecorder(job_id=job_id, phase="baseline", task_id=run_id, neatlogs_api_key=settings.neatlogs_api_key,
+                                neatlogs_endpoint=settings.neatlogs_endpoint, workflow_prefix=settings.neatlogs_workflow_prefix)
+
+    @app.post("/api/recordings", response_model=RecordingResult, status_code=201, responses=ERRORS)
+    async def create_recording(request: Request, body: RecordingCreate) -> RecordingResult:
+        """Calls recorded on the sender's machine by `whittle run`. They are read for waste; nothing is run here."""
+        if int(request.headers.get("content-length") or 0) > MAX_RECORDING_BYTES:
+            raise ApiError(413, "recording_too_large", f"The recording is larger than {MAX_RECORDING_BYTES // (1024 * 1024)} MB. Record fewer runs.")
+        if not any(run.calls for run in body.runs):
+            raise ApiError(422, "no_calls", "The recording holds no model calls.")
+        if len({run.id for run in body.runs}) != len(body.runs):
+            raise ApiError(422, "invalid_request", "Each run in a recording needs its own id.")
+        ctx, saving = await asyncio.to_thread(runner.record, body, open_trace)
+        totals = ctx.job.summary.baseline
+        return RecordingResult(job_id=ctx.job.id, llm_calls=totals.llm_calls, cost_usd=totals.cost_usd, cost_per_run_usd=totals.cost_per_run_usd, saving_pct=saving, findings=ctx.findings)
+
     @app.get("/api/jobs/{job_id}", response_model=Job, responses=ERRORS)
     async def read_job(job_id: str) -> Job:
         return get_job(job_id).job
@@ -183,20 +204,28 @@ def create_app() -> FastAPI:
         require_done(ctx)
         if ctx.job.mode is JobMode.SCAN:
             raise ApiError(409, "scan_only", "This job read the code without running it, so there is no before and after to compare.")
+        if ctx.job.mode is JobMode.RECORDED:
+            raise ApiError(409, "recorded_only", "This job read calls recorded on your machine. Nothing was changed, so there is no before and after to compare.")
         if "after" not in ctx.phases:
             raise ApiError(409, "job_not_done", "The job ended before any fix was tried, so there is nothing to compare.")
         return runner.comparison(ctx)
+
+    def require_code(ctx: JobContext) -> None:
+        if ctx.job.mode is JobMode.RECORDED:
+            raise ApiError(409, "recorded_only", "This job read calls recorded on your machine; Whittle holds no code for it, so there is no diff or patch.")
 
     @app.get("/api/jobs/{job_id}/diff", response_model=Diff, responses=ERRORS)
     async def read_diff(job_id: str) -> Diff:
         ctx = get_job(job_id)
         require_done(ctx)
+        require_code(ctx)
         return ctx.diff()
 
     @app.get("/api/jobs/{job_id}/patch", response_class=PlainTextResponse, responses=ERRORS)
     async def download_patch(job_id: str) -> PlainTextResponse:
         ctx = get_job(job_id)
         require_done(ctx)
+        require_code(ctx)
         return PlainTextResponse(ctx.diff().unified, media_type="text/x-diff", headers={"Content-Disposition": f'attachment; filename="whittle-{job_id}.patch"'})
 
     @app.post("/api/jobs/{job_id}/pr", response_model=PullRequest, status_code=201, responses=ERRORS)

@@ -3,7 +3,8 @@ import type { Job } from '../../lib/api'
 import { pct, usd } from '../../lib/format'
 import type { RunView } from '../../lib/useJob'
 
-export function Kpis({ job, view }: { job: Job | null; view: RunView }) {
+export function Kpis({ job, view, recorded = false }: { job: Job | null; view: RunView; recorded?: boolean }) {
+  const possible = view.findings.reduce((s, f) => s + f.estimated_saving_usd_per_run, 0)
   const baseline = job?.summary.baseline ?? null
   const after = job?.summary.after ?? null
   const base = baseline?.cost_per_run_usd ?? null
@@ -35,11 +36,29 @@ export function Kpis({ job, view }: { job: Job | null; view: RunView }) {
               ? `${view.completed.baseline.length} of 5 tasks run`
               : base !== null && now !== null && now < base
                 ? <>was <span className="was">{usd(base)}</span></>
-                : 'before any fix'}
+                : recorded ? `over ${baseline?.runs ?? 1} recorded run${baseline?.runs === 1 ? '' : 's'}` : 'before any fix'}
           </div>
         </dd>
       </div>
-      <div className="kpi">
+      {recorded && (
+        <>
+          <div className="kpi">
+            <dt>Could be lower by</dt>
+            <dd>
+              <div className={`value ${possible > 0 ? 'good' : ''}`}>{base && possible > 0 ? pct(Math.min(100, (possible / base) * 100)) : '–'}</div>
+              <div className="sub">{possible > 0 ? `about ${usd(possible)} a run, estimated` : 'no repeated waste found'}</div>
+            </dd>
+          </div>
+          <div className="kpi">
+            <dt>Recorded total</dt>
+            <dd>
+              <div className="value">{baseline ? usd(baseline.cost_usd) : '–'}</div>
+              <div className="sub">{baseline ? `${(baseline.input_tokens + baseline.cache_read_tokens + baseline.cache_write_tokens).toLocaleString('en-US')} tokens in` : ''}</div>
+            </dd>
+          </div>
+        </>
+      )}
+      {!recorded && <div className="kpi">
         <dt>{after ? 'Lower' : 'Lower so far'}</dt>
         <dd>
           <div className={`value ${lower ? 'good' : ''}`}>{lower ? pct(lower) : '–'}</div>
@@ -47,8 +66,8 @@ export function Kpis({ job, view }: { job: Job | null; view: RunView }) {
             {view.findings.length === 0 ? 'no fixes yet' : `${applied} kept${reverted ? ` · ${reverted} reverted` : ''}`}
           </div>
         </dd>
-      </div>
-      <div className="kpi">
+      </div>}
+      {!recorded && <div className="kpi">
         <dt>Answer quality</dt>
         <dd>
           <div className="value">{quality !== null ? quality.toFixed(2) : baseQuality !== null ? baseQuality.toFixed(2) : '–'}</div>
@@ -56,12 +75,12 @@ export function Kpis({ job, view }: { job: Job | null; view: RunView }) {
             {quality !== null && baseQuality !== null ? `was ${baseQuality.toFixed(2)}` : 'scored after each fix'}
           </div>
         </dd>
-      </div>
+      </div>}
       <div className="kpi">
         <dt>Model calls</dt>
         <dd>
           <div className="value">{after ? after.llm_calls : (baseline?.llm_calls ?? view.calls.baseline.length)}</div>
-          <div className="sub">{after && baseline ? `was ${baseline.llm_calls}` : 'across all tasks'}</div>
+          <div className="sub">{after && baseline ? `was ${baseline.llm_calls}` : recorded ? 'across all runs' : 'across all tasks'}</div>
         </dd>
       </div>
     </dl>

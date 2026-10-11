@@ -1,0 +1,13 @@
+{
+  "name": "whittle-ai",
+  "version": "0.1.0",
+  "description": "See what your AI agent spends on every run. Records each model call your code makes, on your own machine, and shows where the money goes.",
+  "type": "module",
+  "bin": { "whittle": "bin/whittle.mjs" },
+  "files": ["bin", "src", "README.md"],
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node --test" },
+  "keywords": ["llm", "agents", "cost", "tokens", "anthropic", "openai", "prompt-caching", "observability"],
+  "repository": { "type": "git", "url": "git+https://github.com/padmanabhan-r/whittle.git", "directory": "cli" },
+  "license": "MIT"
+}

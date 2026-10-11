@@ -498,7 +498,7 @@ table.ledger tr[aria-selected='true'] td {
 }
 .steps li {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 64px minmax(0, 1fr);
   gap: 10px;
   padding: 6px 0;
   font-size: 13.5px;
@@ -528,6 +528,10 @@ table.ledger tr[aria-selected='true'] td {
 }
 .steps li.result .text {
   color: var(--mute);
+}
+.steps .text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .steps .text.code {
   font: 400 12.5px/1.6 var(--mono);

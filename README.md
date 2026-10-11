@@ -40,13 +40,16 @@ by **team Attention Heads** (Padmanabhan and Sethuraman).
 |---|---|
 | Web UI: landing page and app | Built |
 | API contract and mock server | Built and tested |
-| Recording proxy, sandbox, sample agents | Not built |
-| Waste detectors and the fixing agent | Not built |
-| Pull request delivery, deployment | Not built |
+| Recording proxy and Docker sandbox | Built and tested |
+| Python sample agent with five kinds of waste | Built |
+| Waste detectors and code locator | Built and tested |
+| Fixing agent, job runner, real API | Built; one real job ran end to end |
+| Trace links in neatlogs | Built, waiting on a write key |
+| Pull request delivery | Written, untested |
+| TypeScript sample, deployment | Not built |
 
-**Every figure the app shows today is invented.** The UI runs against a mock
-server that plays one scripted job, and each page carries a "mock data" tag.
-Nothing here is a measured result yet.
+`./start.sh` runs the real backend. `WHITTLE_MOCK=1 ./start.sh` runs the mock,
+whose figures are invented and tagged "mock data".
 
 ## Run it
 
@@ -60,6 +63,9 @@ cd whittle
 
 Open **http://localhost:5173**. The script installs what is missing, then
 starts the API on port 8787 and the UI on port 5173. Press Ctrl+C to stop both.
+The real backend needs Docker running and, in `.env.local`, a model key for
+the sample runs (`ANTHROPIC_API_KEY`) and one for Whittle's own agent
+(`WHITTLE_PROVIDER`, `WHITTLE_MODEL`, see `.env.example`).
 
 1. On the landing page, choose **Run a sample agent**.
 2. Pick a sample and press **Run**. "Real pace" takes about a minute.
@@ -70,6 +76,25 @@ starts the API on port 8787 and the UI on port 5173. Press Ctrl+C to stop both.
 
 If a port is taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 
+## A real run
+
+On 11 October the sample research agent went through Whittle on this machine.
+Five tasks, baseline and after; Whittle's own agent on `claude-sonnet-5-5`.
+
+![Result of a real run: 82.3% lower cost per run](assets/screens/real-result.png)
+
+| | Before | After |
+|---|---|---|
+| Cost per run | $0.0302 | $0.0053 (82.3% lower) |
+| Model calls over 5 runs | 30 | 20 |
+| Cache-read tokens | 0 | 28,170 |
+| Answer quality (keyword check) | 1.00 | 1.00 |
+
+Four fixes were kept. The fifth, for the duplicate tool call, was tried and
+reverted because its rerun was not cheaper. Trace links are not in the
+screenshot yet; publishing traces needs a neatlogs write key that is being set
+up.
+
 ## What it looks like
 
 | Landing page | Fix and verify |
@@ -78,7 +103,7 @@ If a port is taken, set another: `API_PORT=8790 WEB_PORT=5180 ./start.sh`.
 | **Model calls** | **Result** |
 | ![Model calls](assets/screens/calls.jpg) | ![Result](assets/screens/result.jpg) |
 
-Screenshots are of the mock run.
+These four screenshots are of the mock run; the one above is real.
 
 ## How it works
 

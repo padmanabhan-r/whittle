@@ -41,7 +41,8 @@ trap cleanup EXIT INT TERM
 
 (cd api && exec env -u VIRTUAL_ENV WHITTLE_API_PORT="$API_PORT" uv run uvicorn "$APP" --host 0.0.0.0 --port "$API_PORT" --log-level warning) &
 pids+=($!)
-(cd web && VITE_API_URL="http://localhost:$API_PORT" exec npm run dev -- --port "$WEB_PORT" --strictPort) &
+# On a server, set VITE_API_URL to the address browsers reach the API at, e.g. http://<public-ip>:8787
+(cd web && VITE_API_URL="${VITE_API_URL:-http://localhost:$API_PORT}" exec npm run dev -- --host 0.0.0.0 --port "$WEB_PORT" --strictPort) &
 pids+=($!)
 
 echo

@@ -550,6 +550,9 @@ class JobRunner:
         except RemoteGone as exc:
             if ctx.job.state not in TERMINAL_STATES:
                 ctx.fail(exc.code, str(exc))
+        except CloneFailed as exc:  # a measured job; a scan catches it where it clones
+            if ctx.job.state not in TERMINAL_STATES:
+                ctx.fail("clone_failed", str(exc))
         except asyncio.CancelledError:
             if ctx.job.state not in TERMINAL_STATES:
                 ctx.fail("cancelled", "The job was stopped from the command-line tool before it finished.")
@@ -598,8 +601,8 @@ class JobRunner:
         ctx.set_state(JobState.CLONING)
         try:
             await asyncio.to_thread(self._clone, ctx)
-        except subprocess.CalledProcessError as exc:
-            ctx.fail("clone_failed", f"The repository could not be cloned. Is it public, and is the address right? {(exc.stderr or '').strip()[-200:]}")
+        except CloneFailed as exc:
+            ctx.fail("clone_failed", str(exc))
             return
         ctx.set_state(JobState.DIAGNOSING)
         sites, files_scanned = await asyncio.to_thread(scanner.find_call_sites, ctx.repo)
@@ -765,7 +768,8 @@ class JobRunner:
         job.summary.baseline = baseline.totals()
 
         ctx.set_state(JobState.DIAGNOSING)
-        ctx.step("thought", f"{len(baseline.runs)} baseline runs are traced: {baseline.totals().llm_calls} model calls, ${baseline.totals().cost_usd:.4f}. Reading them for repeated cost.")
+        n_runs, n_calls = len(baseline.runs), baseline.totals().llm_calls
+        ctx.step("thought", f"{n_runs} baseline run{' is' if n_runs == 1 else 's are'} traced: {n_calls} model call{'' if n_calls == 1 else 's'}, ${baseline.totals().cost_usd:.4f}. Reading {'it' if n_runs == 1 else 'them'} for repeated cost.")
         await self._check_with_neatlogs(ctx, baseline)
         runs = {run.task.id: run.records for run in baseline.runs}
         findings = await asyncio.to_thread(analyze, runs, baseline.cost_per_run(), lambda draft, anchors: self._locate(ctx, draft, anchors))
@@ -811,9 +815,16 @@ class JobRunner:
         else:
             assert isinstance(source, GithubSource)
             cmd = ["git", "clone", "-q", "--depth", "50", source.repo_url, str(ctx.repo)]
-            subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300)
-            if source.ref:
-                ctx.git("checkout", "-q", source.ref)
+            # Never wait at a password prompt: a private or missing repository must fail at once.
+            env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "true"}
+            try:
+                subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=300, env=env)
+            except subprocess.TimeoutExpired:
+                raise CloneFailed(clone_failure(source.repo_url, "", timed_out=True)) from None
+            except subprocess.CalledProcessError as exc:
+                raise CloneFailed(clone_failure(source.repo_url, exc.stderr or "")) from None
+            if source.ref and ctx.git("checkout", "-q", source.ref, check=False).returncode != 0:
+                raise CloneFailed(f"The repository was downloaded, but it has no branch, tag or commit called {source.ref!r}. Check the name, or leave it empty to use the default branch.")
         # Build output and Whittle's own entry point must never land in the diff, whatever the repository ignores.
         exclude = ctx.repo / ".git" / "info" / "exclude"
         exclude.parent.mkdir(parents=True, exist_ok=True)
@@ -1000,6 +1011,25 @@ class JobRunner:
 
 def _task_run(run: RunResult) -> TaskRun:
     return TaskRun(cost_usd=run.cost_usd, total_tokens=run.total_tokens, llm_calls=len(run.records), duration_ms=run.duration_ms, passed=bool(run.score and run.score.passed), trace_id=run.trace_id, trace_url=trace_url(run.trace_id))
+
+
+class CloneFailed(Exception):
+    """A repository could not be fetched. The message is written for the person who gave the address."""
+
+
+def clone_failure(repo_url: str, stderr: str, timed_out: bool = False) -> str:
+    """Why a clone failed, in a sentence a visitor can act on. Git's own output is never shown."""
+    name = repo_url.rstrip("/").removesuffix(".git").replace("https://github.com/", "")
+    low = stderr.lower()
+    if timed_out:
+        return f"{name} took more than five minutes to download, so Whittle stopped. It may be too large to run here. Try a smaller repository, or upload just the agent's code as a zip."
+    if "not found" in low or "could not read username" in low or "authentication failed" in low or "terminal prompts disabled" in low:
+        return f"GitHub has no public repository called {name}. Check the spelling of the address. If the repository is private, Whittle cannot read it: make it public, or upload the code as a zip."
+    if "could not resolve host" in low or "unable to access" in low or "timed out" in low or "connection" in low:
+        return "GitHub could not be reached from Whittle's server just now. Nothing is wrong with your repository. Try again in a minute."
+    if "not valid" in low or "does not appear to be a git repository" in low:
+        return f"{repo_url} is not the address of a GitHub repository. It should look like https://github.com/owner/name."
+    return f"{name} could not be downloaded from GitHub. Check that the address is right and the repository is public, then try again."
 
 
 def _last_line(text: str) -> str:

@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react'
 import { External } from '../../components/Icons'
 import { api } from '../../lib/api'
-import type { Comparison, Finding } from '../../lib/api'
+import type { Comparison, Finding, Job } from '../../lib/api'
 import { int, pct, usd, usd2 } from '../../lib/format'
 
-export function ResultSection({ jobId, done, findings }: { jobId: string; done: boolean; findings: Finding[] }) {
+export function ResultSection({ jobId, done, findings, job }: { jobId: string; done: boolean; findings: Finding[]; job: Job | null }) {
+  // A job that found nothing, or where no fix was tried, has no after run: that is a result, not an error.
+  const noAfter = done && !!job && !job.summary.after
   const [data, setData] = useState<Comparison | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!done) return
+    if (!done || noAfter) return
     api.comparison(jobId).then(setData).catch((e) => setError(e.message))
-  }, [jobId, done])
+  }, [jobId, done, noAfter])
 
   if (!done) {
     return (
@@ -23,6 +25,7 @@ export function ResultSection({ jobId, done, findings }: { jobId: string; done: 
       </div>
     )
   }
+  if (noAfter) return <NothingChanged job={job!} findings={findings} />
   if (error) return <div className="notice" role="alert"><div><strong>The comparison could not be loaded</strong>{error}</div></div>
   if (!data) return <div className="panel"><div className="empty"><p>Loading the comparison…</p></div></div>
 
@@ -152,5 +155,49 @@ export function ResultSection({ jobId, done, findings }: { jobId: string; done: 
         </div>
       </div>
     </>
+  )
+}
+
+const CHECKS = [
+  'a prompt prefix that changes on every call, so it is never cached',
+  'the same tool called twice with the same input',
+  'context that grows on every turn',
+  'a large model used for a small step',
+  'a failed call retried unchanged',
+]
+
+/** The job measured the code and changed nothing. Say what was measured and why nothing was changed. */
+function NothingChanged({ job, findings }: { job: Job; findings: Finding[] }) {
+  const base = job.summary.baseline
+  const calls = base?.llm_calls ?? 0
+  const runs = base?.runs ?? 0
+  const found = findings.length
+  return (
+    <div className="panel">
+      <div className="empty">
+        <h2>{found === 0 ? 'Nothing worth fixing' : 'No fix was applied'}</h2>
+        {base && (
+          <p>
+            Whittle ran {runs} {runs === 1 ? 'task' : 'tasks'} and recorded {calls} model {calls === 1 ? 'call' : 'calls'}:{' '}
+            <strong>{usd(base.cost_per_run_usd)} a run</strong>, {int(base.input_tokens + base.cache_read_tokens + base.cache_write_tokens)} tokens in and {int(base.output_tokens)} out.
+          </p>
+        )}
+        {found === 0 ? (
+          <>
+            <p>None of the five checks found waste it could prove in those calls:</p>
+            <ul className="checks">{CHECKS.map((c) => <li key={c}>{c}</li>)}</ul>
+            <p>
+              {calls <= 2
+                ? `With only ${calls} model ${calls === 1 ? 'call' : 'calls'} there is little to compare. Waste shows up across repeated calls, so try tasks that make the agent loop or use its tools, or add more tasks.`
+                : 'The code was left exactly as you gave it. Every recorded call is on the Calls page.'}
+            </p>
+          </>
+        ) : (
+          <p>
+            Whittle found {found} {found === 1 ? 'thing' : 'things'} to fix, and none was applied, so there is no before and after to compare. They are listed on the Findings page.
+          </p>
+        )}
+      </div>
+    </div>
   )
 }

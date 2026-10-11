@@ -59,7 +59,7 @@ def summarise(readings: list[TraceReading], own_calls: int, own_cost: float) -> 
     done = [r for r in readings if r.status == "finalized" and r.llm_calls > 0]
     if not done:
         states = sorted({r.status for r in readings})
-        return f"neatlogs holds {len(readings)} trace ids for this baseline but has not finished processing them ({', '.join(states)}); using the proxy's own record of {own_calls} calls."
+        return f"neatlogs holds {len(readings)} trace id{'' if len(readings) == 1 else 's'} for this baseline but has not finished processing {'it' if len(readings) == 1 else 'them'} yet; using the proxy's own record of {own_calls} call{'' if own_calls == 1 else 's'}."
     calls, cost = sum(r.llm_calls for r in done), sum(r.cost_usd for r in done)
     if len(done) < len(readings):
         return f"neatlogs has processed {len(done)} of {len(readings)} traces so far: {calls} model calls, ${cost:.4f}. The rest are still processing."

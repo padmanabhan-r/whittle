@@ -157,3 +157,20 @@ def test_failures_explain_themselves():
     code, _ = baseline_failure(PhaseResult("baseline", [run([])]), "openai")
     assert code == "no_calls_captured"
     assert _last_line(" ERROR  packages field missing or empty\nFor help, run: pnpm help install\n") == "ERROR  packages field missing or empty"
+
+
+def test_a_failed_clone_is_explained_without_git_output():
+    """A repository that cannot be fetched gets a sentence to act on, never git's own error text."""
+    from costcutter.jobs import clone_failure
+
+    url = "https://github.com/someone/Missing/"
+    missing = clone_failure(url, "remote: Repository not found.\nfatal: repository 'https://github.com/someone/Missing/' not found")
+    assert "someone/Missing" in missing and "private" in missing and "zip" in missing
+    private = clone_failure(url, "fatal: could not read Username for 'https://github.com': terminal prompts disabled")
+    assert private == missing  # GitHub does not say which, so neither do we
+    offline = clone_failure(url, "fatal: unable to access 'https://github.com/someone/Missing/': Could not resolve host: github.com")
+    assert "Try again" in offline and "Nothing is wrong with your repository" in offline
+    slow = clone_failure(url, "", timed_out=True)
+    assert "five minutes" in slow
+    for message in (missing, offline, slow, clone_failure(url, "fatal: something new")):
+        assert "fatal" not in message and "remote:" not in message

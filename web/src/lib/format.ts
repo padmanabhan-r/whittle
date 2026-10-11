@@ -52,7 +52,7 @@ export const FAILURE_TITLE: Record<string, string> = {
   model_calls_failed: 'The model calls failed',
   run_failed: 'The command stopped with an error',
   no_calls_captured: 'No model calls were seen',
-  clone_failed: 'The repository could not be cloned',
+  clone_failed: 'The repository could not be downloaded',
   nothing_to_scan: 'There was nothing to read',
   unsupported_language: 'This language cannot be run yet',
   bad_workdir: 'The folder to run from was not found',

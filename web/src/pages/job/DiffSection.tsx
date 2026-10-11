@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 import type { Diff } from '../../lib/api'
 
-export function DiffSection({ jobId, done }: { jobId: string; done: boolean }) {
+export function DiffSection({ jobId, done, nothingFound = false }: { jobId: string; done: boolean; nothingFound?: boolean }) {
   const [diff, setDiff] = useState<Diff | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,7 +24,9 @@ export function DiffSection({ jobId, done }: { jobId: string; done: boolean }) {
   if (error) return <div className="notice" role="alert"><div><strong>The diff could not be loaded</strong>{error}</div></div>
   if (!diff) return <div className="panel"><div className="empty"><p>Loading the diff…</p></div></div>
   if (diff.files.length === 0) {
-    return <div className="panel"><div className="empty"><h2>No changes were kept</h2><p>Every fix was reverted or skipped, so there is nothing to apply.</p></div></div>
+    return nothingFound
+      ? <div className="panel"><div className="empty"><h2>Nothing was changed</h2><p>No waste was found, so the code is exactly as you gave it.</p></div></div>
+      : <div className="panel"><div className="empty"><h2>No changes were kept</h2><p>Every fix was reverted or skipped, so there is nothing to apply.</p></div></div>
   }
 
   return (

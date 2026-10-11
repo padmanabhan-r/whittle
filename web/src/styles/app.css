@@ -1077,3 +1077,30 @@ details.measure-own > summary {
   font-size: 12px;
   color: var(--mute);
 }
+
+/* The list of checks on a result with nothing to fix */
+.empty .checks {
+  margin: 10px 0 12px;
+  padding: 0;
+  list-style: none;
+  max-width: 46ch;
+  text-align: left;
+  color: var(--ink-2);
+  font-size: 14px;
+  display: grid;
+  gap: 4px;
+}
+.empty .checks li::before {
+  content: '✓ ';
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* The same strip when the job is waiting on a choice, not working */
+.scan-progress.waiting {
+  background: var(--amber-wash);
+  border-color: var(--amber-line);
+}
+.scan-progress.waiting .dot {
+  background: var(--amber-line);
+}

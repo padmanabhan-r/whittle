@@ -12,6 +12,7 @@ import { DiffSection } from './job/DiffSection'
 import { FindingsSection } from './job/FindingsSection'
 import { FixSection } from './job/FixSection'
 import { Inspector } from './job/Inspector'
+import { JobProgress } from './job/JobProgress'
 import { Kpis } from './job/Kpis'
 import { ResultSection } from './job/ResultSection'
 import { ScanSection } from './job/ScanSection'
@@ -181,13 +182,15 @@ export function JobPage() {
         {/* The result page states these figures itself; the strip above it would say everything twice. */}
         {scan && <ScanSection job={job} view={view} selected={selected} onSelect={setSelected} />}
 
+        {!scan && !recordedOnly && !done && !failed && view.seq > 0 && <JobProgress jobId={jobId!} view={view} />}
+
         {!scan && current !== 'result' && <Kpis job={job} view={view} recorded={recordedOnly} />}
 
         {!scan && current === 'calls' && <CallsSection view={view} recorded={recordedOnly} />}
         {!scan && current === 'findings' && <FindingsSection jobId={jobId!} view={view} selected={selected} onSelect={setSelected} recorded={recordedOnly} remote={recorded && !recordedOnly} />}
         {!scan && current === 'fix' && <FixSection view={view} selected={selected} onSelect={setSelected} remote={recorded} />}
-        {!scan && current === 'result' && <ResultSection jobId={jobId!} done={done} findings={view.findings} />}
-        {!scan && current === 'diff' && <DiffSection jobId={jobId!} done={done} />}
+        {!scan && current === 'result' && <ResultSection jobId={jobId!} done={done} findings={view.findings} job={job} />}
+        {!scan && current === 'diff' && <DiffSection jobId={jobId!} done={done} nothingFound={done && view.findings.length === 0} />}
       </main>
 
       <Inspector view={view} selected={selected} />

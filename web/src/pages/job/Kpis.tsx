@@ -35,7 +35,7 @@ export function Kpis({ job, view, recorded = false }: { job: Job | null; view: R
           </div>
           <div className="sub">
             {inBaseline
-              ? `${view.completed.baseline.length} of 5 tasks run`
+              ? `${view.completed.baseline.length} ${view.completed.baseline.length === 1 ? 'task' : 'tasks'} run so far`
               : base !== null && now !== null && now < base
                 ? <>was <span className="was">{usd(base)}</span></>
                 : recorded ? `over ${baseline?.runs ?? 1} recorded run${baseline?.runs === 1 ? '' : 's'}` : 'before any fix'}

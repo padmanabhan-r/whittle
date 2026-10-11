@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T23:02:00+05:30
+- **Last updated:** 2026-10-11T23:06:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `33b2502` at 11:01 PM IST on 11 October. 104 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `5cce54b` at 11:05 PM IST on 11 October. 106 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1221,6 +1221,36 @@ Padmanabhan, ended in a result page that called a failure a saving.
   clean. No backend change.
 - **Not verified:** the red "higher" ending on screen. No job has ended that
   way.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - 5cce54b
+The cause behind the job above: the task was wrong, not only the page.
+
+- **Decided:** a job's tasks must be ones the repository's own agent is built
+  to handle (Padmanabhan's call, on reading the question that job had asked).
+  The scan had proposed one invented question for a repository that carries
+  five tasks with known answers. The agent's documents could not answer it,
+  which is why the unchanged code scored 0.75 against itself.
+- **Shipped:** the scan agent takes three to five inputs from the repository:
+  its task list, evaluation set, fixtures, tests or README, word for word, and
+  only ones the code's own sources can answer. It says where they came from.
+- **Shipped:** `proposed_run.expects` and `expect` on a task. Where the
+  repository states an answer, the facts a correct answer must contain travel
+  with the task, and that task is scored against them, not by the model judge.
+  The agent is told never to guess them.
+- **Changed:** the measure form says which tasks are scored against facts and
+  which by the judge, and asks for at least three when the judge is used.
+- **Evidence:** a real scan of this repository on a local server
+  (`job_c40095854841`, `claude-sonnet-5-5`): three tasks taken from
+  `samples/research-agent-py/agent/tasks.py`, each with its expected facts, and
+  the reason "Inputs are from agent/tasks.py". The sandbox try passed.
+- **Tests:** `uv run pytest`, 52 passed, one new for this; `npx tsc --noEmit`,
+  `npm run lint` and `npm run build` in `web/`, clean.
+- **Not verified:** a measured job run with these tasks. A repository with no
+  task list of its own still gets invented tasks, scored by the judge.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

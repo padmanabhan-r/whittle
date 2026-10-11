@@ -126,6 +126,7 @@ How to work:
 - Before finishing, work out how to run the model-calling code once from a shell, because Whittle will run it in a sandbox to measure what it costs. Always give a run_command; never leave it to the reader. Prefer what the repository already has: a script in the package manifest, a command-line entry point, a documented command; read it to learn its arguments. When the model is only reached through a server, a web page, a queue or a scheduled job, build the entry point yourself with write_file, under .whittle/ (for example .whittle/run.ts or .whittle/run.py): a short script that imports the function that makes the model call, builds that function's input from the first command-line argument, calls it once and prints the result. Import the narrowest function that still makes the real call with the real prompt and model; do not copy the prompt or call the SDK yourself. The sandbox can reach only the model provider: where the function needs a database, object storage, a web framework's request context or another service, pass the smallest fake or fixture instead, or pick a call site that needs none. The code's own environment variables are not set in the sandbox except the model key; set in the script what it will not start without. A TypeScript file runs with `npx tsx .whittle/run.ts "{input}"` from the folder that holds package.json and tsconfig.json (tsconfig paths work); a Python file with `python .whittle/run.py "{input}"` from the folder its imports resolve from. Mention the entry point in run_reason.
 - When you call finish with a run_command, Whittle installs the repository's dependencies in the sandbox from its lockfile and runs your command once with the first of run_examples, with the provider's address and key pointed at Whittle. The result of finish tells you what happened. If the run did not reach a model call, read the output, fix the script or the command with write_file, and call finish again. You have three tries; the finding list is kept between them.
 - finish also reports: summary, two or three sentences on where this code's model spend goes overall. In good, list what the code already does to keep model spend down (an output cap, a cheap model for a simple step, a bounded retry, caching, a spend limit), each as one short sentence naming the file; leave it empty if there is nothing. run_command with {input} where a task input goes; run_workdir, the folder to run from when it is not the repository root; run_reason, where the command comes from; run_needs, the environment variables the code will not start without, by name; run_examples, two or three realistic inputs for this code's task, each one line; provider, the model provider the code calls (anthropic, openai, google, other), and key_env, the environment variable it reads its model key from, as the code names it.
+- finish also takes local_reason. Give it only when this code is better measured on its owner's own machine, with Whittle's command-line tool, than in the sandbox: it needs a database or other running services, a microphone, camera, GPU or other hardware, files or data that are not in the repository, a browser or a signed-in account, several secrets besides the model key, or an install too large to be practical. Write one plain sentence naming what this code needs, for a reader who is not a developer of it. Leave it empty for code the sandbox can run as it is. Still give the best run_command you can.
 
 What counts as waste you can see in code:
 - no_prompt_caching: a long, stable system prompt or tool list is sent on every call with no caching (Anthropic: no cache_control; OpenAI and Google cache automatically only when the stable part comes first and is long enough).
@@ -165,7 +166,8 @@ TOOLS: list[dict[str, Any]] = [
         "summary": {"type": "string"}, "good": {"type": "array", "items": {"type": "string"}},
         "run_command": {"type": "string", "description": "With {input} where a task input goes"}, "run_workdir": {"type": "string", "description": "Folder to run from; empty for the repository root"},
         "run_reason": {"type": "string"}, "run_needs": {"type": "array", "items": {"type": "string"}}, "run_examples": {"type": "array", "items": {"type": "string"}},
-        "provider": {"type": "string", "enum": ["anthropic", "openai", "google", "other"]}, "key_env": {"type": "string", "description": "The environment variable the code reads its model key from"}},
+        "provider": {"type": "string", "enum": ["anthropic", "openai", "google", "other"]}, "key_env": {"type": "string", "description": "The environment variable the code reads its model key from"},
+        "local_reason": {"type": "string", "description": "Only when the code is better measured on its owner's machine than in the sandbox: one sentence naming what it needs. Empty otherwise"}},
         "required": ["summary", "run_command"], "additionalProperties": False}},
 ]
 
@@ -319,6 +321,7 @@ def _closing(args: dict[str, Any]) -> dict[str, Any]:
         "run_examples": strings("run_examples", 400, 3),
         "provider": str(args.get("provider") or "").strip().lower()[:20],
         "key_env": re.sub(r"[^A-Za-z0-9_]", "", str(args.get("key_env") or ""))[:80],
+        "local_reason": " ".join(str(args.get("local_reason") or "").split())[:400],
     }
 
 
@@ -331,7 +334,7 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
             step("tool_call", f"who imports {file}", tool="repo.importers")
             step("tool_result", ", ".join(users))
     messages: list[Any] = [{"role": "user", "content": brief(sites, files_scanned, language, manifest_scripts(repo), used_by)}]
-    summary, count, tries, nudged = "", 0, 0, False
+    summary, count, tries, nudged, asked_local = "", 0, 0, False, False
     closing: dict[str, Any] = {}
     seen: set[tuple[str, str, int]] = set()
     for _ in range(MAX_TURNS):
@@ -346,7 +349,12 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
         for call in turn.tool_calls:
             name, args = call["name"], call["input"] or {}
             if name == "finish":
-                summary = str(args.get("summary", ""))
+                summary = str(args.get("summary", "")) or summary
+                if asked_local:  # the answer to the question put after the last failed try: keep the tried proposal as it was
+                    closing["local_reason"] = _closing(args)["local_reason"]
+                    results.append((call["id"], "ok"))
+                    done = True
+                    continue
                 closing = _closing(args)
                 if not closing["run_command"] and not nudged and try_run is not None:
                     nudged = True
@@ -359,9 +367,14 @@ def _scan_body(repo: Path, sites: list[CallSite], files_scanned: int, language: 
                     verdict = try_run(closing)
                     if verdict is not None:
                         step("tool_result", verdict[:300].replace("\n", " "))
-                        results.append((call["id"], verdict + (f"\nThis was try {tries} of {MAX_TRIES}." if tries < MAX_TRIES else "\nThat was the last try; the proposal is kept as it stands.")))
                         if tries < MAX_TRIES:
+                            results.append((call["id"], verdict + f"\nThis was try {tries} of {MAX_TRIES}."))
                             continue
+                        asked_local = True
+                        results.append((call["id"], verdict + "\nThat was the last try. The command is kept as it stands and will not be tried again. Call finish once more with local_reason: "
+                                        "one plain sentence, for the owner of this code, saying what it needs that the sandbox does not have, judged from these failures and from the code "
+                                        "(a database or another service, hardware, data outside the repository, a package layout the sandbox cannot build). Whittle will suggest measuring it on their own machine."))
+                        continue
                     else:
                         step("tool_result", str(closing.get("_check") or "The command ran in the sandbox."))
                 results.append((call["id"], "ok"))

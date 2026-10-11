@@ -174,3 +174,17 @@ def test_a_failed_clone_is_explained_without_git_output():
     assert "five minutes" in slow
     for message in (missing, offline, slow, clone_failure(url, "fatal: something new")):
         assert "fatal" not in message and "remote:" not in message
+
+
+def test_a_scan_can_advise_measuring_on_the_owners_machine():
+    """The scan agent may say the code needs things the sandbox lacks; a scan whose every try failed says so too."""
+    from costcutter.jobs import JobRunner
+    from costcutter.scan import _closing
+
+    closing = _closing({"summary": "s", "run_command": "python app.py", "local_reason": "It needs a microphone  and a Postgres database."})
+    assert JobRunner._proposal(closing, []).local_reason == "It needs a microphone and a Postgres database."
+    assert JobRunner._proposal(_closing({"summary": "s", "run_command": "python app.py"}), []).local_reason is None
+    failed = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": False, "_check": "The command ran but no model call arrived."}
+    assert "your own machine" in JobRunner._proposal(failed, []).local_reason
+    verified = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": True, "_check": "Ran in the sandbox."}
+    assert JobRunner._proposal(verified, []).local_reason is None

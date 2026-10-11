@@ -1118,3 +1118,25 @@ details.measure-own > summary {
   max-height: 220px;
   overflow: auto;
 }
+
+/* A scan's advice to measure the code on the owner's machine: advice, not an error */
+.notice.local {
+  background: var(--blue-wash);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+.notice.local > div {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+.notice.local .console {
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.notice.local .small {
+  font-size: 13px;
+  color: var(--ink-2);
+}

@@ -245,6 +245,23 @@ function MeasureNext({ job }: { job: Job }) {
   return (
     <>
       <h2 className="section-title">Measure it</h2>
+      {proposed?.local_reason && (
+        <div className="notice local" role="note">
+          <div>
+            <strong>This one is better measured on your own machine</strong>
+            <p>{proposed.local_reason}</p>
+            <p>
+              Whittle's command-line tool records the same model calls where the code already runs, with your own setup and
+              keys. Nothing is installed in a sandbox, and your model key never leaves your machine.
+            </p>
+            <pre className="console">{`npx whittle-ai run -- <the command you normally run it with>\nnpx whittle-ai fix -- <the same command>`}</pre>
+            <p className="small">
+              <code>run</code> shows what each call costs. <code>fix</code> sends the code to Whittle, applies each fix to your
+              working tree, reruns it there and keeps a fix only if the run got cheaper. You can still try the sandbox below.
+            </p>
+          </div>
+        </div>
+      )}
       <p className="lede small">
         The scan shows where the spend goes. To put a dollar figure on it, Whittle runs the code in a locked sandbox with
         your model key, records every call, and can then fix the waste and prove the saving.

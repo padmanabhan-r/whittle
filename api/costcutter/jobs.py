@@ -665,7 +665,12 @@ class JobRunner:
         """The run the UI prefills: the command, the entry point files, and whose key to ask for."""
         provider = _provider(closing.get("_provider")) or _provider(closing.get("provider")) or _provider_from_sites(sites)
         key_env = closing.get("key_env") or ({"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}.get(provider.value) if provider else None)
+        verified = bool(closing.get("_verified"))
+        local = closing.get("local_reason") or None
+        if not local and not verified and closing.get("_check"):  # every try failed: the sandbox is the wrong place for it
+            local = "Whittle could not get this code to make a model call in its sandbox, which usually means it needs something only your own machine has."
         return ProposedRun(
+            local_reason=local,
             command=closing["run_command"], workdir=closing.get("run_workdir") or None, reason=closing.get("run_reason") or "Found in the repository.",
             needs=[n for n in closing.get("run_needs") or [] if n != key_env], files=closing.get("files") or {}, examples=closing.get("run_examples") or [],
             provider=provider, key_env=key_env, verified=bool(closing.get("_verified")), check=str(closing.get("_check") or "Not tried in the sandbox."),

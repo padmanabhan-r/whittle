@@ -61,6 +61,8 @@ export interface ProposedRun {
   key_env?: string | null
   verified?: boolean
   check?: string
+  /** Set when the code is better measured on the owner's machine with the command-line tool: what it needs. */
+  local_reason?: string | null
 }
 
 export interface Sample {

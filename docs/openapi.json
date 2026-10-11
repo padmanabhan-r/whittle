@@ -1686,6 +1686,18 @@
             "title": "Check",
             "description": "What the sandbox showed when the command was tried, in a sentence",
             "default": ""
+          },
+          "local_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Reason",
+            "description": "Set when this code is better measured on its owner's machine with the command-line tool than in the sandbox: what it needs, in a sentence"
           }
         },
         "additionalProperties": false,

@@ -69,7 +69,10 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
   `agent.step` entries with tool `sandbox.try`). `proposed_run` has `command`
   (with `{input}`), `workdir`, `reason`, `needs` (environment variables the code
   will not start without, the key excluded), `files`, `examples` (inputs to
-  prefill the tasks), `provider` and `key_env` (whose key to ask for and the
+  prefill the tasks), `local_reason` (set when the code is better measured on its owner's machine
+  with the command-line tool than in the sandbox, for example because it needs a
+  database, hardware or data that is not in the repository; the sentence says
+  what it needs), `provider` and `key_env` (whose key to ask for and the
   variable the code reads it from, as the repository names it), `verified`
   (a model call reached the proxy) and `check` (what the sandbox showed, in a
   sentence). The UI prefills a measured job from it and asks for that key, not a

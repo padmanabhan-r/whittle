@@ -189,6 +189,7 @@ class ProposedRun(Model):
     key_env: str | None = Field(default=None, description="The environment variable the code reads its model key from, as the repository names it")
     verified: bool = Field(default=False, description="True when the command ran in the sandbox and a model call reached the proxy")
     check: str = Field(default="", description="What the sandbox showed when the command was tried, in a sentence")
+    local_reason: str | None = Field(default=None, description="Set when this code is better measured on its owner's machine with the command-line tool than in the sandbox: what it needs, in a sentence")
 
 
 class CallSiteList(Model):

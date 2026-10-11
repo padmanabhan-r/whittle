@@ -119,10 +119,15 @@ def test_scan_refuses_to_finish_without_a_run_command(tmp_path, monkeypatch):
 
 def test_scan_keeps_an_unverified_proposal_after_the_last_try(tmp_path, monkeypatch):
     finish = ("finish", {"summary": "s", "run_command": "python run.py {input}"})
-    script = ScriptedLLM([[finish], [finish], [finish], [finish]])
+    why = ("finish", {"summary": "s", "run_command": "something else", "local_reason": "It needs a Postgres database."})
+    script = ScriptedLLM([[finish], [finish], [finish], [why], [finish]])
     monkeypatch.setattr(scan_module, "LLM", lambda: script)
     monkeypatch.setattr(scan_module, "ensure_neatlogs", lambda: False)
-    out = scan_module.scan(tmp_path, [], 1, Language.PYTHON, lambda *a, **k: None, lambda f: None, lambda closing: "not finished: still broken")
-    assert len(script.results) == 3 and "last try" in script.results[2][0][1]
-    assert out["run_command"] == "python run.py {input}" and not out.get("_verified")
+    tried = []
+    out = scan_module.scan(tmp_path, [], 1, Language.PYTHON, lambda *a, **k: None, lambda f: None, lambda closing: tried.append(1) or "not finished: still broken")
+    # after the last failed try the agent is asked once what the code needs, and that answer is not tried
+    assert len(script.results) == 4 and "last try" in script.results[2][0][1] and script.results[3][0][1] == "ok"
+    assert len(tried) == 3
+    assert out["run_command"] == "python run.py {input}" and not out.get("_verified")  # the tried command is kept
+    assert out["local_reason"] == "It needs a Postgres database."
     assert script.turns == [[finish]]  # the agent was not asked again

@@ -1,9 +1,8 @@
 # Whittle behind one hostname with HTTPS. Caddy fetches and renews the certificate itself.
-# The hostname is whittleai.site. The checkout path under `root` is the only thing to adjust.
-# The API and the UI share one origin, so the web build is made with VITE_API_URL="" and
-# calls /api on the same host.
+# The API and UI share one origin, so the web build uses VITE_API_URL="" and calls /api here.
 #
-#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+#   sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
 
 www.whittleai.site {
     redir https://whittleai.site{uri} permanent
@@ -19,8 +18,8 @@ whittleai.site {
     reverse_proxy /proxy/* localhost:8787
     reverse_proxy /health  localhost:8787
 
-    # The built UI (cd web && VITE_API_URL="" npm run build). Single-page app: unknown paths serve index.html.
-    root * /opt/whittle/web/dist
+    # The deploy workflow copies the production UI build here.
+    root * /var/www/whittle
     try_files {path} /index.html
     file_server
 }

@@ -4,7 +4,9 @@ The `CI and deploy` workflow runs backend tests and frontend lint/build checks o
 GitHub-hosted runners for pull requests and pushes to `main`. After a successful
 push to `main`, its deploy job runs on the self-hosted runner installed on the
 Whittle EC2 instance. The runner makes an outbound connection to GitHub; the
-instance does not need to allow inbound SSH from GitHub.
+instance does not need to allow inbound SSH from GitHub. Follow
+[deploy.md](./deploy.md) to point GoDaddy DNS at the Elastic IP, allow ports 80
+and 443, and install Caddy before the first domain deployment.
 
 Complete the one-time setup before pushing this workflow to `main`; otherwise,
 the deploy job will remain queued waiting for the EC2 runner.
@@ -12,8 +14,8 @@ the deploy job will remain queued waiting for the EC2 runner.
 ## One-time setup
 
 1. In the repository, open **Settings → Secrets and variables → Actions →
-   Variables** and add `WHITTLE_API_URL` with the public API URL, for example
-   `http://35.171.208.95:8787`. This is public configuration, not a secret.
+   Variables** and add `WHITTLE_PUBLIC_URL` with the value
+   `https://whittleai.site`. This is public configuration, not a secret.
 2. On the EC2 instance, sign in as `ubuntu` and open the repository's **Settings
    → Actions → Runners → New self-hosted runner** page. Select Linux x64 and run
    the displayed download and configuration commands in a new directory such as
@@ -43,16 +45,18 @@ the deploy job will remain queued waiting for the EC2 runner.
    does not need AWS credentials or an SSH private key.
 
 The instance needs the existing deployment checkout at
-`/home/ubuntu/whittle-main`, with its `.env.local` and Docker access configured.
-Do not add `.env.local` or provider keys to GitHub Actions variables or secrets.
+`/home/ubuntu/whittle-main`, with its `.env.local`, Docker access, Caddy, and
+the DNS records for `whittleai.site` configured. Allow inbound TCP 80 and 443
+from the internet in the instance security group. Do not add `.env.local` or
+provider keys to GitHub Actions variables or secrets.
 
 ## What a deployment does
 
 After checks pass on a push to `main`, the EC2 job fast-forwards the deployment
-checkout, syncs backend dependencies, installs frontend dependencies, builds
-the UI with `WHITTLE_API_URL`, writes and restarts the `whittle.service` system
-service in production-preview mode, and verifies the local UI, API docs, and
-proxy health endpoints. Existing ignored job data and `.env.local` stay in
+checkout, syncs backend dependencies, builds the frontend for same-origin API
+requests, publishes its static files for Caddy, updates the Caddy site config,
+and restarts the `whittle.service` backend and Caddy. It verifies the API and
+the public HTTPS site. Existing ignored job data and `.env.local` stay in
 place. If the checkout has local tracked changes or cannot fast-forward,
 deployment stops instead of overwriting them.
 

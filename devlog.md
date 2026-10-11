@@ -867,9 +867,11 @@ reachable. Added push-to-main CI and EC2 deployment automation in commit
 `fe4c68d`. The first Actions run stopped before deployment: 43 tests passed
 and four Docker sandbox tests failed because the test helper tried to change
 permissions on `/tmp`. That helper was corrected and the user reports both
-checks and deployment succeeded. The next check found the app was no longer
-listening after the deploy job ended: the runner had cleaned up the detached
-tmux server it spawned.
+checks and deployment succeeded. The next check found the app was no longer listening after the deploy job
+ended: the runner had cleaned up the detached tmux server it spawned. The
+domain DNS now resolves to the Elastic IP, inbound HTTP/HTTPS rules are saved,
+and Caddy was installed on EC2. The HTTPS/domain deployment changes remain in
+the local working tree and have not been pushed.
 
 - **Decision:** Keep the deployment job behind passing tests, so a failed
   change does not replace the live app.
@@ -886,12 +888,15 @@ tmux server it spawned.
   Whittle as an enabled systemd service, independent of the runner job. Shell
   syntax and whitespace checks pass; the EC2 service-based deployment has not
   yet been run.
-- **Next:** Restart the existing app for immediate access, then push the
-  systemd deployment change and confirm the app stays up after the Actions job
-  completes and after an EC2 reboot.
+- **Evidence:** DNS lookup for both `whittleai.site` and `www.whittleai.site`
+  resolves to Elastic IP `35.171.208.95`; EC2 inbound HTTP/HTTPS rules saved.
+- **Next:** Set `WHITTLE_PUBLIC_URL=https://whittleai.site`, push the domain
+  deployment change, and verify Caddy's HTTPS certificate, UI/API routes, and
+  app availability after the Actions job completes.
 
 Evidence rows still missing: none. Built in public is marked have with four
-posts; verify the deployment remains available after the workflow exits.
+posts; verify the custom domain and deployment remain available after the
+workflow exits.
 
 ## Submission
 

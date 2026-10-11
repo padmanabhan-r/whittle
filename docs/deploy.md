@@ -7,19 +7,12 @@ Certificates are issued to hostnames, not IP addresses, so the deployment needs 
 domain. The domain is **whittleai.site**, bought on GoDaddy for one year with no
 auto-renew. Everything below takes about an hour, most of it waiting on DNS.
 
-Where the repository is checked out on the instance is written as
-`/opt/whittle` below; use the real path.
+The repository is checked out at `/home/ubuntu/whittle-main`.
 
 ## 1. Buy the domain on GoDaddy
 
-1. Buy `whittleai.site` at https://www.godaddy.com/en-in. The ₹129 price is the
-   first year only; renewal is far higher, which does not matter for the hackathon.
-2. At checkout, set the term to **1 year**, remove every add-on GoDaddy
-   pre-selects (domain protection, email, the website builder) and turn
-   **auto-renew off**. This is a throwaway domain for the hackathon and must not
-   renew. If checkout offers no switch, turn it off straight after buying:
-   My Products, the domain, Renewal settings.
-3. Keep GoDaddy's own nameservers. There is nothing to change there.
+The domain is in the GoDaddy account. Keep GoDaddy's nameservers; do not use
+domain forwarding.
 
 ## 2. Give the instance an address that does not change
 
@@ -38,12 +31,15 @@ Where the repository is checked out on the instance is written as
 In GoDaddy: **My Products**, the domain, **DNS**, **Manage DNS**.
 
 1. Delete the default `A` record whose value is `Parked`.
-2. **Add new record**: Type `A`, Name `@`, Value the Elastic IP, TTL `600 seconds`.
-3. **Add new record**: Type `A`, Name `www`, Value the Elastic IP, TTL `600 seconds`.
+2. **Add new record**: Type `A`, Name `@`, Value `35.171.208.95`, TTL `600 seconds`.
+3. **Add new record**: Type `A`, Name `www`, Value `35.171.208.95`, TTL `600 seconds`.
    (If a `CNAME www` record exists, delete it first; GoDaddy will not let both exist.)
-4. Do **not** use GoDaddy's "Forwarding" feature. Forwarding is an HTTP redirect
+4. Remove any stale `AAAA` records for `@` or `www` unless IPv6 is deliberately
+   configured for this instance. An incorrect IPv6 record can make some
+   visitors reach the wrong host.
+5. Do **not** use GoDaddy's "Forwarding" feature. Forwarding is an HTTP redirect
    through GoDaddy's servers and breaks the certificate.
-5. Wait, then check from any machine:
+6. Wait, then check from any machine:
 
    ```bash
    dig +short whittleai.site        # must print the Elastic IP
@@ -72,33 +68,36 @@ calls `/api` on whatever host served it, so the UI and the API share one
 origin and one certificate.
 
 ```bash
-cd /opt/whittle && git pull
-cd web && VITE_API_URL="" npm ci && npm run build      # writes web/dist
+cd /home/ubuntu/whittle-main
+cd web && VITE_API_URL="" npm ci && npm run build
+sudo install -d -o root -g root -m 755 /var/www/whittle
+sudo cp -a dist/. /var/www/whittle/
 ```
 
 ## 6. Configure Caddy and start it
 
 ```bash
-cd /opt/whittle
-sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
-sudo sed -i 's#/opt/whittle#'"$PWD"'#' /etc/caddy/Caddyfile        # only if the checkout is elsewhere
+cd /home/ubuntu/whittle-main
+sudo install -D -o root -g root -m 644 deploy/Caddyfile /etc/caddy/Caddyfile
+sudo caddy validate --config /etc/caddy/Caddyfile
 sudo systemctl enable --now caddy
 sudo systemctl reload caddy
-sudo journalctl -u caddy -n 30 --no-pager                            # "certificate obtained successfully"
+sudo journalctl -u caddy -n 30 --no-pager
 ```
 
-`deploy/Caddyfile` serves `web/dist` as static files, proxies `/api`, `/proxy`
+`deploy/Caddyfile` serves `/var/www/whittle` static files, proxies `/api`, `/proxy`
 and `/health` to the backend on port 8787, keeps the event stream unbuffered,
 and redirects `www.` to the bare domain.
 
-## 7. Run the backend on localhost only
+## 7. Run the backend behind Caddy
 
-The Vite dev server on 5173 is no longer needed; Caddy serves the build. The API
-keeps running as before, but it need not listen on all interfaces any more:
+The Vite dev server on 5173 is no longer needed; Caddy serves the static UI.
+Whittle's system service runs the API on port 8787. Keep it listening on
+`0.0.0.0` so the Docker sandbox's proxy relay can reach it. Restrict the API
+port at the security group; only ports 80 and 443 should be public.
 
 ```bash
-cd /opt/whittle/api
-uv run uvicorn costcutter.server:app --host 127.0.0.1 --port 8787
+sudo systemctl status whittle.service --no-pager
 ```
 
 Keep `.env.local` and the Docker setup exactly as they are. If the port is not
@@ -108,11 +107,10 @@ Keep `.env.local` and the Docker setup exactly as they are. If the port is not
 ## 8. Check
 
 - `https://whittleai.site/health` answers `{"status":"ok"}`.
+- `https://whittleai.site` loads the UI and its API calls use the same HTTPS origin.
 - The browser shows the padlock on `https://whittleai.site` and no "not secure" text.
 - `http://whittleai.site` and `https://www.whittleai.site` both land on the HTTPS bare domain.
 - Start a scan of a public repository: the events stream in as they happen.
 
-If the UI loads but every request fails, the web build was made without
-`VITE_API_URL=""` and still calls `http://localhost:8787`; rebuild (step 5).
 If Caddy logs a certificate error, DNS is not pointing at the instance yet or
 port 80 is closed; Caddy needs both to prove it owns the name.

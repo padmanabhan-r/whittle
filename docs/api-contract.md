@@ -68,8 +68,11 @@ POST /api/jobs ──▶ queued ▶ cloning ▶ installing ▶ baseline ▶ diag
   to the agent, up to three times (`sandbox.log` lines with phase `install`, and
   `agent.step` entries with tool `sandbox.try`). `proposed_run` has `command`
   (with `{input}`), `workdir`, `reason`, `needs` (environment variables the code
-  will not start without, the key excluded), `files`, `examples` (inputs to
-  prefill the tasks), `local_reason` (set when the code is better measured on its owner's machine
+  will not start without, the key excluded), `files`, `examples` (inputs the code is built to handle, taken from the
+  repository's own tasks, fixtures or documentation where it has them) and
+  `expects` (for each example in order, the facts a correct answer must contain,
+  when the repository states them; a task sent back with `expect` is scored
+  against those facts and not by the judge), `local_reason` (set when the code is better measured on its owner's machine
   with the command-line tool than in the sandbox, for example because it needs a
   database, hardware or data that is not in the repository; the sentence says
   what it needs), `provider` and `key_env` (whose key to ask for and the

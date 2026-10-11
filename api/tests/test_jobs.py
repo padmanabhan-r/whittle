@@ -191,3 +191,17 @@ def test_a_scan_can_advise_measuring_on_the_owners_machine():
     assert JobRunner._proposal(ours, []).local_reason is None
     verified = {**_closing({"summary": "s", "run_command": "python app.py"}), "_verified": True, "_check": "Ran in the sandbox."}
     assert JobRunner._proposal(verified, []).local_reason is None
+
+
+def test_tasks_and_their_expected_facts_come_from_the_scan():
+    """The scan's inputs come with the facts the repository gives for their answers, kept in step with the inputs."""
+    from costcutter.jobs import JobRunner
+    from costcutter.scan import _closing
+
+    closing = _closing({"summary": "s", "run_command": "python run.py {input}",
+                        "run_examples": ["What changed in the EU AI Act?", "  ", "Compare battery chemistries.", "A third"],
+                        "run_expect": [["August 2025", "Systemic risk"], ["ignored"], ["LFP", "sodium"]]})
+    assert closing["run_examples"] == ["What changed in the EU AI Act?", "Compare battery chemistries.", "A third"]
+    assert closing["run_expect"] == [["august 2025", "systemic risk"], ["lfp", "sodium"], []]
+    proposal = JobRunner._proposal(closing, [])
+    assert proposal.expects == closing["run_expect"] and len(proposal.examples) == len(proposal.expects)

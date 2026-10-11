@@ -184,7 +184,8 @@ class ProposedRun(Model):
     reason: str
     needs: list[str] = Field(default_factory=list, description="Environment variables the code will not start without, by name")
     files: dict[str, str] = Field(default_factory=dict, description="Files Whittle wrote to make the code runnable, path to contents; all under .whittle/")
-    examples: list[str] = Field(default_factory=list, description="Inputs the entry point was written to take, to prefill the tasks")
+    examples: list[str] = Field(default_factory=list, description="Inputs this code is built to handle, taken from the repository's own tasks, fixtures or documentation where it has them, to prefill the tasks")
+    expects: list[list[str]] = Field(default_factory=list, description="For each example in order, the facts a correct answer must contain, when the repository states them; an empty list otherwise")
     provider: Provider | None = Field(default=None, description="The model provider the code called when it was tried, or the one the call sites show")
     key_env: str | None = Field(default=None, description="The environment variable the code reads its model key from, as the repository names it")
     verified: bool = Field(default=False, description="True when the command ran in the sandbox and a model call reached the proxy")
@@ -323,6 +324,7 @@ class WorkResult(Model):
 class Task(Model):
     id: str | None = None
     input: str
+    expect: list[str] = Field(default_factory=list, max_length=8, description="Facts a correct answer must contain. With them the answer is scored against facts; without, by a model judge against the baseline answer")
 
 
 class RunSpec(Model):

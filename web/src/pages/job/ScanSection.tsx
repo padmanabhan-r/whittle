@@ -228,6 +228,10 @@ function MeasureNext({ job }: { job: Job }) {
   const [error, setError] = useState<string | null>(null)
   const runnable = job.language === 'python' || job.language === 'typescript' || job.language === 'javascript'
   const takesInput = command.includes('{input}')
+  // A task left as the scan proposed it keeps the facts the repository gives for its answer.
+  const expectFor = (input: string) => proposed?.expects?.[(proposed.examples ?? []).indexOf(input)] ?? []
+  const taskList = tasks.split('\n').map((t) => t.trim()).filter(Boolean)
+  const withFacts = taskList.filter((t) => expectFor(t).length > 0).length
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -246,7 +250,7 @@ function MeasureNext({ job }: { job: Job }) {
       const created = await api.createJob({
         source: job.source,
         mode: 'measure',
-        run: { command: command.trim(), tasks: (list.length ? list : ['run']).slice(0, 10).map((input) => ({ input })), workdir: workdir.trim() || null, env, files: proposed?.files ?? {} },
+        run: { command: command.trim(), tasks: (list.length ? list : ['run']).slice(0, 10).map((input) => ({ input, expect: expectFor(input) })), workdir: workdir.trim() || null, env, files: proposed?.files ?? {} },
         model_key: { provider, key },
         monthly_runs: job.monthly_runs ?? undefined,
       })
@@ -325,7 +329,15 @@ function MeasureNext({ job }: { job: Job }) {
         )}
         <label className="wide">
           Tasks <small>One input per line, up to ten; each replaces {'{input}'} in the command.</small>
-          <textarea className="field" rows={3} value={tasks} onChange={(e) => setTasks(e.target.value)} />
+          <textarea className="field" rows={Math.min(6, Math.max(3, taskList.length + 1))} value={tasks} onChange={(e) => setTasks(e.target.value)} />
+          <small>
+            {(proposed?.examples ?? []).length > 0 ? 'These were taken from the repository by the scan. ' : ''}
+            {taskList.length === 0 ? '' : withFacts === taskList.length
+              ? 'The repository states the answer to each, so answers are scored against those facts.'
+              : withFacts > 0
+                ? `The repository states the answer to ${withFacts} of ${taskList.length}; the rest are scored by a model judge against the first run's answer.`
+                : 'Answers are scored by a model judge against the first run\'s answer. Use tasks with one definite answer, and at least three.'}
+          </small>
         </label>
         <label>
           Model provider

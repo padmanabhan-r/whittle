@@ -56,6 +56,8 @@ export interface ProposedRun {
   /** The entry point Whittle wrote under .whittle/ when the repository had none; sent back with the run. */
   files?: Record<string, string>
   examples?: string[]
+  /** For each example in order, the facts a correct answer must contain, when the repository states them. */
+  expects?: string[][]
   provider?: 'anthropic' | 'openai' | null
   /** The variable the code reads its model key from, as the repository names it. */
   key_env?: string | null
@@ -86,7 +88,7 @@ export interface Upload { upload_id: string; name: string; files: number; bytes:
 export interface JobCreate {
   source: Source
   mode?: JobMode
-  run?: { command: string; tasks: { input: string }[]; workdir?: string | null; env?: Record<string, string>; files?: Record<string, string> }
+  run?: { command: string; tasks: { input: string; expect?: string[] }[]; workdir?: string | null; env?: Record<string, string>; files?: Record<string, string> }
   model_key?: { provider: 'anthropic' | 'openai'; key: string }
   monthly_runs?: number
 }

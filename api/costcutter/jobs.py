@@ -380,8 +380,9 @@ class JobRunner:
             mismatch = key_mismatch(body.model_key.provider, body.model_key.key)
             if mismatch:
                 raise ValueError(mismatch)
-            tasks = [Task(t.id or f"task-{i + 1}", t.input) for i, t in enumerate(body.run.tasks)]
-            command, language, provider, key, expect_known = body.run.command, Language.PYTHON, body.model_key.provider, body.model_key.key, False
+            tasks = [Task(t.id or f"task-{i + 1}", t.input, [w.strip().lower() for w in t.expect if w.strip()]) for i, t in enumerate(body.run.tasks)]
+            # scored against facts only when every task brings them; a mix is reported as judged
+            command, language, provider, key, expect_known = body.run.command, Language.PYTHON, body.model_key.provider, body.model_key.key, all(t.expect for t in tasks)
         job = Job(id=job_id, state=JobState.QUEUED, mode=body.mode, source=body.source, language=language, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
         ctx = JobContext(job, tasks, command, language, provider, key, expect_known)
         if body.run is not None and body.mode is not JobMode.SCAN:
@@ -672,7 +673,7 @@ class JobRunner:
         return ProposedRun(
             local_reason=local,
             command=closing["run_command"], workdir=closing.get("run_workdir") or None, reason=closing.get("run_reason") or "Found in the repository.",
-            needs=[n for n in closing.get("run_needs") or [] if n != key_env], files=closing.get("files") or {}, examples=closing.get("run_examples") or [],
+            needs=[n for n in closing.get("run_needs") or [] if n != key_env], files=closing.get("files") or {}, examples=closing.get("run_examples") or [], expects=closing.get("run_expect") or [],
             provider=provider, key_env=key_env, verified=bool(closing.get("_verified")), check=str(closing.get("_check") or "Not tried in the sandbox."),
         )
 

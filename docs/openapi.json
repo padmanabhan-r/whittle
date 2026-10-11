@@ -1650,7 +1650,18 @@
             },
             "type": "array",
             "title": "Examples",
-            "description": "Inputs the entry point was written to take, to prefill the tasks"
+            "description": "Inputs this code is built to handle, taken from the repository's own tasks, fixtures or documentation where it has them, to prefill the tasks"
+          },
+          "expects": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Expects",
+            "description": "For each example in order, the facts a correct answer must contain, when the repository states them; an empty list otherwise"
           },
           "provider": {
             "anyOf": [
@@ -2318,6 +2329,15 @@
           "input": {
             "type": "string",
             "title": "Input"
+          },
+          "expect": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "title": "Expect",
+            "description": "Facts a correct answer must contain. With them the answer is scored against facts; without, by a model judge against the baseline answer"
           }
         },
         "additionalProperties": false,

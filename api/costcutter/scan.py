@@ -125,7 +125,9 @@ How to work:
 - Report with report_finding as soon as you are sure of one. Report at most 8, the most expensive first. Prefer a few findings you have verified to many guesses.
 - Before finishing, work out how to run the model-calling code once from a shell, because Whittle will run it in a sandbox to measure what it costs. Always give a run_command; never leave it to the reader. Prefer what the repository already has: a script in the package manifest, a command-line entry point, a documented command; read it to learn its arguments. When the model is only reached through a server, a web page, a queue or a scheduled job, build the entry point yourself with write_file, under .whittle/ (for example .whittle/run.ts or .whittle/run.py): a short script that imports the function that makes the model call, builds that function's input from the first command-line argument, calls it once and prints the result. Import the narrowest function that still makes the real call with the real prompt and model; do not copy the prompt or call the SDK yourself. The sandbox can reach only the model provider: where the function needs a database, object storage, a web framework's request context or another service, pass the smallest fake or fixture instead, or pick a call site that needs none. The code's own environment variables are not set in the sandbox except the model key; set in the script what it will not start without. A TypeScript file runs with `npx tsx .whittle/run.ts "{input}"` from the folder that holds package.json and tsconfig.json (tsconfig paths work); a Python file with `python .whittle/run.py "{input}"` from the folder its imports resolve from. Mention the entry point in run_reason.
 - When you call finish with a run_command, Whittle installs the repository's dependencies in the sandbox from its lockfile and runs your command once with the first of run_examples, with the provider's address and key pointed at Whittle. The result of finish tells you what happened. If the run did not reach a model call, read the output, fix the script or the command with write_file, and call finish again. You have three tries; the finding list is kept between them.
-- finish also reports: summary, two or three sentences on where this code's model spend goes overall. In good, list what the code already does to keep model spend down (an output cap, a cheap model for a simple step, a bounded retry, caching, a spend limit), each as one short sentence naming the file; leave it empty if there is nothing. run_command with {input} where a task input goes; run_workdir, the folder to run from when it is not the repository root; run_reason, where the command comes from; run_needs, the environment variables the code will not start without, by name; run_examples, two or three realistic inputs for this code's task, each one line; provider, the model provider the code calls (anthropic, openai, google, other), and key_env, the environment variable it reads its model key from, as the code names it.
+- finish also reports: summary, two or three sentences on where this code's model spend goes overall. In good, list what the code already does to keep model spend down (an output cap, a cheap model for a simple step, a bounded retry, caching, a spend limit), each as one short sentence naming the file; leave it empty if there is nothing. run_command with {input} where a task input goes; run_workdir, the folder to run from when it is not the repository root; run_reason, where the command comes from; run_needs, the environment variables the code will not start without, by name; run_examples, three to five inputs this code is actually built to handle, each one line (see the next point); provider, the model provider the code calls (anthropic, openai, google, other), and key_env, the environment variable it reads its model key from, as the code names it.
+- run_examples decide whether the measurement means anything, so take them from the repository, never from your head. Look for the code's own task list, evaluation set, fixtures, tests, seed data, sample inputs in the README or a demo script, and use those inputs word for word. If the code answers from a fixed corpus or a set of documents, every input must be answerable from that corpus: read what it holds first. Do not write a general-knowledge question the code has no source for; its answer would be noise. When the repository offers nothing, write inputs that match what the prompts and tools are built for, and say so in run_reason.
+- run_expect goes with run_examples, one list per input in the same order: two to four short facts, names or figures a correct answer must contain, in lower case. Fill a list only when the repository itself states the answer (a task list with expected values, a test's assertion, a fixture); otherwise leave that list empty. Never guess one.
 - finish also takes local_reason. Give it only when this code is better measured on its owner's own machine, with Whittle's command-line tool, than in the sandbox: it needs a database or other running services, a microphone, camera, GPU or other hardware, files or data that are not in the repository, a browser or a signed-in account, several secrets besides the model key, or an install too large to be practical. Write one plain sentence naming what this code needs, for a reader who is not a developer of it. Leave it empty for code the sandbox can run as it is. Still give the best run_command you can.
 
 What counts as waste you can see in code:
@@ -165,7 +167,8 @@ TOOLS: list[dict[str, Any]] = [
     {"name": "finish", "description": "Report the summary and how to run the code once. Whittle tries the command in its sandbox and answers with what happened; call finish again after fixing a failed run.", "input_schema": {"type": "object", "properties": {
         "summary": {"type": "string"}, "good": {"type": "array", "items": {"type": "string"}},
         "run_command": {"type": "string", "description": "With {input} where a task input goes"}, "run_workdir": {"type": "string", "description": "Folder to run from; empty for the repository root"},
-        "run_reason": {"type": "string"}, "run_needs": {"type": "array", "items": {"type": "string"}}, "run_examples": {"type": "array", "items": {"type": "string"}},
+        "run_reason": {"type": "string"}, "run_needs": {"type": "array", "items": {"type": "string"}}, "run_examples": {"type": "array", "items": {"type": "string"}, "description": "Three to five inputs taken from the repository's own tasks, fixtures, tests or documentation"},
+        "run_expect": {"type": "array", "items": {"type": "array", "items": {"type": "string"}}, "description": "For each of run_examples in order, the facts a correct answer must contain, only when the repository states them; an empty list otherwise"},
         "provider": {"type": "string", "enum": ["anthropic", "openai", "google", "other"]}, "key_env": {"type": "string", "description": "The environment variable the code reads its model key from"},
         "local_reason": {"type": "string", "description": "Only when the code is better measured on its owner's machine than in the sandbox: one sentence naming what it needs. Empty otherwise"}},
         "required": ["summary", "run_command"], "additionalProperties": False}},
@@ -307,6 +310,17 @@ def scan(repo: Path, sites: list[CallSite], files_scanned: int, language: Langua
     return _scan_body(repo, sites, files_scanned, language, step, on_finding, try_run)
 
 
+def _expects(raw: Any, examples: Any) -> list[list[str]]:
+    """The facts a correct answer must contain, one list per example that survives, in the examples' order."""
+    kept = [i for i, x in enumerate(examples if isinstance(examples, list) else []) if str(x).strip()][:5]
+    rows = raw if isinstance(raw, list) else []
+    out = []
+    for i in kept:
+        row = rows[i] if i < len(rows) and isinstance(rows[i], list) else []
+        out.append([str(w).strip().lower()[:60] for w in row if str(w).strip()][:6])
+    return out
+
+
 def _closing(args: dict[str, Any]) -> dict[str, Any]:
     good = args.get("good") or []
     if isinstance(good, str):  # a model may send one string where a list was asked for
@@ -318,7 +332,8 @@ def _closing(args: dict[str, Any]) -> dict[str, Any]:
         "run_workdir": str(args.get("run_workdir") or "").strip().strip("/")[:200],
         "run_reason": str(args.get("run_reason") or "").strip()[:400],
         "run_needs": strings("run_needs", 60, 12),
-        "run_examples": strings("run_examples", 400, 3),
+        "run_examples": strings("run_examples", 400, 5),
+        "run_expect": _expects(args.get("run_expect"), args.get("run_examples")),
         "provider": str(args.get("provider") or "").strip().lower()[:20],
         "key_env": re.sub(r"[^A-Za-z0-9_]", "", str(args.get("key_env") or ""))[:80],
         "local_reason": " ".join(str(args.get("local_reason") or "").split())[:400],

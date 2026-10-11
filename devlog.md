@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T22:31:00+05:30
+- **Last updated:** 2026-10-11T22:42:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `dbb898c` at 10:31 PM IST on 11 October. 98 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `b984856` at 10:39 PM IST on 11 October. 100 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1120,6 +1120,36 @@ A third failure from testing the live site on real repositories.
 - **Tests:** `uv run pytest`, 50 passed.
 - **Not verified:** a full measured job on that repository. It is a real-time
   audio app that expects a microphone and a database.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - b984856
+A scan now says when code belongs on the command-line tool, not in the sandbox.
+
+- **Decided:** some code cannot be run in a sandbox at all: it needs a
+  database, a microphone, data that is not in the repository. Failing on it is
+  the wrong answer when the command-line tool measures the same calls where the
+  code already runs (Padmanabhan's call, after the install failure above).
+- **Shipped:** `proposed_run.local_reason`. The scan agent can give it from
+  reading the code. When all three sandbox tries fail it is asked once what the
+  code needs, judged from the failures, and the tried command is kept. The scan
+  page shows the reason above the measure form, with the two commands to run.
+  With no reason from the agent, a failed scan makes the suggestion in general
+  words.
+- **Evidence:** a real scan of a repository that needs audio hardware and a
+  database (`job_31fa213b575e`, local, `claude-sonnet-5-5`, 10 calls, 201,975
+  cached tokens): three tries failed in the sandbox, and the agent then wrote
+  "It imports audio libraries (PortAudio via sounddevice) and database packages
+  that the sandbox does not have." Seen on the page in Chrome. An earlier scan
+  of the same repository (`job_516dd8e17421`), before the agent was asked,
+  gave only the general sentence.
+- **Tests:** `uv run pytest`, 51 passed, one new and one changed for this;
+  `npx tsc --noEmit` and `npm run build` in `web/`, clean. The checks and the
+  EC2 deploy passed in GitHub Actions.
+- **Not verified:** a live scan of a simple repository after this change, to
+  watch that the suggestion stays away. A unit test covers that case.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

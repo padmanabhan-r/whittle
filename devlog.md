@@ -5,12 +5,12 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** working end to end on the sample agents, in the sandbox and from the command-line tool on the developer's machine; pull requests and deployment still open
-- **Live app:** not deployed yet; the domain is https://whittleai.site (bought 11 Oct, deployment with Sethuraman, steps in `docs/deploy.md`)
+- **Status:** deployed on EC2; push-to-deploy workflow is being verified
+- **Live app:** http://35.171.208.95:5173
 - **Demo:** not recorded
 - **Repo:** private (https://github.com/padmanabhan-r/whittle, to be made public on 12 October before the post)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
-- **Hosting:** not deployed
+- **Hosting:** AWS EC2
 - **Auth:** none
 - **External services:** npm registry (the `whittle-ai` package)
 - **AI models (product):** Whittle's agent uses `WHITTLE_PROVIDER`/`WHITTLE_MODEL` from the environment (`api/costcutter/agent/llm.py`); the first real job ran it on `claude-sonnet-5-5`. The sample agent uses `claude-sonnet-5-5` and `claude-opus-5-5` for its classify step
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 4
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T17:05:00+05:30
+- **Last updated:** 2026-10-11T17:41:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane | partial |
 | Built in public | 4 posts tagged #neatHack on 11 Oct: https://x.com/__padmanabhan/status/2109143046889898043 (the introduction), https://x.com/__padmanabhan/status/2109159510082482614 (the first measured result) https://x.com/__padmanabhan/status/2109201036741423288 (the fix it reverted) and https://x.com/__padmanabhan/status/2109224759393468849 (what agents waste) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `7e76868` at 3:32 PM IST on 11 October. 66 commits on `main`, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `fe4c68d` at 5:40 PM IST on 11 October. 71 commits on `main`, none before the start | done |
 
 ## Log
 
@@ -859,6 +859,29 @@ UNLICENSED (the registry copy still says UNLICENSED until the next publish).
 
 Evidence rows still missing: none. Built in public is marked have with four
 posts; more are planned before the submission.
+
+### 2026-10-11 - working tree
+Deployed Whittle on the EC2 Elastic IP and started its API and UI with the new
+public API address; the user confirmed the landing page and tests are
+reachable. Added push-to-main CI and EC2 deployment automation in commit
+`fe4c68d`, but its first Actions run stopped before deployment: 43 tests passed
+and four Docker sandbox tests failed because the test helper tried to change
+permissions on `/tmp`. The helper now changes only pytest-owned temporary
+directories; the focused sandbox test file passes locally.
+
+- **Decision:** Keep the deployment job behind passing tests, so a failed
+  change does not replace the live app.
+- **Failed:** GitHub Actions run `38138238472` failed with
+  `PermissionError` while changing `/tmp`; the EC2 deploy job was skipped.
+- **Fixed:** Bound the test permission adjustment to paths beneath Python's
+  temporary directory root; `pytest tests/test_sandbox_runner.py` passed, 4
+  tests, on the local Windows/Docker environment. The Linux Actions rerun is
+  still pending.
+- **Next:** Push the test fix to `main`; confirm CI passes and the EC2 deploy
+  job restarts and health-checks the UI and API.
+
+Evidence rows still missing: none. Built in public is marked have with four
+posts; the deployment workflow's successful Actions run is still pending.
 
 ## Submission
 

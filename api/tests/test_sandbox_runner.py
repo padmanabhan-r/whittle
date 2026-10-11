@@ -6,6 +6,7 @@ import os
 import shutil
 import stat
 import subprocess
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -19,8 +20,9 @@ def make_tmp_path_container_traversable(path: Path) -> None:
         return
 
     path.chmod(0o755)
+    temp_root = Path(tempfile.gettempdir())
     for parent in path.parents:
-        if parent == Path(parent.anchor):
+        if parent == temp_root:
             break
         parent.chmod(stat.S_IMODE(parent.stat().st_mode) | stat.S_IXOTH)
 

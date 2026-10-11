@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T22:42:00+05:30
+- **Last updated:** 2026-10-11T22:49:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `b984856` at 10:39 PM IST on 11 October. 100 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `5dd105b` at 10:48 PM IST on 11 October. 102 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1150,6 +1150,40 @@ A scan now says when code belongs on the command-line tool, not in the sandbox.
   EC2 deploy passed in GitHub Actions.
 - **Not verified:** a live scan of a simple repository after this change, to
   watch that the suggestion stays away. A unit test covers that case.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - 5dd105b
+A scan of this repository on the live site looked as if it had stopped, and
+gave wrong advice.
+
+- **Failed:** the scan (`job_779232c85a93`, live) ended with no visible way to
+  go on. The key form was on the page, below a table of 57 call sites and four
+  findings, where it was not seen.
+- **Failed:** the same scan's sandbox try could not reach Whittle's proxy. It
+  started seconds after a push, and the deploy restarted the server under it.
+  The scan was kept as "not confirmed".
+- **Failed:** the advice shipped in `b984856` then fired on that failure and
+  told the owner that Whittle's own sample "needs something only your own
+  machine has". That was false: the fault was on Whittle's side.
+- **Shipped:** a bar under a finished scan's figures says what comes next and
+  jumps to the key form. The call-site table shows twelve rows until asked for
+  more.
+- **Shipped:** a sandbox try that cannot reach the proxy is repeated once after
+  a few seconds. The advice to measure on the owner's machine is given only
+  when the code itself failed in the sandbox.
+- **Changed:** the "Code run" tile says "Not confirmed" when a command was
+  found and its try did not pass. It used to say "no command".
+- **Evidence:** the same scan run again on https://whittleai.site after the
+  deploy had finished (`job_1d63df2d1046`): the sandbox try passed, the code
+  called Anthropic through the proxy, and no advice was given. The new bar was
+  seen in Chrome on a finished local scan.
+- **Tests:** `uv run pytest`, 51 passed, with a case for a fault on Whittle's
+  side; `npx tsc --noEmit`, `npm run lint` and `npm run build` in `web/`, clean.
+- **Not verified:** the "show all call sites" button on screen, and the retry
+  of an unreachable proxy, which no test exercises.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

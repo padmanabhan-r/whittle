@@ -4,7 +4,7 @@ import { Branch, Download, External, Warn } from '../components/Icons'
 import { Rail } from '../components/Rail'
 import { api } from '../lib/api'
 import type { JobState, PullRequest } from '../lib/api'
-import { STATE_LABEL } from '../lib/format'
+import { FAILURE_TITLE, STATE_LABEL } from '../lib/format'
 import { useJob } from '../lib/useJob'
 import '../styles/app.css'
 import { CallsSection } from './job/CallsSection'
@@ -171,8 +171,9 @@ export function JobPage() {
           <div className="notice" role="alert">
             <Warn />
             <div>
-              <strong>The job failed ({view.error.code})</strong>
+              <strong>{FAILURE_TITLE[view.error.code] ?? 'The job stopped'}</strong>
               {view.error.message} <Link to="/app">Start another job</Link>
+              <span className="code mono" title="The reason code, for a bug report">{view.error.code}</span>
             </div>
           </div>
         )}

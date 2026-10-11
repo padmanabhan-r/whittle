@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Warn } from '../../components/Icons'
 import { api, ApiError } from '../../lib/api'
 import type { Finding, Job } from '../../lib/api'
-import { int, KIND_LABEL, PROVIDER_LABEL } from '../../lib/format'
+import { int, keyMismatch, KIND_LABEL, PROVIDER_LABEL } from '../../lib/format'
 import type { RunView } from '../../lib/useJob'
 
 interface Props {
@@ -216,6 +216,8 @@ function MeasureNext({ job }: { job: Job }) {
     event.preventDefault()
     const list = tasks.split('\n').map((t) => t.trim()).filter(Boolean)
     if (takesInput && list.length === 0) return setError('Add at least one task: an input the code should be run with.')
+    const mismatch = keyMismatch(provider, key)
+    if (mismatch) return setError(mismatch)
     const env: Record<string, string> = {}
     for (const line of envText.split('\n')) {
       const at = line.indexOf('=')
@@ -300,7 +302,7 @@ function MeasureNext({ job }: { job: Job }) {
           </select>
         </label>
         <label>
-          <span>Your <code>{keyEnv}</code></span> <small>The variable this code reads its key from. Held in memory for the run only. Never stored, logged or shown again.</small>
+          <span>Your <code>{keyEnv}</code></span> <small>{provider === 'anthropic' ? 'An Anthropic key.' : 'An OpenAI or OpenAI-compatible key, not an Anthropic one.'} The variable this code reads its key from. Held in memory for the run only. Never stored, logged or shown again.</small>
           <input className="field mono" type="password" required autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} />
         </label>
         <div className="actions">

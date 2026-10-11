@@ -1069,3 +1069,11 @@ details.measure-own > summary {
   color: var(--mute);
   font-size: 13.5px;
 }
+
+/* the reason code of a stopped job: there for a bug report, not for the reader's first glance */
+.notice .code {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--mute);
+}

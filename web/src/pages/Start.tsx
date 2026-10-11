@@ -5,6 +5,7 @@ import { ArrowRight, Warn } from '../components/Icons'
 import { Rail } from '../components/Rail'
 import { api, ApiError } from '../lib/api'
 import type { JobCreate, Sample } from '../lib/api'
+import { keyMismatch } from '../lib/format'
 import '../styles/app.css'
 
 export function Start() {
@@ -75,6 +76,8 @@ export function Start() {
     const list = tasks.split('\n').map((t) => t.trim()).filter(Boolean)
     if (list.length === 0) return setError('Add at least one task: an input the agent should be run with.')
     if (list.length > 10) return setError('Use at most ten tasks.')
+    const mismatch = keyMismatch(provider, key)
+    if (mismatch) return setError(mismatch)
     start(
       {
         source: { type: 'github', repo_url: repo.trim(), ref: ref.trim() || null },

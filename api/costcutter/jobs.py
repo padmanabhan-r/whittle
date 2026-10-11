@@ -373,6 +373,9 @@ class JobRunner:
         else:
             if body.run is None or body.model_key is None:
                 raise ValueError("To measure your own code, give both run and model_key. To read the code without running it, use mode scan.")
+            mismatch = key_mismatch(body.model_key.provider, body.model_key.key)
+            if mismatch:
+                raise ValueError(mismatch)
             tasks = [Task(t.id or f"task-{i + 1}", t.input) for i, t in enumerate(body.run.tasks)]
             command, language, provider, key, expect_known = body.run.command, Language.PYTHON, body.model_key.provider, body.model_key.key, False
         job = Job(id=job_id, state=JobState.QUEUED, mode=body.mode, source=body.source, language=language, monthly_runs=body.monthly_runs, created_at=stamp, updated_at=stamp, summary=JobSummary(), mock=False)
@@ -553,7 +556,7 @@ class JobRunner:
             raise
         except Exception as exc:  # the job fails; the server does not
             if ctx.job.state not in (JobState.DONE, JobState.FAILED):
-                ctx.fail("internal_error", f"{type(exc).__name__}: {exc}")
+                ctx.fail("internal_error", f"Something went wrong inside Whittle while it ran this job, and the job was stopped. Nothing in your repository was changed. Detail for a bug report: {type(exc).__name__}: {str(exc)[:300]}")
 
     async def _check_with_neatlogs(self, ctx: JobContext, phase: PhaseResult) -> None:
         """Ask neatlogs what it recorded for this phase's traces and say whether it agrees with the proxy."""
@@ -746,14 +749,18 @@ class JobRunner:
         ctx.log("install", installed.stdout or "Install finished")
         if installed.exit_code != 0:
             ctx.log("install", installed.stderr, stream="stderr")
-            ctx.fail("install_failed", "Installing the agent's dependencies failed in the sandbox. See the console.")
+            said = _last_line(installed.stderr) or _last_line(installed.stdout)
+            ctx.fail("install_failed", "The code's dependencies could not be installed in the sandbox, so it was not run and nothing was measured."
+                     + (f" The installer said: {said}." if said else "")
+                     + " This usually means the repository's lockfile, package manager or Python version needs something the sandbox does not have. A scan of the same repository still works: it reads the code without installing it.")
             return
 
         ctx.set_state(JobState.BASELINE)
         baseline = await self.run_phase(ctx, "baseline")
         ctx.phases["baseline"] = baseline
-        if not any(run.records for run in baseline.runs):
-            ctx.fail("no_calls_captured", "The agent ran but made no model calls through the proxy. It may set its provider URL in code, or use a provider Whittle does not proxy yet.")
+        why = baseline_failure(baseline, ctx.provider)
+        if why:
+            ctx.fail(*why)
             return
         job.summary.baseline = baseline.totals()
 
@@ -993,6 +1000,55 @@ class JobRunner:
 
 def _task_run(run: RunResult) -> TaskRun:
     return TaskRun(cost_usd=run.cost_usd, total_tokens=run.total_tokens, llm_calls=len(run.records), duration_ms=run.duration_ms, passed=bool(run.score and run.score.passed), trace_id=run.trace_id, trace_url=trace_url(run.trace_id))
+
+
+def _last_line(text: str) -> str:
+    """The last line of an installer's or a program's output that says something, trimmed for a sentence."""
+    for line in reversed((text or "").strip().splitlines()):
+        line = line.strip()
+        if line and not line.lower().startswith(("for help", "npm notice", "at ", "node.js v")):
+            return line.rstrip(".")[:200]
+    return ""
+
+
+def key_mismatch(provider: str, key: str) -> str | None:
+    """A sentence when the key plainly belongs to the other provider; None when it could be right.
+
+    Only the clear cases: Anthropic keys start with sk-ant-. OpenAI-compatible services use many
+    shapes, so anything else is let through for them."""
+    key = (key or "").strip()
+    is_anthropic_key = key.startswith("sk-ant-")
+    if str(provider) == "openai" and is_anthropic_key:
+        return ("That is an Anthropic key (it starts with sk-ant-), but the provider is set to OpenAI compatible. "
+                "Give the key for the provider this code calls, or change the provider if the code calls Anthropic.")
+    if str(provider) == "anthropic" and not is_anthropic_key:
+        return ("The provider is set to Anthropic, but that key is not an Anthropic key (those start with sk-ant-). "
+                "Give an Anthropic key, or change the provider to OpenAI compatible if that is what the code calls.")
+    return None
+
+
+def baseline_failure(baseline: "PhaseResult", provider: str) -> tuple[str, str] | None:
+    """Why a baseline cannot be measured, as (code, message), or None when it has usable model calls."""
+    records = [r for run in baseline.runs for r in run.records]
+    if any(r.status < 400 for r in records):
+        return None
+    stderr = "\n".join(run.stderr or "" for run in baseline.runs)
+    if records:  # the calls arrived and the provider refused every one of them
+        first = records[0]
+        detail = (first.error or "").split(": ", 1)[-1][:160]
+        if first.status in (401, 403):
+            return ("key_refused", f"The model provider refused the key on every call (HTTP {first.status}), so nothing could be measured. "
+                    f"The code calls {first.provider}; check that the key is a working {first.provider} key with access to {first.model}. Nothing was charged.")
+        return ("model_calls_failed", f"Every model call failed at the provider (HTTP {first.status}), so nothing could be measured. The provider said: {detail or 'no detail'}.")
+    if "session provider mismatch" in stderr:
+        other = "Anthropic" if str(provider) == "openai" else "OpenAI compatible"
+        return ("wrong_provider", f"The code called a different provider from the one chosen for the key. Start the measurement again with the provider set to {other} and a key for it.")
+    failed = next((run for run in baseline.runs if run.exit_code != 0), None)
+    if failed is not None:
+        said = _last_line(failed.stderr)
+        return ("run_failed", f"The command stopped with an error (exit {failed.exit_code}) before it called a model, so nothing was measured."
+                + (f" It said: {said}." if said else "") + " Check the command, the folder it runs from and the environment variables it needs.")
+    return ("no_calls_captured", "The code ran to the end but made no model calls through Whittle's proxy. It may set the provider's address in code, or call a provider Whittle does not proxy yet.")
 
 
 def _provider(name: Any) -> Provider | None:

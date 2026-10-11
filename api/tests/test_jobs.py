@@ -126,3 +126,34 @@ def test_clone_puts_the_entry_point_back_and_keeps_it_out_of_the_diff(tmp_path, 
     JobRunner(open_session=None, close_session=None)._clone(ctx)
     assert (ctx.repo / ".whittle" / "run.py").read_text() == "import agent\n"
     assert ctx.git("status", "--porcelain").stdout.strip() == ""  # untracked but excluded: never in a commit or the diff
+
+
+def test_failures_explain_themselves():
+    """A job that cannot be measured says why in plain words, and a wrong key is refused before anything runs."""
+    from costcutter.jobs import baseline_failure, key_mismatch, _last_line
+
+    # the key plainly belongs to the other provider
+    assert "Anthropic key" in key_mismatch("openai", "sk-ant-abc123")
+    assert "not an Anthropic key" in key_mismatch("anthropic", "sk-proj-abc123")
+    assert key_mismatch("anthropic", "sk-ant-abc123") is None
+    assert key_mismatch("openai", "gsk_live_abc") is None and key_mismatch("openai", "sk-proj-abc") is None
+
+    def run(records, exit_code=0, stderr=""):
+        return RunResult(Task("task-1", "q", []), exit_code, "", stderr, records, None, 0.0, 1, TaskScore("task-1", 0.0, False, ""))
+
+    def rec(status, error=None):
+        return CallRecord(seq=1, ts=0.0, job_id="j", phase="baseline", task_id="task-1", provider="openai", model="gpt-4o-mini", streaming=False,
+                          status=status, duration_ms=1.0, cost_usd=0.0, usage={}, request={}, response=None, error=error)
+
+    assert baseline_failure(PhaseResult("baseline", [run([rec(200)])]), "openai") is None
+    code, message = baseline_failure(PhaseResult("baseline", [run([rec(401, "upstream 401: Incorrect API key provided")])]), "openai")
+    assert code == "key_refused" and "refused the key" in message and "openai" in message and "Nothing was charged" in message
+    code, message = baseline_failure(PhaseResult("baseline", [run([rec(429, "upstream 429: rate limited")])]), "openai")
+    assert code == "model_calls_failed" and "rate limited" in message
+    code, message = baseline_failure(PhaseResult("baseline", [run([], 1, "openai.BadRequestError: session provider mismatch")]), "anthropic")
+    assert code == "wrong_provider" and "OpenAI compatible" in message
+    code, message = baseline_failure(PhaseResult("baseline", [run([], 2, "Traceback\n  File x\nKeyError: 'DATABASE_URL'\n")]), "openai")
+    assert code == "run_failed" and "KeyError: 'DATABASE_URL'" in message and "exit 2" in message
+    code, _ = baseline_failure(PhaseResult("baseline", [run([])]), "openai")
+    assert code == "no_calls_captured"
+    assert _last_line(" ERROR  packages field missing or empty\nFor help, run: pnpm help install\n") == "ERROR  packages field missing or empty"

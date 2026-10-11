@@ -1,5 +1,0 @@
-{
-  "terminal.integrated.env.windows": {
-    "PATH": "${env:PATH};C:\\Users\\sethu\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin"
-  }
-}

@@ -11,9 +11,9 @@ import os
 import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
-
-UTC = timezone.utc
 from typing import Literal
+
+UTC = timezone.utc  # datetime.UTC needs Python 3.11
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError

@@ -13,15 +13,22 @@ class ModelRates:
     cache_write_per_million: float | None = None
 
 
-# Checked-in table; extend as we add samples. Unknown models use a conservative default.
+# Anthropic's first-party rate card, checked 11 October 2026. Cache read is the
+# published read price; cache write is the 5-minute write at 1.25x input.
+# Haiku 5.5 is priced for prompts up to 100K tokens. Unknown models use the
+# Opus rate so a cap errs on the safe side.
 RATES: dict[str, ModelRates] = {
-    "claude-sonnet-5-5": ModelRates(3.0, 15.0, 0.30, 3.75),
+    "claude-opus-5-5": ModelRates(4.0, 20.0, 0.20, 5.0),
+    "claude-sonnet-5-5": ModelRates(2.0, 10.0, 0.20, 2.5),
+    "claude-haiku-5-5": ModelRates(0.10, 0.50, 0.01, 0.125),
+    "claude-opus-5": ModelRates(5.0, 25.0, 0.50, 6.25),
+    "claude-sonnet-5": ModelRates(2.0, 10.0, 0.20, 2.5),
+    "claude-sonnet-4-6": ModelRates(3.0, 15.0, 0.30, 3.75),
+    "claude-haiku-4-5": ModelRates(1.0, 5.0, 0.10, 1.25),
     "claude-sonnet-4-20250514": ModelRates(3.0, 15.0, 0.30, 3.75),
-    "claude-haiku-5-5": ModelRates(1.0, 5.0, 0.10, 1.25),
-    "claude-opus-5-5": ModelRates(5.0, 25.0, 0.50, 6.25),
 }
 
-DEFAULT_RATES = ModelRates(5.0, 25.0, 0.50, 6.25)
+DEFAULT_RATES = ModelRates(4.0, 20.0, 0.20, 5.0)
 
 
 def rates_for(model: str) -> ModelRates:

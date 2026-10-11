@@ -46,9 +46,8 @@ Run everything with `./start.sh` (Docker running, keys in `.env.local`).
    under workflow `whittle-agent`, and the caching off/on measurement is in
    the devlog. The calls do not nest under the fix's root span; nice to fix.
 3. **Click through the UI by hand** on a real job: done Sunday morning
-   (`job_1f855fd2b521`). Still to do: one more full job to see the sandbox
-   retry work, and job state that survives an API restart (today a finished
-   job's pages 404 after a restart).
+   (`job_1f855fd2b521`). Finished jobs now survive an API restart (a
+   `job.json` snapshot per job; checked on `job_60fb1adc9bda`).
 4. **Pull request delivery** once the bot token exists: a sample repo of its
    own on GitHub, so the demo's pull request is real.
 5. **Sandbox network:** done. The run step joins an internal Docker network

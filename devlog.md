@@ -20,7 +20,7 @@
 - **cfo.ai:** account created 11 Oct; plan not started (`business/` to come)
 - **Built in public:** 0
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T09:10:00+05:30
+- **Last updated:** 2026-10-11T09:56:00+05:30
 
 ## Evidence
 
@@ -533,6 +533,28 @@ errors. One regression from the recorder change found and fixed first.
   previous entry.
 - **Checked:** `uv run pytest`, 21 passed.
 - **Built with:** Claude Code, claude-fable-5-1.
+
+Evidence rows still missing: the agent improved (trace links), used neatlogs
+(links that open), used cfo.ai, built in public, written during the hackathon.
+
+### 2026-10-11 - 696a6de
+Finished jobs now survive an API restart, checked on a real job.
+
+- **Shipped:** each job writes a `job.json` snapshot beside its event log
+  (record, tasks, findings, kept fixes, run results; never the model key) and
+  the server reads them back on start. A job that was running when the server
+  stopped is marked failed with code `server_restarted` (`696a6de`). Job state
+  is files under `data/jobs/<id>/`, not SQLite as first planned.
+- **Measured:** job `job_60fb1adc9bda` on `research-agent-py`, 9:46 to 9:54 AM
+  IST: 4 fixes kept, 1 reverted (context bloat: its rerun was not cheaper),
+  77.6% lower. After killing and restarting the API, the job record, all 354
+  events, the findings, and the comparison and diff responses came back
+  byte-identical, and the patch download returned 200.
+- **Checked:** `uv run pytest`, 23 passed, two of them new restore tests.
+- **Shared:** main pushed to GitHub at 9:37 AM (`d59a73e`) for Sethuraman to
+  test; this commit is not pushed yet.
+- **Built with:** Claude Code, claude-fable-5-1 for the change, claude-opus-5-5
+  for the restart check.
 
 Evidence rows still missing: the agent improved (trace links), used neatlogs
 (links that open), used cfo.ai, built in public, written during the hackathon.

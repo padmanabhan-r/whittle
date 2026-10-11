@@ -645,6 +645,49 @@ overstated every saving.
 Evidence rows still missing: used neatlogs (links that open, now possible
 again), written during the hackathon.
 
+### 2026-10-11 - d29c568
+A command-line recorder, so an agent can be measured on the machine where it
+already runs.
+
+- **Decided:** the sandbox cannot rebuild a stranger's database, private
+  services and environment, so code that needs them could be scanned but never
+  measured. A recorder that runs on the developer's machine avoids the problem;
+  only the recorded calls travel. Free to record and see the cost; the findings
+  and, later, the fix loop are the service.
+- **Shipped:** `cli/`, an npm package named `whittle-ai` with no dependencies
+  (`d29c568`, on the `whittle-cli` branch). `whittle run -- <command>` starts a
+  proxy on localhost, points the model SDKs at it through their base URL
+  variables, and for Node programs loads a preload that also catches a provider
+  address written in the code. Streamed and plain calls to Anthropic, OpenAI
+  and compatible providers, and Gemini are recorded; the key is passed through
+  and never written. It prints calls, tokens and cost by model.
+- **Shipped:** `POST /api/recordings` and a `recorded` job mode. The server
+  costs every call from its token counts (a sender cannot name a price), sends
+  each run to neatlogs as a trace, and runs the five detectors. The web report
+  shows such a job with its calls and findings only.
+- **Measured:** three recorded runs of the Python sample on this machine: 18
+  calls, $0.0943, $0.0314 a run, against $0.0299 to $0.0300 for the same agent
+  in the sandbox. `job_d27e8ed2e854` returned the same five findings, estimated
+  at 66.8% of the cost per run together.
+- **Measured:** the TypeScript web app scanned earlier, which needs a live
+  database and calls Anthropic by an address written in its code: one report
+  call recorded, 4,862 tokens in and 1,705 out, $0.0535. The app printed the
+  same token counts itself.
+- **Not built:** fixing from a recording (the server holds no code for it),
+  accounts or a login, Bedrock and Vertex, and hardcoded addresses in languages
+  other than JavaScript. The package is not published to npm. The mock server
+  does not serve the new endpoint.
+- **Changed:** Entire Trails were enabled on the account. A trail could not be
+  created: the service does not know this repository yet, which needs the
+  repository connected in Entire.
+- **Checked:** `uv run pytest`, 37 passed; `npm test` in `cli/`, 4 passed
+  against a stand-in provider; the web app builds; the packed tarball runs
+  through `npx`.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: used neatlogs (links that open), written during
+the hackathon.
+
 ## Submission
 
 | Item | Status |

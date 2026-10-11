@@ -346,7 +346,6 @@ sandbox job runs at a time. There are no accounts yet.
 | `docs/api-contract.md` | What the UI and the backend agree on, with `openapi.json` and `event-schema.json` |
 | `devlog.md` | The build log: decisions, failures, measurements and evidence |
 | `spikes/` | Early spike scripts and their results |
-| `brainstorm/ideas.md` | The 40 rated ideas the entry was chosen from |
 | `docs/neathack-rules.md` | The hackathon rules and judging weights |
 
 ## Development

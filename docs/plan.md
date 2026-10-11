@@ -48,8 +48,9 @@ Run everything with `./start.sh` (Docker running, keys in `.env.local`).
 3. **Click through the UI by hand** on a real job: done Sunday morning
    (`job_1f855fd2b521`). Finished jobs now survive an API restart (a
    `job.json` snapshot per job; checked on `job_60fb1adc9bda`).
-4. **Pull request delivery** once the bot token exists: a sample repo of its
-   own on GitHub, so the demo's pull request is real.
+4. **Pull request delivery** once the bot token exists. The sample repo of its
+   own is up: https://github.com/padmanabhan-r/research-agent (its README has
+   the command and the five tasks to paste into "Paste your own repo").
 5. **Sandbox network:** done. The run step joins an internal Docker network
    whose only other member is a relay to the proxy; a test proves the internet
    is unreachable from it.

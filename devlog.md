@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 5
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T22:49:00+05:30
+- **Last updated:** 2026-10-11T23:02:00+05:30
 
 ## Evidence
 
@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `5dd105b` at 10:48 PM IST on 11 October. 102 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `33b2502` at 11:01 PM IST on 11 October. 104 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1184,6 +1184,43 @@ gave wrong advice.
   side; `npx tsc --noEmit`, `npm run lint` and `npm run build` in `web/`, clean.
 - **Not verified:** the "show all call sites" button on screen, and the retry
   of an unreachable proxy, which no test exercises.
+- **Built with:** Claude Code, claude-opus-5-5.
+
+Evidence rows still missing: none. Built in public has five posts. Outstanding:
+three more drafted posts and the quote post on X.
+
+### 2026-10-11 - 33b2502
+The first full measured job on this repository through the live site, run by
+Padmanabhan, ended in a result page that called a failure a saving.
+
+- **Measured:** `job_cf50dcf976c6` on https://whittleai.site, the sample
+  research agent inside this repository, one task, the judge as scorer. Four
+  findings, four fixes tried, all four reverted for answer quality (0.25 to
+  0.30 against 1.00). The final rerun, on unchanged code, cost $0.0366 against
+  a baseline of $0.0294 and scored 0.75.
+- **Failed:** the result page showed "-24.5% lower" and "$-143.92 saved". No
+  fix was kept, so both runs were of the same code and the gap was variation
+  between runs. The bars in the task table also ran into the next column,
+  because they were sized against the baseline alone.
+- **Shipped:** three endings on the result page. A saving, as before. "No fix
+  was kept", with the two runs shown as the same code run twice, no monthly
+  figure and no total. A red "higher" for a kept fix that cost more.
+- **Shipped:** when the unchanged code itself scores under the bar, the page
+  says the scoring could not judge the fixes, and asks for three to five tasks
+  with a definite answer.
+- **Decided:** this job is not evidence about the fixes. With one task and a
+  model judge, the unchanged code scored 0.75 against its own first answer,
+  under the 0.85 bar, so every fix would have been reverted whatever it did.
+  The measured results in the evidence table used the sample's fixed tasks,
+  scored against known facts.
+- **Not built:** a second baseline run to learn how much an agent's answers
+  vary before any fix is judged. It would double the baseline cost.
+- **Evidence:** the new page seen in Chrome on `job_cf50dcf976c6`, read from
+  the live API by a local build.
+- **Tests:** `npx tsc --noEmit`, `npm run lint` and `npm run build` in `web/`,
+  clean. No backend change.
+- **Not verified:** the red "higher" ending on screen. No job has ended that
+  way.
 - **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has five posts. Outstanding:

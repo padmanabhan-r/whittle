@@ -157,9 +157,11 @@ cfo.ai; and [the submission checklist](docs/submission.md).
 
 ## Run it yourself
 
-The hosted app is at [whittleai.site](https://whittleai.site). To run your own
-copy you need Docker running, [uv](https://docs.astral.sh/uv/) and Node.js 20
-or newer.
+The hosted app is at [whittleai.site](https://whittleai.site). It runs on one
+AWS EC2 instance in `us-east-1`, on the hackathon's AWS credits, with Caddy in
+front for HTTPS; the steps are in [docs/deploy.md](docs/deploy.md). To run your
+own copy you need Docker running, [uv](https://docs.astral.sh/uv/) and Node.js
+20 or newer.
 
 ```bash
 git clone https://github.com/padmanabhan-r/whittle.git

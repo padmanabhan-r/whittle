@@ -24,12 +24,14 @@ export function FixSection({ view, selected, onSelect }: { view: RunView; select
     <>
       {view.recoveries.map((recovery) => {
         const finding = view.findings.find((f) => f.id === recovery.finding_id)
+        const retried = recovery.action === 'retried'
         return (
           <div className="notice recover" role="status" key={recovery.seq}>
             <Undo />
             <div>
-              <strong>Reverted: {finding?.title ?? recovery.finding_id}</strong>
-              {recovery.reason} The earlier fixes are kept.
+              <strong>{retried ? 'Retried' : 'Reverted'}: {finding?.title ?? (retried ? 'a sandbox run' : recovery.finding_id)}</strong>
+              {recovery.reason}
+              {retried ? '' : ' The earlier fixes are kept.'}
             </div>
           </div>
         )

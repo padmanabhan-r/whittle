@@ -67,6 +67,8 @@ anything git ignores), applies each patch to your working tree, reruns, and
 keeps the patch only if it paid. Nothing is committed, and `fix --undo`
 reverses it. More in [`cli/README.md`](cli/README.md).
 
+![The end of a real whittle fix session](assets/screens/cli-fix.jpg)
+
 ![A scan of a TypeScript repository](assets/screens/scan.jpg)
 
 ## Real runs
@@ -131,9 +133,7 @@ Take any one away and part of the product stops working.
 
 ![One run of the agent as a neatlogs trace](assets/screens/neatlogs-trace.jpg)
 
-Where each lives in the code: `api/costcutter/proxy/recorder.py` and
-`neatlogs_client.py` for neatlogs, `api/costcutter/analyzers/locate.py` and
-`agent/fixer.py` for Entire.
+![The business plan in cfo.ai](business/cfo-ai-plan.jpg)
 
 ## Run it yourself
 
@@ -165,8 +165,6 @@ Built and run end to end: scan, sandbox runs in Python and TypeScript, the fix
 and revert loop, zip upload, the CLI on npm as
 [`whittle-ai`](https://www.npmjs.com/package/whittle-ai), and its fix loop.
 
-- Pull request delivery is written and not yet run against a real repository.
-- Deployment is in progress.
 - The sandbox runs Python, JavaScript and TypeScript. Other languages can be
   scanned, not measured.
 - A hardcoded provider address bypasses the sandbox proxy. The CLI catches it

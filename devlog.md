@@ -32,7 +32,7 @@
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
 | Built in public | 7 posts tagged #neatHack on 11 and 12 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) https://x.com/limb404/status/2109603952513921380 (how it finds its own way to run a repository, and Entire's part) https://x.com/limb404/status/2109609814318023118 (the business plan from cfo.ai) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `04ff3d8` at 6:17 PM IST on 12 October, documentation only; the last commit that changed code is `bb53517` at 11:16 PM IST on 11 October. 113 commits after merging the two latest main branches, none before the start | done |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `4d250f8` at 6:21 PM IST on 12 October, documentation only; the last commit that changed code is `bb53517` at 11:16 PM IST on 11 October. 116 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1327,9 +1327,9 @@ freeze at 12:30 PM IST held.
 - **Decision:** the drafted post correcting the 77.6% figure to 68% was not
   published (user's decision). The second post still quotes 77.6%; the video,
   the README and this log give 68%.
-- **Shipped:** a "For the judges" section near the top of the README (`04ff3d8`),
+- **Shipped:** `docs/judges.md` (`04ff3d8`, moved out of the README in `4d250f8`),
   one row per judging criterion, each pointing at evidence already in the
-  repository. Nothing new is claimed in it.
+  repository, linked from the top of the README. Nothing new is claimed in it.
 - **Tests:** none run; nothing but documentation changed. The film was checked
   by frames, length and audio continuity.
 - **Not verified:** how the spliced narration sounds at its two joins was

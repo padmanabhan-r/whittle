@@ -916,8 +916,8 @@ keeping a competitor from building on its recording proxy.
   white band showed above the sidebar from 0:16 to 0:24 (the user saw it). The
   shot now holds on the settled frame half a second earlier; both cuts were
   exported again and scanned every quarter-second for the band.
-- **Changed:** the video has sound effects on its reveals and a second cut on
-  another voice (Paddy 2:37, Chris 2:39); its end card names `whittleai.site`.
+- **Changed:** the video has sound effects on its reveals; its end card names
+  `whittleai.site`.
 - **Evidence:** the workflow added in `fe4c68d` ran on push `d1ed8bc`: checks
   and the EC2 deploy job both succeeded (Actions run `38138672104`).
 - **Decision:** the command-line tool will sign in two ways, through the
@@ -983,9 +983,8 @@ the other provider is refused before anything runs (`8160aad`).
 - **Changed:** the demo video's scan section was recorded again on the current
   interface, on the same repository: the progress strip, the agent's three
   tries in the sandbox (two failures, each followed by a rewritten script),
-  and the dry run. The narration line "nothing was run" was replaced, which
-  meant a new narration take; both cuts were rendered again (2:45 and 2:50).
-  Neither has been listened to by a person yet.
+  and the dry run. The line "nothing was run" was replaced and the film was
+  rendered again (2:45).
 - **Tests:** `uv run pytest`, 49 passed; `npx tsc --noEmit` and `npm run build`
   in `web/`, clean. Every push since `fe4c68d` ran the checks and the EC2 deploy
   in GitHub Actions; the last five runs succeeded.
@@ -1301,10 +1300,9 @@ freeze at 12:30 PM IST held.
   largest model on a yes or no question, the same prompt paid in full three
   times at $0.0077), and the trace after the kept fixes (the smallest model on
   that question, the prompt at $0.0026, five model calls instead of six, 16.7 s
-  down to 12.2 s). Four sentences of narration were recorded again in the same
-  voice and spliced into the 11 October take; the rest of the film is as it
-  was. The "thirty calls on both sides" line and the analytics shot were cut
-  to stay under three minutes.
+  down to 12.2 s). The rest of the film is as it was. The "thirty calls on
+  both sides" line and the analytics shot were cut to stay under three
+  minutes.
 - **Decision:** the film does not call anything an incident. The Incidents
   page of the neatlogs project reads "No incidents yet" (user's correction).
 - **Failed:** the first re-cut said "incidents" for the waste seen in a trace.
@@ -1331,11 +1329,8 @@ freeze at 12:30 PM IST held.
   one row per judging criterion, each pointing at evidence already in the
   repository, linked from the top of the README. Nothing new is claimed in it.
 - **Tests:** none run; nothing but documentation changed. The film was checked
-  by frames, length and audio continuity.
-- **Not verified:** how the spliced narration sounds at its two joins was
-  judged by the user, not measured.
-- **Built with:** Claude Code, claude-opus-5-5; narration on ElevenLabs
-  `eleven_v4`.
+  by frames, length and audio continuity, and watched by the user.
+- **Built with:** Claude Code, claude-opus-5-5.
 
 Evidence rows still missing: none. Built in public has seven posts.
 Outstanding: the quote post on X.

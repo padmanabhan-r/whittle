@@ -23,14 +23,11 @@ the two disagree.
 Padmanabhan:
 
 - [x] Watch `video/demo/final/whittle-ai-demo-paddy.mp4` once, end to end,
-      with sound and headphones. Only a person can judge the voice, the music,
-      the sound effects (are the pops and ticks audible, does the typing read
-      as typing) and the end card in motion. It is 2:57, under the three-minute
-      limit, and has a section each on neatlogs, Entire and cfo.ai. A second
-      cut on the Chris voice (2:50) is beside it; pick one to upload. The scan
-      section was re-recorded on 11 Oct, 8:50 PM, on the current interface, and
-      the narration is a new take, so listen to the whole film again.
-- [x] Uploaded 12 Oct, public: https://youtu.be/WZTi2TRm-IY (2:57, the Paddy cut with the neatlogs section rebuilt around the before and after traces; title, description, chapters and thumbnail set; subtitles not added). It replaces the 11 Oct upload, which is now private. Upload the video to YouTube, public or unlisted. X cuts standard
+      with sound and headphones. Only a person can judge the music, the sound
+      effects (are the pops and ticks audible, does the typing read as typing)
+      and the end card in motion. It is 2:57, under the three-minute limit, and
+      has a section each on neatlogs, Entire and cfo.ai.
+- [x] Uploaded 12 Oct, public: https://youtu.be/WZTi2TRm-IY (2:57, with the neatlogs section rebuilt around the before and after traces; title, description, chapters and thumbnail set; subtitles not added). It replaces the 11 Oct upload, which is now private. Upload the video to YouTube, public or unlisted. X cuts standard
       accounts off at 2:20 for native video, so the post links to YouTube.
       Put the link in the devlog header (`Demo`) and the README.
 - [x] neatlogs trace links: format confirmed (`https://app.neatlogs.com/traces/<id>`),

@@ -65,6 +65,14 @@ Rules that hold for both:
 | Where it lives | the developer's machine, and Whittle's server as a hash | the developer's machine only |
 | Sent to Whittle? | yes, on every request | **never** from the tool; on the web it is held in memory for one job and not stored |
 
+## A history of your runs
+
+Once jobs are stored against an account, a signed-in user gets a page listing
+every scan and job they ran: the repository, the findings, the fixes kept or
+reverted, and the cost per run before and after. Run again on the same
+repository and the page shows how its cost moved over time. Without an account
+a job is reachable only by its link, as it is today.
+
 ## What is charged
 
 From `business/plan.md`, unchanged:

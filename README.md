@@ -212,6 +212,21 @@ and revert loop, zip upload, the CLI on npm as
 - Public repositories only on the web. One sandbox job at a time. No accounts
   yet, so it is free to use.
 
+## Next steps
+
+Planned for after the hackathon; none of it is built yet.
+
+- **A history of your runs.** Sign in and every scan and job you ran is kept:
+  the findings, the fixes kept, the saving, and how a repository's cost moved
+  over time.
+- **Monetization.** The first job on a repository is free, then $49 a month
+  per repository. [The plan](docs/accounts-and-billing.md) says what is charged
+  and what stays free.
+- **Whittle API keys.** A key that Whittle issues, so the web app and the
+  command-line tool count jobs against an account, and scripts and build
+  servers can use it. It is separate from your model key, which Whittle never
+  stores.
+
 ## Repository
 
 | Path | What it is |

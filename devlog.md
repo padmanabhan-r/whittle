@@ -7,7 +7,7 @@
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
 - **Status:** deployed
 - **Live app:** https://whittleai.site
-- **Demo:** https://youtu.be/J1PHhwzYoHk (2:45, public, covers neatlogs, Entire and cfo.ai)
+- **Demo:** https://youtu.be/WZTi2TRm-IY (2:57, public, covers neatlogs, Entire and cfo.ai; it replaces the 11 October upload, now private)
 - **Repo:** https://github.com/padmanabhan-r/whittle (public since 11 October, 9:45 PM IST)
 - **Stack:** Python 3.10–3.13, FastAPI, Pydantic, pip/uv, pytest (`api/pyproject.toml`); Vite, React 19, TypeScript, React Router (`web/package.json`); a Node command-line tool with no dependencies, published to npm as `whittle-ai` (`cli/package.json`). Docker sandbox images for Python and Node
 - **Hosting:** AWS EC2
@@ -18,9 +18,9 @@
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
-- **Built in public:** 5
+- **Built in public:** 6
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-11T23:17:00+05:30
+- **Last updated:** 2026-10-12T16:50:00+05:30
 
 ## Evidence
 
@@ -31,8 +31,8 @@
 | Used Entire | 72 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` to `9bf3881`); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
-| Built in public | 5 posts tagged #neatHack on 11 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) | partial |
-| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `bb53517` at 11:16 PM IST on 11 October. 108 commits after merging the two latest main branches, none before the start | done |
+| Built in public | 6 posts tagged #neatHack on 11 and 12 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) https://x.com/limb404/status/2109603952513921380 (how it finds its own way to run a repository, and Entire's part) | partial |
+| Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `b2e7cf2` at 4:48 PM IST on 12 October, documentation only; the last commit that changed code is `bb53517` at 11:16 PM IST on 11 October. 110 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
 
@@ -1290,6 +1290,48 @@ should not have opened.
 Evidence rows still missing: none. Built in public has five posts. Outstanding:
 three more drafted posts and the quote post on X.
 
+### 2026-10-12 - b2e7cf2
+The demo video was re-cut and uploaded again. No code changed today; the code
+freeze at 12:30 PM IST held.
+
+- **Changed:** an organiser said the video should show how neatlogs was used
+  on the problems the agent ran into. The neatlogs section was rebuilt around
+  the two real traces of one task of `job_3e1b3cc39865`, captured from
+  neatlogs on 12 October: the baseline trace, where the waste is visible (the
+  largest model on a yes or no question, the same prompt paid in full three
+  times at $0.0077), and the trace after the kept fixes (the smallest model on
+  that question, the prompt at $0.0026, five model calls instead of six, 16.7 s
+  down to 12.2 s). Four sentences of narration were recorded again in the same
+  voice and spliced into the 11 October take; the rest of the film is as it
+  was. The "thirty calls on both sides" line and the analytics shot were cut
+  to stay under three minutes.
+- **Decision:** the film does not call anything an incident. The Incidents
+  page of the neatlogs project reads "No incidents yet" (user's correction).
+- **Failed:** the first re-cut said "incidents" for the waste seen in a trace.
+  It was not uploaded.
+- **Evidence:** neatlogs' "Execution Failed" detection has flagged 18 spans in
+  the project. 17 carry the error "dry run: not forwarded": they are the
+  scan's dry runs, which the proxy stops on purpose and records as errors
+  (`api/costcutter/proxy/app.py`). One is an upstream 401 from a wrong OpenAI
+  key entered during a test. None is a failure that was found and fixed, so
+  the detection is not shown in the film. Recording an intended dry run as an
+  error is a flaw in the tracing; it is not fixed, because the code is frozen.
+- **Shipped:** the new video, https://youtu.be/WZTi2TRm-IY, 2:57, public, with
+  the title, description, chapters and thumbnail set. The 11 October upload
+  (`J1PHhwzYoHk`) is now private, so links to it in earlier entries no longer
+  open. The README badge and `docs/submission.md` point at the new one.
+- **Shared:** https://x.com/limb404/status/2109603952513921380, the sixth post:
+  how Whittle finds its own way to run a repository, and Entire's part.
+- **Tests:** none run; nothing but documentation changed. The film was checked
+  by frames, length and audio continuity.
+- **Not verified:** how the spliced narration sounds at its two joins was
+  judged by the user, not measured.
+- **Built with:** Claude Code, claude-opus-5-5; narration on ElevenLabs
+  `eleven_v4`.
+
+Evidence rows still missing: none. Built in public has six posts. Outstanding:
+two more drafted posts and the quote post on X.
+
 ## Submission
 
 | Item | Status |
@@ -1297,6 +1339,6 @@ three more drafted posts and the quote post on X.
 | Team | done: Attention Heads (Padmanabhan and Sethuraman) |
 | Project name | done: Whittle AI |
 | Public repo link | done: https://github.com/padmanabhan-r/whittle |
-| Demo link | done: https://youtu.be/J1PHhwzYoHk (uploaded 11 Oct, public); the live app is at https://whittleai.site |
-| Video under three minutes covering neatlogs, Entire and cfo.ai | done: 2:45, with a section on each |
+| Demo link | done: https://youtu.be/WZTi2TRm-IY (uploaded 12 Oct, public); the live app is at https://whittleai.site |
+| Video under three minutes covering neatlogs, Entire and cfo.ai | done: 2:57, with a section on each |
 | Quote post on X | outstanding |

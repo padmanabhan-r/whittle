@@ -18,9 +18,9 @@
 - **neatlogs:** the proxy records one trace per sandboxed run with SDK spans: a WORKFLOW root per task run and an LLM span per proxied call carrying tokens, cache counts, cost and the messages (`api/costcutter/proxy/recorder.py`); Whittle's own agent client is wrapped with `neatlogs.wrap` under a `neatlogs.span(kind="WORKFLOW")` root (`api/costcutter/agent/llm.py`, `agent/fixer.py`). Dashboard links are `https://app.neatlogs.com/traces/<id>`
 - **Entire:** checkpoints on every commit from this machine since `f4d5dcb` (`Entire-Checkpoint` trailers), entire-graph used by the locator and the fixing agent at runtime (`api/costcutter/analyzers/locate.py`, `api/costcutter/agent/fixer.py`); Sethuraman's commits carry no checkpoint yet
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
-- **Built in public:** 6
+- **Built in public:** 7
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-12T16:50:00+05:30
+- **Last updated:** 2026-10-12T17:10:00+05:30
 
 ## Evidence
 
@@ -31,7 +31,7 @@
 | Used Entire | 72 checkpoints, one per commit from this machine (`Entire-Checkpoint` trailers from `f4d5dcb` to `9bf3881`); the graph used by the locator and the agent at runtime; real `entire checkpoint list`, `graph search`, `graph impact` and `graph stats` output in `docs/evidence/entire.md`. The checkpoints hold full session transcripts, so they are kept on the build machine and not published; shown on request | have |
 | Used cfo.ai | `business/plan.md` and `business/cfo-ai-plan.jpg`: pricing ($49 a repository, or 10% of savings), cost per job, three growth cases, break-even at about 5 repositories, runway with and without founder pay | done |
 | Recovers from failures | job `job_1a5e1ef6b80e`: fix 3 reverted after its rerun was not cheaper; job `job_1f855fd2b521`: fixes 1 and 2 reverted after their reruns lost the proxy connection (a false negative, now retried instead). Scan of the OpenLine repository, `job_2f4aac670180`: the entry point the agent wrote failed its first sandbox run (top-level await under tsx), the agent read the error, rewrote it, and the second run reached a model call. Events in `data/`, not public; the UI shows them on the Fix page and in the agent pane; on the live site, scan `job_5ff5ad24dcf3` failed its first sandbox try, rewrote its entry point and succeeded on the second | have |
-| Built in public | 6 posts tagged #neatHack on 11 and 12 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) https://x.com/limb404/status/2109603952513921380 (how it finds its own way to run a repository, and Entire's part) | partial |
+| Built in public | 7 posts tagged #neatHack on 11 and 12 Oct: https://x.com/limb404/status/2109143046889898043 (the introduction), https://x.com/limb404/status/2109159510082482614 (the first measured result) https://x.com/limb404/status/2109201036741423288 (the fix it reverted) and https://x.com/limb404/status/2109224759393468849 (what agents waste) https://x.com/limb404/status/2109304204611461438 (the first public preview, with the live site) https://x.com/limb404/status/2109603952513921380 (how it finds its own way to run a repository, and Entire's part) https://x.com/limb404/status/2109609814318023118 (the business plan from cfo.ai) | partial |
 | Written during the hackathon | First commit `9633bfe` at 12:37 PM IST on 10 October, seven minutes after the start; it holds planning and setup files only. Latest commit `b2e7cf2` at 4:48 PM IST on 12 October, documentation only; the last commit that changed code is `bb53517` at 11:16 PM IST on 11 October. 110 commits after merging the two latest main branches, none before the start | done |
 
 ## Log
@@ -1322,6 +1322,11 @@ freeze at 12:30 PM IST held.
   open. The README badge and `docs/submission.md` point at the new one.
 - **Shared:** https://x.com/limb404/status/2109603952513921380, the sixth post:
   how Whittle finds its own way to run a repository, and Entire's part.
+- **Shared:** https://x.com/limb404/status/2109609814318023118, the seventh
+  post: the cfo.ai plan, $49 a repository, break-even at five.
+- **Decision:** the drafted post correcting the 77.6% figure to 68% was not
+  published (user's decision). The second post still quotes 77.6%; the video,
+  the README and this log give 68%.
 - **Tests:** none run; nothing but documentation changed. The film was checked
   by frames, length and audio continuity.
 - **Not verified:** how the spliced narration sounds at its two joins was
@@ -1329,8 +1334,8 @@ freeze at 12:30 PM IST held.
 - **Built with:** Claude Code, claude-opus-5-5; narration on ElevenLabs
   `eleven_v4`.
 
-Evidence rows still missing: none. Built in public has six posts. Outstanding:
-two more drafted posts and the quote post on X.
+Evidence rows still missing: none. Built in public has seven posts.
+Outstanding: the quote post on X.
 
 ## Submission
 

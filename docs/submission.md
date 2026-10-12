@@ -129,5 +129,5 @@ After posting:
 | Live app | done: https://whittleai.site, live with a Let's Encrypt certificate since 11 Oct, 7:30 PM; a full scan run through it on 11 Oct (`job_5ff5ad24dcf3`, verified) |
 | Demo video under three minutes, all three tools | done: https://youtu.be/WZTi2TRm-IY, 2:57, public, uploaded 12 Oct |
 | Business plan in the repository | done |
-| Quote post on X | done: https://x.com/limb404/status/2109643103309287745, 12 Oct, 7:22 PM IST |
-| Submission form | outstanding |
+| Quote post on X | done: https://x.com/limb404/status/2109643103309287745, 12 Oct, 7:21 PM IST |
+| Submission form | done: submitted 12 Oct, about 7:45 PM IST |

@@ -5,7 +5,7 @@
 - **Team:** Attention Heads (Padmanabhan and Sethuraman)
 - **What it does:** Reads any repository's code to show where its model spend goes (scan), and runs an AI agent in a Docker sandbox behind a recording proxy, finds five kinds of waste in its model calls, has its own agent patch the code, reruns and scores the answers, keeps or reverts each fix, and reports the before and after (`docs/superpowers/specs/2026-10-10-agent-cost-cutter-design.md`)
 - **Problem:** People running AI agents pay for waste they cannot see: prompts that never hit the cache, repeated tool calls, context that grows every turn, a model larger than the step needs
-- **Status:** deployed
+- **Status:** deployed and submitted
 - **Live app:** https://whittleai.site
 - **Demo:** https://youtu.be/WZTi2TRm-IY (2:57, public, covers neatlogs, Entire and cfo.ai; it replaces the 11 October upload, now private)
 - **Repo:** https://github.com/padmanabhan-r/whittle (public since 11 October, 9:45 PM IST)
@@ -20,7 +20,7 @@
 - **cfo.ai:** a 12-month model built in cfo.ai on 11 Oct (four pages, three growth cases, a founder-pay stress case); summary in `business/plan.md`
 - **Built in public:** 8
 - **Started:** 2026-10-10T12:37:00+05:30
-- **Last updated:** 2026-10-12T19:24:00+05:30
+- **Last updated:** 2026-10-12T19:48:00+05:30
 
 ## Evidence
 
@@ -1344,12 +1344,15 @@ freeze at 12:30 PM IST held.
   replaced, since the old upload is private.
 - **Shared:** https://x.com/limb404/status/2109643103309287745, the eighth post and the
   submission: a quote of the official neatlogs post with the demo video
-  attached, posted at 7:22 PM IST, inside the 7:00 to 11:55 PM window.
+  attached, posted at 7:21 PM IST, inside the 7:00 to 11:55 PM window.
 - **Changed:** the organisers announced a second required step, a submission
   form. `docs/neathack-rules.md` records it (`73c5025`).
 
-Evidence rows still missing: none. Built in public has eight posts.
-Outstanding: the submission form.
+- **Shipped:** the submission form, the second required step, was filled in
+  and submitted by the user at about 7:45 PM IST. The entry is complete.
+
+Evidence rows still missing: none. Built in public has eight posts. Nothing
+is outstanding.
 
 ## Submission
 
@@ -1360,5 +1363,5 @@ Outstanding: the submission form.
 | Public repo link | done: https://github.com/padmanabhan-r/whittle |
 | Demo link | done: https://youtu.be/WZTi2TRm-IY (uploaded 12 Oct, public); the live app is at https://whittleai.site |
 | Video under three minutes covering neatlogs, Entire and cfo.ai | done: 2:57, with a section on each |
-| Quote post on X | done: https://x.com/limb404/status/2109643103309287745, posted 12 Oct at 7:22 PM IST as a quote of the official neatlogs post, with the demo video attached and @neatlogs, @EntireHQ and @arithecfo tagged |
-| Submission form | outstanding: the second step the organisers require |
+| Quote post on X | done: https://x.com/limb404/status/2109643103309287745, posted 12 Oct at 7:21 PM IST as a quote of the official neatlogs post, with the demo video attached and @neatlogs, @EntireHQ and @arithecfo tagged |
+| Submission form | done: submitted at https://neatlogs.com/submission on 12 Oct at about 7:45 PM IST, with the quote post link |

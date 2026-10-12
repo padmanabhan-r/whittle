@@ -56,6 +56,8 @@ Checked again against the live page on 11 October 2026, 9:17 PM IST: nothing bel
 - **Late submissions will not be judged.**
 - Submit as a public **quote post of the official neatlogs submission post on X**.
 - The post must include: team, name, project, public repository link, demo link.
+- Announced by the organisers on X on 12 October: the quote post must include the demo video and tag @neatlogs, @EntireHQ and @arithecfo, which is how their systems detect a submission. **A second step is also required:** fill out the submission form, whose link the organisers share. The form alone does not count, and neither does the post alone.
+- Bonus points for a demo video that clearly explains the problem and the solution.
 - Keep the official post attached, then publish. Opening the draft alone does not count as submitting.
 - **Demo video: three minutes or less.**
 - The video must explain the agent and the use of neatlogs, Entire and cfo.ai.
